@@ -10,6 +10,9 @@
 - Se anadio `UI_IMPLEMENTATION_PLAN.md` en la raiz con el plan detallado para la primera iteracion de UI basada en mocks.
 - Se implemento la tarea UI-01 con la base visual del dashboard principal usando mocks estaticos y sin activar todavia tarjetas, paneles o modales.
 - Se realizo un refinamiento visual de UI-01 para acercar proporciones del header del dashboard, selector de fecha y bloque KPI a la referencia de Figma.
+- Se corrigio la alineacion vertical de UI-01 para subir el bloque principal y dejar espacio natural inferior para las futuras tarjetas.
+- Se aplico un microajuste final de UI-01 reduciendo los espacios verticales internos entre tabs, fecha y KPI para una composicion mas compacta y fiel al Figma.
+- Se implemento UI-02 anadiendo las dos tarjetas principales del dashboard con datos mock estaticos: "Uso por horas" (barras verticales) y resumen por categorias (barras horizontales).
 
 ## Archivos y carpetas principales actuales
 
@@ -34,6 +37,8 @@
 - `src/components/layout/AppShell.jsx`: contenedor visual base.
 - `src/features/dashboard/components/WelcomeHero.jsx`: base visual actual del dashboard principal.
 - `src/mocks/dashboard.js`: mocks estaticos para el estado visual inicial del dashboard.
+- `src/features/dashboard/components/WelcomeHero.jsx`: incluye ahora tambien las dos tarjetas principales de UI-02.
+- `src/mocks/dashboard.js`: ampliado con mocks de uso por horas, etiquetas horarias y categorias resumen.
 - `src/lib/api/activitywatch.js`: punto base para centralizar la futura integracion con ActivityWatch.
 - `src/assets/`: recursos graficos del scaffold inicial.
 
@@ -44,6 +49,9 @@
 - Servidor local de desarrollo arrancado y comprobado en local.
 - La base visual de la home se ajusto al primer estado del dashboard de Figma con mocks estaticos.
 - UI-01 recibio un ajuste fino de escala tipografica y compactacion de controles sin ampliar alcance funcional.
+- UI-01 tambien recibio un ajuste de posicionamiento vertical del bloque principal, manteniendo intacta su escala visual.
+- UI-01 quedo refinada con menor separacion vertical entre bloques principales, sin cambios de estructura ni alcance funcional.
+- UI-02 quedo implementada visualmente con tarjetas y graficos basados en HTML/CSS/Tailwind sin librerias externas.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
