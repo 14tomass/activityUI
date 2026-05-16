@@ -16,6 +16,11 @@ API REST local y presentara los datos con una interfaz mas cuidada.
 - Node.js 24 o superior
 - ActivityWatch ejecutandose en local cuando se implementen las consultas reales
 
+## Entorno recomendado
+
+- Este proyecto se esta desarrollando dentro de Ubuntu/WSL.
+- Ejecuta los comandos `npm` desde la terminal de Ubuntu/WSL situada en la carpeta del proyecto.
+
 ## Desarrollo
 
 Instalar dependencias:

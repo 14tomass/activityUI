@@ -66,6 +66,10 @@
 - UI-04 quedo implementada visualmente con modal de detalle mock, sin editar datos ni logica de guardado.
 - UI-05 quedo implementada visualmente con modal de edicion mock, sin persistencia ni validaciones de formulario.
 - UI-06 dejo el flujo consolidado y sin estado duplicado de modales.
+- Validacion manual en entorno Ubuntu/WSL confirmada:
+- `npm run lint` -> OK
+- `npm run build` -> OK
+- El error previo con `@rolldown/binding-win32-x64-msvc` se debia al entorno de ejecucion Windows sobre ruta montada, no al codigo del proyecto.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
@@ -94,8 +98,8 @@
 - `isSettingsOpen` controla el drawer lateral.
 - `activeModal` controla si hay modal activo (`null`, `detail`, `edit`).
 - Los datos siguen siendo 100% mock en `src/mocks/dashboard.js`:
-- resumen principal (`timeRanges`, fecha, total),
-- grafico horario (`hourlyUsage`, `hourLabels`),
-- categorias (`categories`, `appCount`),
-- detalle de categoria (`categoryDetail`),
-- edicion de categoria (`categoryEdit`).
+- resumen principal (`timeRanges`, fecha, total)
+- grafico horario (`hourlyUsage`, `hourLabels`)
+- categorias (`categories`, `appCount`)
+- detalle de categoria (`categoryDetail`)
+- edicion de categoria (`categoryEdit`)
