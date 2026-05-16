@@ -17,6 +17,7 @@
 - Se implemento UI-04 con modal centrado de detalle de categoria sobre el panel lateral, usando datos mock de aplicaciones, duraciones y barras de progreso.
 - Se implemento UI-05 con modal de edicion de categoria mock, abierto desde una accion "Editar" en el modal de detalle y cierre por X o boton Cancelar.
 - Se completo UI-06 revisando el flujo entero y aplicando un refactor ligero del estado de interfaz para consolidar panel y modales sin cambios visuales.
+- Se completo DATA-01 con analisis tecnico de la API local de ActivityWatch sobre la instalacion real y documentacion de mapeo en `docs/ACTIVITYWATCH_DATA_MAPPING.md`.
 
 ## Archivos y carpetas principales actuales
 
@@ -50,6 +51,7 @@
 - `src/features/dashboard/components/WelcomeHero.jsx`: incorpora tambien el modal de edicion visual con input mock y acciones Cancelar/Guardar.
 - `src/mocks/dashboard.js`: ampliado con datos `categoryEdit` para encabezado, texto explicativo, lista y placeholder.
 - `src/lib/api/activitywatch.js`: punto base para centralizar la futura integracion con ActivityWatch.
+- `docs/ACTIVITYWATCH_DATA_MAPPING.md`: mapeo tecnico de buckets, eventos, endpoints y estrategia de integracion real (sin sustituir mocks aun).
 - `src/assets/`: recursos graficos del scaffold inicial.
 
 ## Verificaciones tecnicas superadas
@@ -70,6 +72,7 @@
 - `npm run lint` -> OK
 - `npm run build` -> OK
 - El error previo con `@rolldown/binding-win32-x64-msvc` se debia al entorno de ejecucion Windows sobre ruta montada, no al codigo del proyecto.
+- DATA-01 validada contra API local real (`http://localhost:5600/api/0/`) con respuestas de buckets, eventos y queries agregadas.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
@@ -82,6 +85,22 @@
 - Dejar cerradas las reglas de trabajo y documentacion del proyecto.
 - Consolidar microajustes de responsive y accesibilidad en la UI mock.
 - Mantener la app sin integracion real con ActivityWatch hasta completar la fase de UI mock.
+
+## DATA-01: Analisis tecnico de ActivityWatch
+
+- Se detectaron buckets reales de ventana, AFK y web en la instalacion local:
+- `aw-watcher-window_LenovoTomy`
+- `aw-watcher-afk_LenovoTomy`
+- `aw-watcher-web-chrome_LenovoTomy` (y variante `aw-watcher-web-chrome`)
+- Se verifico el esquema real de eventos:
+- ventana: `data.app`, `data.title`, `duration`, `timestamp`
+- afk: `data.status`, `duration`, `timestamp`
+- web: `data.url`, `data.title`, `duration`, `timestamp`
+- Se verifico `POST /api/0/query/` con formato correcto de `timeperiods` en intervalos ISO (`inicio/fin`) para agregados reales.
+- Quedo documentado que:
+- KPI total diario puede conectarse directamente con ventana intersectada con AFK `not-afk`.
+- uso por horas requiere transformacion adicional por franja en frontend.
+- categorias requieren reglas locales de clasificacion (app/url -> categoria).
 
 ## Flujo actual de UI mock
 

@@ -30,10 +30,11 @@
 
 ## Fase 2: Analizar y mapear datos de ActivityWatch
 
-- [ ] Revisar endpoints utiles de la API local de ActivityWatch
-- [ ] Identificar buckets, eventos y estructuras relevantes
-- [ ] Mapear datos crudos a modelos utiles para la UI
-- [ ] Detectar limites, lagunas y decisiones pendientes del modelo de datos
+- [x] Revisar endpoints utiles de la API local de ActivityWatch
+- [x] Identificar buckets, eventos y estructuras relevantes
+- [x] Mapear datos crudos a modelos utiles para la UI
+- [x] Detectar limites, lagunas y decisiones pendientes del modelo de datos
+- DATA-01 completada: investigacion de API local y mapeo tecnico documentado en `docs/ACTIVITYWATCH_DATA_MAPPING.md`.
 
 ## Fase 3: Conectar datos reales de ActivityWatch
 
