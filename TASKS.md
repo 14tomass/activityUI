@@ -20,6 +20,7 @@
 - [ ] Conectar la UI unicamente a datos mock
 - [ ] Validar estados base de navegacion y visualizacion
 - UI-01 completada: base visual del dashboard principal implementada con mocks estaticos.
+- UI-01 refinamiento visual completado: ajuste de proporciones en selector de rango, selector de fecha y bloque KPI para mayor fidelidad con Figma.
 
 ## Fase 2: Analizar y mapear datos de ActivityWatch
 

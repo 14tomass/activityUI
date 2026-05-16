@@ -9,6 +9,7 @@
 - Se preparo una base minima para la futura integracion con ActivityWatch sin activar todavia llamadas reales.
 - Se anadio `UI_IMPLEMENTATION_PLAN.md` en la raiz con el plan detallado para la primera iteracion de UI basada en mocks.
 - Se implemento la tarea UI-01 con la base visual del dashboard principal usando mocks estaticos y sin activar todavia tarjetas, paneles o modales.
+- Se realizo un refinamiento visual de UI-01 para acercar proporciones del header del dashboard, selector de fecha y bloque KPI a la referencia de Figma.
 
 ## Archivos y carpetas principales actuales
 
@@ -42,6 +43,7 @@
 - Lint ejecutado sin errores.
 - Servidor local de desarrollo arrancado y comprobado en local.
 - La base visual de la home se ajusto al primer estado del dashboard de Figma con mocks estaticos.
+- UI-01 recibio un ajuste fino de escala tipografica y compactacion de controles sin ampliar alcance funcional.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
