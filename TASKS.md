@@ -24,6 +24,9 @@
 - UI-01 refinamiento de layout completado: correccion de alineacion vertical para posicionar el bloque principal mas arriba.
 - UI-02 completada: tarjetas "Uso por horas" y resumen por categorias implementadas con datos mock estaticos.
 - UI-03 completada: panel lateral de configuracion mock con overlay, blur y cierre por X/overlay.
+- UI-04 completada: modal de detalle de categoria mock sobre el panel lateral, con lista de items, duraciones y barras de progreso.
+- UI-05 completada: modal de edicion de categoria mock con input visual, boton "+", Cancelar y Guardar cambios.
+- UI-06 completada: revision integral del flujo mock y consolidacion ligera del estado de interfaz.
 
 ## Fase 2: Analizar y mapear datos de ActivityWatch
 

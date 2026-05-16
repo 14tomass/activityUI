@@ -14,6 +14,9 @@
 - Se aplico un microajuste final de UI-01 reduciendo los espacios verticales internos entre tabs, fecha y KPI para una composicion mas compacta y fiel al Figma.
 - Se implemento UI-02 anadiendo las dos tarjetas principales del dashboard con datos mock estaticos: "Uso por horas" (barras verticales) y resumen por categorias (barras horizontales).
 - Se implemento UI-03 con panel lateral de configuracion mock, apertura desde boton flotante, overlay con atenuacion y blur, y cierre por boton X o click sobre overlay.
+- Se implemento UI-04 con modal centrado de detalle de categoria sobre el panel lateral, usando datos mock de aplicaciones, duraciones y barras de progreso.
+- Se implemento UI-05 con modal de edicion de categoria mock, abierto desde una accion "Editar" en el modal de detalle y cierre por X o boton Cancelar.
+- Se completo UI-06 revisando el flujo entero y aplicando un refactor ligero del estado de interfaz para consolidar panel y modales sin cambios visuales.
 
 ## Archivos y carpetas principales actuales
 
@@ -42,6 +45,10 @@
 - `src/mocks/dashboard.js`: ampliado con mocks de uso por horas, etiquetas horarias y categorias resumen.
 - `src/features/dashboard/components/WelcomeHero.jsx`: incorpora tambien la logica visual de UI-03 para mostrar y ocultar el panel lateral de configuracion.
 - `src/mocks/dashboard.js`: ampliado con `appCount` para renderizar numero de aplicaciones por categoria en el panel.
+- `src/features/dashboard/components/WelcomeHero.jsx`: incorpora tambien la apertura y cierre del modal de detalle de categoria sobre el panel lateral.
+- `src/mocks/dashboard.js`: ampliado con datos `categoryDetail` para el modal (items, duraciones y progreso).
+- `src/features/dashboard/components/WelcomeHero.jsx`: incorpora tambien el modal de edicion visual con input mock y acciones Cancelar/Guardar.
+- `src/mocks/dashboard.js`: ampliado con datos `categoryEdit` para encabezado, texto explicativo, lista y placeholder.
 - `src/lib/api/activitywatch.js`: punto base para centralizar la futura integracion con ActivityWatch.
 - `src/assets/`: recursos graficos del scaffold inicial.
 
@@ -56,6 +63,9 @@
 - UI-01 quedo refinada con menor separacion vertical entre bloques principales, sin cambios de estructura ni alcance funcional.
 - UI-02 quedo implementada visualmente con tarjetas y graficos basados en HTML/CSS/Tailwind sin librerias externas.
 - UI-03 quedo implementada visualmente con drawer lateral y overlay de fondo, sin modales ni integracion real de categorias.
+- UI-04 quedo implementada visualmente con modal de detalle mock, sin editar datos ni logica de guardado.
+- UI-05 quedo implementada visualmente con modal de edicion mock, sin persistencia ni validaciones de formulario.
+- UI-06 dejo el flujo consolidado y sin estado duplicado de modales.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
@@ -66,6 +76,26 @@
 ## Pendiente antes de empezar la UI real
 
 - Dejar cerradas las reglas de trabajo y documentacion del proyecto.
-- Completar las tarjetas de uso por horas y categorias del dashboard.
-- Implementar los modales de categoria (detalle y edicion) sobre el panel ya creado.
+- Consolidar microajustes de responsive y accesibilidad en la UI mock.
 - Mantener la app sin integracion real con ActivityWatch hasta completar la fase de UI mock.
+
+## Flujo actual de UI mock
+
+- Apertura de panel: el boton flotante del dashboard activa `isSettingsOpen`.
+- Cierre de panel: se puede cerrar con la `X` del panel o pulsando el overlay de fondo.
+- Apertura de modal de detalle: al pulsar una categoria del panel se activa `activeModal = 'detail'`.
+- Cierre de modal de detalle: se cierra con su `X` y vuelve a `activeModal = null`.
+- Apertura de modal de edicion: desde la accion `Editar` dentro del modal de detalle se cambia a `activeModal = 'edit'`.
+- Cierre de modal de edicion: se cierra con su `X`, con `Cancelar` y tambien con `Guardar cambios` (solo cierre visual, sin persistencia).
+
+## Estado de interfaz y mocks
+
+- El estado de interfaz vive en `src/features/dashboard/components/WelcomeHero.jsx`.
+- `isSettingsOpen` controla el drawer lateral.
+- `activeModal` controla si hay modal activo (`null`, `detail`, `edit`).
+- Los datos siguen siendo 100% mock en `src/mocks/dashboard.js`:
+- resumen principal (`timeRanges`, fecha, total),
+- grafico horario (`hourlyUsage`, `hourLabels`),
+- categorias (`categories`, `appCount`),
+- detalle de categoria (`categoryDetail`),
+- edicion de categoria (`categoryEdit`).

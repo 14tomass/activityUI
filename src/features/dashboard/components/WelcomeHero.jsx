@@ -74,6 +74,12 @@ const chevronRightIcon = (
 
 function WelcomeHero() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [activeModal, setActiveModal] = useState(null)
+
+  const closeSettings = () => {
+    setActiveModal(null)
+    setIsSettingsOpen(false)
+  }
 
   return (
     <section className="relative flex w-full max-w-[1180px] justify-center">
@@ -197,7 +203,7 @@ function WelcomeHero() {
           <button
             type="button"
             aria-label="Cerrar panel de configuracion"
-            onClick={() => setIsSettingsOpen(false)}
+            onClick={closeSettings}
             className="fixed inset-0 z-30 bg-slate-900/36 backdrop-blur-[3px]"
           />
 
@@ -210,7 +216,7 @@ function WelcomeHero() {
                 <button
                   type="button"
                   aria-label="Cerrar configuracion"
-                  onClick={() => setIsSettingsOpen(false)}
+                  onClick={closeSettings}
                   className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
                 >
                   {closeIcon}
@@ -231,6 +237,9 @@ function WelcomeHero() {
                     <button
                       key={category.id}
                       type="button"
+                      onClick={() => {
+                        setActiveModal('detail')
+                      }}
                       className="flex w-full items-center justify-between rounded-[20px] bg-slate-200/70 px-6 py-4 text-left transition hover:bg-slate-200"
                     >
                       <div className="flex items-center gap-4">
@@ -264,6 +273,149 @@ function WelcomeHero() {
               </div>
             </div>
           </aside>
+
+          {activeModal === 'detail' ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+              <div className="w-full max-w-[540px] rounded-[30px] bg-[#f5f5f6] px-8 py-8 shadow-[0_24px_60px_rgba(15,23,42,0.25)]">
+                <div className="mb-6 flex items-start justify-between">
+                  <div>
+                    <h3 className="text-[2.9rem] font-semibold tracking-[-0.03em] text-slate-800">
+                      {dashboardOverview.categoryDetail.title}
+                    </h3>
+                    <p className="mt-1 text-[1.22rem] text-slate-500">
+                      {dashboardOverview.categoryDetail.total}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveModal('edit')
+                      }}
+                      className="rounded-full bg-[#1677f2]/12 px-4 py-2 text-[0.88rem] font-semibold text-[#1677f2] transition hover:bg-[#1677f2]/18"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Cerrar detalle de categoria"
+                      onClick={() => setActiveModal(null)}
+                      className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
+                    >
+                      {closeIcon}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {dashboardOverview.categoryDetail.items.map((item) => (
+                    <div key={item.id}>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[2rem] leading-none">
+                            {item.icon}
+                          </span>
+                          <span className="text-[1.05rem] font-semibold text-slate-800">
+                            {item.name}
+                          </span>
+                        </div>
+                        <span className="text-[1.06rem] font-medium text-slate-500">
+                          {item.duration}
+                        </span>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-slate-200/80">
+                        <div
+                          className="h-2.5 rounded-full bg-[#1677f2]"
+                          style={{ width: `${item.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {activeModal === 'edit' ? (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center px-6">
+              <div className="w-full max-w-[720px] rounded-[32px] bg-[#f5f5f6] px-8 py-8 shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
+                <div className="mb-6 flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <span
+                      className="h-6 w-6 rounded-full"
+                      style={{ backgroundColor: dashboardOverview.categoryEdit.color }}
+                    />
+                    <h3 className="text-[2.7rem] font-semibold tracking-[-0.03em] text-slate-800">
+                      {dashboardOverview.categoryEdit.title}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Cerrar edicion de categoria"
+                    onClick={() => setActiveModal(null)}
+                    className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
+                  >
+                    {closeIcon}
+                  </button>
+                </div>
+
+                <p className="mb-6 text-[1.12rem] text-slate-500">
+                  {dashboardOverview.categoryEdit.helperText}
+                </p>
+
+                <div className="space-y-3">
+                  {dashboardOverview.categoryEdit.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 rounded-[16px] bg-slate-200/70 px-5 py-4"
+                    >
+                      <span className="text-[1.8rem] leading-none">{item.icon}</span>
+                      <span className="text-[1.1rem] font-semibold text-slate-800">
+                        {item.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8">
+                  <p className="mb-3 text-[1.08rem] font-semibold text-slate-800">
+                    Anadir aplicacion o sitio web
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      placeholder={dashboardOverview.categoryEdit.inputPlaceholder}
+                      className="h-14 flex-1 rounded-[14px] border border-transparent bg-slate-200/70 px-5 text-[1.02rem] text-slate-700 placeholder:text-slate-400 focus:border-[#1677f2]/30 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      aria-label="Anadir item"
+                      className="flex h-14 w-14 items-center justify-center rounded-[14px] bg-[#1677f2] text-[2rem] leading-none text-white shadow-[0_10px_20px_rgba(22,119,242,0.35)]"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-8 grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    className="h-14 rounded-[16px] bg-slate-200/80 text-[1.1rem] font-semibold text-slate-700 transition hover:bg-slate-200"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    className="h-14 rounded-[16px] bg-[#1677f2] text-[1.1rem] font-semibold text-white shadow-[0_10px_22px_rgba(22,119,242,0.32)] transition hover:bg-[#136de0]"
+                  >
+                    Guardar cambios
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </>
       ) : null}
     </section>

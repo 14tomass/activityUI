@@ -67,4 +67,43 @@ export const dashboardOverview = {
       appCount: 3,
     },
   ],
+  categoryDetail: {
+    title: 'Estudio',
+    total: '4h 5m total',
+    color: '#1677f2',
+    items: [
+      {
+        id: 'vscode',
+        icon: '🖥️',
+        name: 'VS Code',
+        duration: '2h 0m',
+        progress: 49,
+      },
+      {
+        id: 'notion',
+        icon: '📝',
+        name: 'Notion',
+        duration: '1h 15m',
+        progress: 31,
+      },
+      {
+        id: 'stack-overflow',
+        icon: '🌐',
+        name: 'Chrome - Stack Overflow',
+        duration: '50m',
+        progress: 21,
+      },
+    ],
+  },
+  categoryEdit: {
+    title: 'Estudio',
+    color: '#1677f2',
+    helperText: 'Anade o elimina aplicaciones y sitios web de esta categoria',
+    inputPlaceholder: 'Ej: Chrome - YouTube',
+    items: [
+      { id: 'vscode', icon: '🖥️', name: 'VS Code' },
+      { id: 'notion', icon: '📝', name: 'Notion' },
+      { id: 'stack-overflow', icon: '🌐', name: 'Chrome - Stack Overflow' },
+    ],
+  },
 }
