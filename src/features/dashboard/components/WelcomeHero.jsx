@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { dashboardOverview } from '../../../mocks/dashboard'
 
 const calendarIcon = (
@@ -25,7 +26,7 @@ const chevronLeftIcon = (
   </svg>
 )
 
-const chevronRightIcon = (
+const drawerChevronRightIcon = (
   <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
     <path
       d="M9.5 6.5L15 12l-5.5 5.5"
@@ -48,10 +49,39 @@ const menuIcon = (
   </svg>
 )
 
+const closeIcon = (
+  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+    <path
+      d="M8 8L16 16M16 8L8 16"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+)
+
+const chevronRightIcon = (
+  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+    <path
+      d="M9.5 6.5L15 12l-5.5 5.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
 function WelcomeHero() {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
   return (
     <section className="relative flex w-full max-w-[1180px] justify-center">
-      <div className="w-full max-w-[552px] px-4 text-center sm:px-0">
+      <div
+        className={`w-full max-w-[552px] px-4 text-center transition-[filter,opacity] duration-300 sm:px-0 ${
+          isSettingsOpen ? 'opacity-60 blur-[2.4px]' : 'opacity-100'
+        }`}
+      >
         <div className="mx-auto flex w-full max-w-[296px] items-center rounded-full bg-white p-1 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
           {dashboardOverview.timeRanges.map((range) => (
             <button
@@ -156,10 +186,86 @@ function WelcomeHero() {
       <button
         type="button"
         aria-label="Abrir configuracion"
+        onClick={() => setIsSettingsOpen(true)}
         className="absolute right-0 top-[7.1rem] flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900"
       >
         {menuIcon}
       </button>
+
+      {isSettingsOpen ? (
+        <>
+          <button
+            type="button"
+            aria-label="Cerrar panel de configuracion"
+            onClick={() => setIsSettingsOpen(false)}
+            className="fixed inset-0 z-30 bg-slate-900/36 backdrop-blur-[3px]"
+          />
+
+          <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-[505px] bg-[#f6f6f7] shadow-[-12px_0_40px_rgba(15,23,42,0.2)]">
+            <div className="flex h-full flex-col">
+              <header className="flex items-center justify-between border-b border-slate-200 px-9 py-8">
+                <h2 className="text-[2.72rem] font-semibold tracking-[-0.03em] text-slate-800">
+                  Configuracion
+                </h2>
+                <button
+                  type="button"
+                  aria-label="Cerrar configuracion"
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
+                >
+                  {closeIcon}
+                </button>
+              </header>
+
+              <div className="px-9 py-9">
+                <h3 className="text-[2rem] font-semibold tracking-[-0.02em] text-slate-800">
+                  Modificar categorias
+                </h3>
+                <p className="mt-4 text-[1.16rem] leading-[1.45] text-slate-500">
+                  Gestiona que aplicaciones y sitios web pertenecen a cada
+                  categoria
+                </p>
+
+                <div className="mt-8 space-y-3">
+                  {dashboardOverview.categories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-[20px] bg-slate-200/70 px-6 py-4 text-left transition hover:bg-slate-200"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span
+                          className="h-6 w-6 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <div>
+                          <p className="text-[1.12rem] font-semibold text-slate-800">
+                            {category.label}
+                          </p>
+                          <p className="text-[0.98rem] font-medium text-slate-500">
+                            {category.appCount} aplicaciones
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-slate-400">
+                        {drawerChevronRightIcon}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className="mt-6 flex w-full items-center justify-center gap-3 rounded-[20px] border-2 border-dashed border-slate-300 bg-transparent px-6 py-5 text-[1.02rem] font-semibold text-[#1677f2] transition hover:border-[#8fbaf7]"
+                >
+                  <span className="text-[1.7rem] leading-none">+</span>
+                  <span>Crear nueva categoria</span>
+                </button>
+              </div>
+            </div>
+          </aside>
+        </>
+      ) : null}
     </section>
   )
 }

@@ -40,6 +40,7 @@ export const dashboardOverview = {
       duration: '4h 5m',
       progress: 38,
       color: '#1677f2',
+      appCount: 3,
     },
     {
       id: 'entertainment',
@@ -47,6 +48,7 @@ export const dashboardOverview = {
       duration: '3h 0m',
       progress: 28,
       color: '#ff2f5a',
+      appCount: 3,
     },
     {
       id: 'productivity',
@@ -54,6 +56,7 @@ export const dashboardOverview = {
       duration: '1h 35m',
       progress: 15,
       color: '#2cb64d',
+      appCount: 3,
     },
     {
       id: 'others',
@@ -61,6 +64,7 @@ export const dashboardOverview = {
       duration: '1h 0m',
       progress: 9,
       color: '#8f949f',
+      appCount: 3,
     },
   ],
 }

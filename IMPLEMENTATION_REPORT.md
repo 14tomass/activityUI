@@ -13,6 +13,7 @@
 - Se corrigio la alineacion vertical de UI-01 para subir el bloque principal y dejar espacio natural inferior para las futuras tarjetas.
 - Se aplico un microajuste final de UI-01 reduciendo los espacios verticales internos entre tabs, fecha y KPI para una composicion mas compacta y fiel al Figma.
 - Se implemento UI-02 anadiendo las dos tarjetas principales del dashboard con datos mock estaticos: "Uso por horas" (barras verticales) y resumen por categorias (barras horizontales).
+- Se implemento UI-03 con panel lateral de configuracion mock, apertura desde boton flotante, overlay con atenuacion y blur, y cierre por boton X o click sobre overlay.
 
 ## Archivos y carpetas principales actuales
 
@@ -39,6 +40,8 @@
 - `src/mocks/dashboard.js`: mocks estaticos para el estado visual inicial del dashboard.
 - `src/features/dashboard/components/WelcomeHero.jsx`: incluye ahora tambien las dos tarjetas principales de UI-02.
 - `src/mocks/dashboard.js`: ampliado con mocks de uso por horas, etiquetas horarias y categorias resumen.
+- `src/features/dashboard/components/WelcomeHero.jsx`: incorpora tambien la logica visual de UI-03 para mostrar y ocultar el panel lateral de configuracion.
+- `src/mocks/dashboard.js`: ampliado con `appCount` para renderizar numero de aplicaciones por categoria en el panel.
 - `src/lib/api/activitywatch.js`: punto base para centralizar la futura integracion con ActivityWatch.
 - `src/assets/`: recursos graficos del scaffold inicial.
 
@@ -52,6 +55,7 @@
 - UI-01 tambien recibio un ajuste de posicionamiento vertical del bloque principal, manteniendo intacta su escala visual.
 - UI-01 quedo refinada con menor separacion vertical entre bloques principales, sin cambios de estructura ni alcance funcional.
 - UI-02 quedo implementada visualmente con tarjetas y graficos basados en HTML/CSS/Tailwind sin librerias externas.
+- UI-03 quedo implementada visualmente con drawer lateral y overlay de fondo, sin modales ni integracion real de categorias.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
@@ -63,5 +67,5 @@
 
 - Dejar cerradas las reglas de trabajo y documentacion del proyecto.
 - Completar las tarjetas de uso por horas y categorias del dashboard.
-- Implementar el panel lateral de configuracion y los modales de categoria.
+- Implementar los modales de categoria (detalle y edicion) sobre el panel ya creado.
 - Mantener la app sin integracion real con ActivityWatch hasta completar la fase de UI mock.
