@@ -183,6 +183,10 @@ Requieren logica adicional:
 - mantener un mapeo configurable para reasignaciones
 - combinar tiempos de fuentes app + web sin doble conteo
 
+Nota de referencia canonica para integracion:
+- Para calculos de tiempo activo tomaremos como base el procesamiento canonico basico de ActivityWatch: eventos de ventana intersectados con AFK `not-afk`.
+- Si en iteraciones posteriores aparecen diferencias con expectativas de UI o con otros calculos agregados, se contrastaran resultados y se ajustara la estrategia de agregacion.
+
 ## 7) Riesgos y dudas tecnicas
 
 1. Doble conteo entre ventana y web:

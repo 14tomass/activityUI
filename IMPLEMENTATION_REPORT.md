@@ -18,6 +18,8 @@
 - Se implemento UI-05 con modal de edicion de categoria mock, abierto desde una accion "Editar" en el modal de detalle y cierre por X o boton Cancelar.
 - Se completo UI-06 revisando el flujo entero y aplicando un refactor ligero del estado de interfaz para consolidar panel y modales sin cambios visuales.
 - Se completo DATA-01 con analisis tecnico de la API local de ActivityWatch sobre la instalacion real y documentacion de mapeo en `docs/ACTIVITYWATCH_DATA_MAPPING.md`.
+- Se completo DATA-02 con una capa de descubrimiento dinamico de buckets y validacion basica de disponibilidad en `src/lib/api/activitywatch.js`, sin conectar todavia datos a la UI.
+- Se completo DATA-02-VERIFY con un script manual de terminal para comprobar el discovery de buckets contra ActivityWatch local.
 
 ## Archivos y carpetas principales actuales
 
@@ -30,6 +32,7 @@
 - `index.html`: entrada HTML principal.
 - `README.md`: guia de arranque y contexto general.
 - `scripts/`: utilidades de ejecucion para Vite en este entorno.
+- `scripts/check-activitywatch-buckets.mjs`: comprobacion manual de desarrollo para validar `discoverActivityWatchBuckets()`.
 - `public/`: assets publicos.
 - `src/`: codigo fuente principal.
 
@@ -51,6 +54,7 @@
 - `src/features/dashboard/components/WelcomeHero.jsx`: incorpora tambien el modal de edicion visual con input mock y acciones Cancelar/Guardar.
 - `src/mocks/dashboard.js`: ampliado con datos `categoryEdit` para encabezado, texto explicativo, lista y placeholder.
 - `src/lib/api/activitywatch.js`: punto base para centralizar la futura integracion con ActivityWatch.
+- `src/lib/api/activitywatch.js`: ahora incluye descubrimiento dinamico de buckets (`window`, `afk`, `web`) y manejo normalizado de errores/ausencias.
 - `docs/ACTIVITYWATCH_DATA_MAPPING.md`: mapeo tecnico de buckets, eventos, endpoints y estrategia de integracion real (sin sustituir mocks aun).
 - `src/assets/`: recursos graficos del scaffold inicial.
 
@@ -73,12 +77,45 @@
 - `npm run build` -> OK
 - El error previo con `@rolldown/binding-win32-x64-msvc` se debia al entorno de ejecucion Windows sobre ruta montada, no al codigo del proyecto.
 - DATA-01 validada contra API local real (`http://localhost:5600/api/0/`) con respuestas de buckets, eventos y queries agregadas.
+- DATA-02 validada con lint tras introducir capa de descubrimiento API sin impacto visual en la UI.
+- Build de DATA-02 pendiente de revalidacion en un shell Ubuntu/WSL con `npm` disponible en PATH (en esta sesion `npm` no estaba disponible dentro de `wsl.exe`).
+- DATA-02-VERIFY anade una validacion manual reproducible desde terminal via `npm run check:activitywatch-buckets`.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
-- Por ahora solo expone la URL base de la API local de ActivityWatch.
-- Su funcion actual es dejar preparado un punto unico y claro para centralizar la futura capa de acceso a datos.
-- No realiza todavia consultas reales ni modifica ninguna configuracion de ActivityWatch.
+- Expone la URL base de la API local de ActivityWatch.
+- Incorpora `discoverActivityWatchBuckets()` para consultar `GET /api/0/buckets/` y detectar dinamicamente buckets de:
+- actividad de ventana/apps (`currentwindow` / `aw-watcher-window*`)
+- AFK (`afkstatus` / `aw-watcher-afk*`)
+- web (`web.tab.current` / `aw-watcher-web-*`)
+- Devuelve una respuesta estable con:
+- `ok`
+- `buckets` (`window`, `afk`, `web`)
+- `missing`
+- `warnings`
+- `error`
+- Maneja explicitamente ActivityWatch no disponible y ausencia parcial de buckets sin romper la UI.
+
+## DATA-02: Descubrimiento dinamico de buckets
+
+- Se evito hardcodear ids con hostname en la capa API.
+- La deteccion prioriza `type` de bucket y usa fallback por prefijo de `id`.
+- Se definio semantica de disponibilidad:
+- falta `window`: warning critico (impacta KPI y base de uso)
+- falta `afk`: warning no bloqueante (sin filtro canonico not-afk)
+- falta `web`: warning no bloqueante (sin desglose de sitios)
+- No se conecto todavia esta capa al dashboard ni se sustituyeron mocks.
+
+## DATA-02-VERIFY: Comprobacion manual desde terminal
+
+- Se anadio un script tecnico para validar el resultado de discovery sin tocar la UI:
+- `npm run check:activitywatch-buckets`
+- El script imprime un resumen legible con:
+- disponibilidad de ActivityWatch (`ok`)
+- bucket detectado para `window`, `afk` y `web`
+- lista `missing`
+- lista `warnings`
+- `error` detallado si existe
 
 ## Pendiente antes de empezar la UI real
 

@@ -35,6 +35,10 @@
 - [x] Mapear datos crudos a modelos utiles para la UI
 - [x] Detectar limites, lagunas y decisiones pendientes del modelo de datos
 - DATA-01 completada: investigacion de API local y mapeo tecnico documentado en `docs/ACTIVITYWATCH_DATA_MAPPING.md`.
+- [x] Implementar descubrimiento dinamico de buckets y validacion basica de disponibilidad
+- DATA-02 completada: capa API para detectar buckets window/afk/web sin hardcodear hostname y con manejo de ausencia/errores.
+- [x] Crear comprobacion manual de desarrollo para discovery de buckets
+- DATA-02-VERIFY completada: script `check:activitywatch-buckets` para validar en terminal el resultado real de `discoverActivityWatchBuckets()`.
 
 ## Fase 3: Conectar datos reales de ActivityWatch
 
