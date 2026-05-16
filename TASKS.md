@@ -14,11 +14,12 @@
 
 ## Fase 1: Implementar UI de Figma con datos mock
 
-- [ ] Analizar la estructura visual de Figma
+- [x] Analizar la estructura visual de Figma
 - [ ] Replicar layout, componentes y jerarquia visual
 - [ ] Crear datos mock representativos para las pantallas
 - [ ] Conectar la UI unicamente a datos mock
 - [ ] Validar estados base de navegacion y visualizacion
+- UI-01 completada: base visual del dashboard principal implementada con mocks estaticos.
 
 ## Fase 2: Analizar y mapear datos de ActivityWatch
 

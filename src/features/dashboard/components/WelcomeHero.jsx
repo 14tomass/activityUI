@@ -1,66 +1,105 @@
-const statusItems = [
-  { label: 'Fuente de datos', value: 'API local de ActivityWatch' },
-  { label: 'Estado actual', value: 'Frontend base listo' },
-  { label: 'Siguiente paso', value: 'Conectar vistas y metricas' },
-]
+import { dashboardOverview } from '../../../mocks/dashboard'
+
+const calendarIcon = (
+  <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
+    <path
+      d="M12 7.5V12L15.5 14"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const chevronLeftIcon = (
+  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+    <path
+      d="M14.5 6.5L9 12l5.5 5.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const chevronRightIcon = (
+  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+    <path
+      d="M9.5 6.5L15 12l-5.5 5.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const menuIcon = (
+  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+    <path
+      d="M7 8.5H17M7 12H17M7 15.5H17"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+)
 
 function WelcomeHero() {
   return (
-    <section className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-      <div className="space-y-6">
-        <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-cyan-200">
-          ActivityWatch UI
-        </div>
-
-        <div className="space-y-4">
-          <h1 className="max-w-3xl font-sans text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Visualiza tu actividad local con una interfaz moderna y clara.
-          </h1>
-          <p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-            Esta aplicacion sera un frontend independiente para explorar los datos
-            recogidos por ActivityWatch sin reemplazar su funcionamiento local.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3 text-sm text-slate-200">
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-            React
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-            Vite
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-            Tailwind CSS
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-            JavaScript
-          </span>
-        </div>
-      </div>
-
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-cyan-950/30 backdrop-blur">
-        <div className="mb-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-200">Estado del proyecto</p>
-            <p className="text-sm text-slate-400">Base inicial preparada para escalar</p>
-          </div>
-          <div className="h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(74,222,128,0.9)]" />
-        </div>
-
-        <div className="space-y-3">
-          {statusItems.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3"
+    <section className="relative flex w-full max-w-[1180px] justify-center">
+      <div className="w-full max-w-[540px] px-4 text-center sm:px-0">
+        <div className="mx-auto flex w-full max-w-[318px] items-center rounded-full bg-white p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+          {dashboardOverview.timeRanges.map((range) => (
+            <button
+              key={range.id}
+              type="button"
+              className={`flex-1 rounded-full px-5 py-3 text-sm font-semibold transition ${
+                range.active
+                  ? 'bg-[#1877f2] text-white shadow-[0_8px_16px_rgba(24,119,242,0.35)]'
+                  : 'text-slate-700'
+              }`}
             >
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                {item.label}
-              </p>
-              <p className="mt-2 text-sm font-medium text-slate-100">{item.value}</p>
-            </div>
+              {range.label}
+            </button>
           ))}
         </div>
+
+        <div className="mt-7 flex items-center justify-center gap-4 text-slate-400">
+          <span>{calendarIcon}</span>
+          <div className="flex min-w-[184px] items-center justify-between rounded-full bg-white px-5 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+            <button type="button" aria-label="Fecha anterior" className="text-slate-400">
+              {chevronLeftIcon}
+            </button>
+            <span className="text-base font-semibold text-slate-800">
+              {dashboardOverview.selectedDateLabel}
+            </span>
+            <button type="button" aria-label="Fecha siguiente" className="text-slate-400">
+              {chevronRightIcon}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-10">
+          <h1 className="text-[4.25rem] font-semibold leading-none tracking-[-0.08em] text-slate-900 sm:text-[5.4rem]">
+            {dashboardOverview.totalUsage}
+          </h1>
+          <p className="mt-5 text-[1.7rem] font-medium tracking-[-0.03em] text-slate-400">
+            Tiempo total de uso hoy
+          </p>
+        </div>
       </div>
+
+      <button
+        type="button"
+        aria-label="Abrir configuracion"
+        className="absolute right-0 top-[7.25rem] flex h-13 w-13 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900"
+      >
+        {menuIcon}
+      </button>
     </section>
   )
 }

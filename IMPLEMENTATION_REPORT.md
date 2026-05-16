@@ -8,6 +8,7 @@
 - Se anadio un README con instrucciones de arranque y contexto del proyecto.
 - Se preparo una base minima para la futura integracion con ActivityWatch sin activar todavia llamadas reales.
 - Se anadio `UI_IMPLEMENTATION_PLAN.md` en la raiz con el plan detallado para la primera iteracion de UI basada en mocks.
+- Se implemento la tarea UI-01 con la base visual del dashboard principal usando mocks estaticos y sin activar todavia tarjetas, paneles o modales.
 
 ## Archivos y carpetas principales actuales
 
@@ -30,7 +31,8 @@
 - `src/app/App.jsx`: composicion principal de la app.
 - `src/pages/HomePage.jsx`: pagina inicial actual.
 - `src/components/layout/AppShell.jsx`: contenedor visual base.
-- `src/features/dashboard/components/WelcomeHero.jsx`: bloque principal de bienvenida.
+- `src/features/dashboard/components/WelcomeHero.jsx`: base visual actual del dashboard principal.
+- `src/mocks/dashboard.js`: mocks estaticos para el estado visual inicial del dashboard.
 - `src/lib/api/activitywatch.js`: punto base para centralizar la futura integracion con ActivityWatch.
 - `src/assets/`: recursos graficos del scaffold inicial.
 
@@ -39,6 +41,7 @@
 - Build de produccion completada correctamente.
 - Lint ejecutado sin errores.
 - Servidor local de desarrollo arrancado y comprobado en local.
+- La base visual de la home se ajusto al primer estado del dashboard de Figma con mocks estaticos.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
@@ -49,6 +52,6 @@
 ## Pendiente antes de empezar la UI real
 
 - Dejar cerradas las reglas de trabajo y documentacion del proyecto.
-- Tomar Figma como referencia de interfaz y planificar su replica visual.
-- Definir el enfoque de datos mock que se usara antes de conectar la API real.
+- Completar las tarjetas de uso por horas y categorias del dashboard.
+- Implementar el panel lateral de configuracion y los modales de categoria.
 - Mantener la app sin integracion real con ActivityWatch hasta completar la fase de UI mock.
