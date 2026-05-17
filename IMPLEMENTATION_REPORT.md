@@ -36,6 +36,8 @@
 - Se inicio DATA-05-WEB-DEBUG para comparar websites Variante A (actual) vs Variante B (estilo ActivityWatch Browser) sin modificar todavia la logica final.
 - Se completo DATA-05-WEB-FIX: websites migrado a logica Browser Style validada y retirada toda la instrumentacion temporal de debug.
 - Se implemento DATA-06 con primera capa real de categorizacion diaria sin doble conteo, manteniendo UI visual intacta.
+- Se completo DATA-06-VERIFY validando coherencia para `2026-05-16` (KPI `24126.820s`, categorizado `24128.158s`, diferencia `1.338s`, `OK`).
+- Se completo DATA-06-CLOSE retirando logs temporales de depuracion de categorias y manteniendo solo warnings utiles en caso de fallo real.
 
 ## Archivos y carpetas principales actuales
 
@@ -399,6 +401,23 @@
 - Se anadio bloque temporal de verificacion en navegador:
 - `[DATA-06-VERIFY] Category usage consistency`
 - muestra KPI diario vs total categorizado, diferencia y validacion `OK/MISMATCH`.
+
+## DATA-06-CLOSE: limpieza de depuracion
+
+- Se elimino del flujo normal el bloque temporal:
+- `[DATA-06-VERIFY] Category usage consistency`
+- Se retiraron logs temporales de:
+- total diario KPI en segundos
+- total categorizado en segundos
+- diferencia en segundos
+- listado de categorias
+- validacion `OK / MISMATCH`
+- Se mantiene intacta la logica funcional de DATA-06:
+- `getDailyCategoryUsage({ day })`
+- prioridad `web -> app -> Otros`
+- reglas iniciales de clasificacion
+- suma sin doble conteo relevante
+- Se mantienen warnings utiles solo ante errores reales de carga/categorizacion.
 
 ## Pendiente antes de empezar la UI real
 

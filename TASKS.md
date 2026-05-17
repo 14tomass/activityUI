@@ -71,7 +71,8 @@
 - [ ] Implementar configuracion local de categorias
 - [ ] Reflejar categorias en graficas, listas y resumenes
 - DATA-06 implementada: primera capa real de categorizacion diaria sin doble conteo (`Estudio`, `Entretenimiento`, `Productividad`, `Otros`) con prioridad web->app y fallback a `Otros`.
-- DATA-06-VERIFY en curso: bloque temporal en navegador para validar coherencia matematica entre KPI diario y total categorizado.
+- DATA-06-VERIFY completada: coherencia validada para `2026-05-16` (KPI diario `24126.820s`, total categorizado `24128.158s`, diferencia `1.338s`, `OK`).
+- DATA-06-CLOSE completada: eliminados logs temporales `[DATA-06-VERIFY]` y mantenidos solo warnings utiles ante fallo real.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 

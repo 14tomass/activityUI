@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
 import { dashboardOverview } from '../../../mocks/dashboard'
-import {
-  formatUsageFromSeconds,
-  getDailyActiveUsage,
-  getDailyCategoryUsage,
-  getHourlyActiveUsage,
-} from '../../../lib/api/activitywatch'
+import { formatUsageFromSeconds, getDailyActiveUsage, getHourlyActiveUsage } from '../../../lib/api/activitywatch'
 
 const calendarIcon = (
   <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]">
@@ -123,48 +118,8 @@ function WelcomeHero() {
       console.warn('No se pudo cargar uso por horas real de ActivityWatch.', result.error, result.warnings)
     }
 
-    const logCategoryUsageConsistency = async () => {
-      const [dailyResult, categoryResult] = await Promise.all([
-        getDailyActiveUsage({ day: '2026-05-16' }),
-        getDailyCategoryUsage({ day: '2026-05-16' }),
-      ])
-
-      if (cancelled) {
-        return
-      }
-
-      console.log('[DATA-06-VERIFY] Category usage consistency')
-      const dailySeconds = dailyResult.ok ? dailyResult.seconds : null
-      const categorySeconds = categoryResult.ok ? categoryResult.totalSeconds : null
-      const differenceSeconds =
-        Number.isFinite(dailySeconds) && Number.isFinite(categorySeconds)
-          ? Math.abs(dailySeconds - categorySeconds)
-          : null
-      const validation = Number.isFinite(differenceSeconds) && differenceSeconds <= 2 ? 'OK' : 'MISMATCH'
-
-      console.log(`1) total diario KPI en segundos: ${Number.isFinite(dailySeconds) ? dailySeconds.toFixed(3) : 'n/a'}`)
-      console.log(
-        `2) total categorizado en segundos: ${Number.isFinite(categorySeconds) ? categorySeconds.toFixed(3) : 'n/a'}`
-      )
-      console.log(`3) diferencia en segundos: ${Number.isFinite(differenceSeconds) ? differenceSeconds.toFixed(3) : 'n/a'}`)
-      console.log('4) categorias:')
-      if (categoryResult.ok) {
-        categoryResult.categories.forEach((entry) => {
-          console.log(`- ${entry.category} — ${entry.formattedDuration} (${entry.seconds.toFixed(2)}s)`)
-        })
-      } else {
-        console.log('- sin datos')
-      }
-      console.log(`5) validation: ${validation}`)
-
-      if (!categoryResult.ok) {
-        console.warn('[DATA-06-VERIFY] Fallo en categorizacion.', categoryResult.error, categoryResult.warnings)
-      }
-    }
-
     loadDailyUsage()
     loadHourlyUsage()
-    logCategoryUsageConsistency()
 
     return () => {
       cancelled = true

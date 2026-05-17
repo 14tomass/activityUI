@@ -416,3 +416,12 @@ Nota de referencia canonica para integracion:
 - Validacion temporal activa en navegador:
 - bloque `[DATA-06-VERIFY] Category usage consistency`
 - compara total KPI diario vs total categorizado y marca `OK` si diferencia <= 2s.
+
+## 19) DATA-06 cerrado
+
+- La verificacion de coherencia quedo validada para `2026-05-16`:
+- KPI diario: `24126.820s`
+- total categorizado: `24128.158s`
+- diferencia: `1.338s` (`OK`, dentro del margen <= `2s`)
+- El bloque temporal de consola `[DATA-06-VERIFY] Category usage consistency` fue retirado.
+- En funcionamiento normal quedan solo warnings de fallo real al cargar/categorizar datos.
