@@ -14,6 +14,7 @@
 
 - No se hara un fork de ActivityWatch en esta etapa.
 - La app sera un frontend independiente que leera la API local de ActivityWatch.
+- En discovery de buckets web, se priorizara el bucket `web.tab.current` que coincida con el host activo (`_${hostname}` via `/api/0/info`) para alinearse con la telemetria local real.
 
 ### Estrategia de implementacion
 

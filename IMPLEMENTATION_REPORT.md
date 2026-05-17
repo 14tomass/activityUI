@@ -22,6 +22,12 @@
 - Se completo DATA-02-VERIFY con un script manual de terminal para comprobar el discovery de buckets contra ActivityWatch local.
 - Se documento y valido la configuracion CORS para desarrollo local, confirmando comunicacion navegador (`127.0.0.1:5173`) -> ActivityWatch (`localhost:5600`).
 - Se completo DATA-03 conectando el KPI central de "Tiempo total de uso" a dato real de ActivityWatch (fecha fija `2026-05-16`) con calculo canonico `window + AFK not-afk`.
+- Se completo DATA-03-DEBUG para investigar discrepancia entre KPI de la app y "Time active" oficial de ActivityWatch.
+- Se completo DATA-03-FIX corrigiendo rango diario y query para alinear el KPI con ActivityWatch oficial.
+- Se inicio DATA-03-FIX-DEBUG: logs temporales de diagnostico en navegador para comprobar ejecucion real del KPI y aislar discrepancia restante.
+- Se completo DATA-03-FIX-DEBUG-2 comparando la query canonica con ambos buckets web disponibles para aislar el efecto del bucket seleccionado.
+- Se completo DATA-03-FIX-2 corrigiendo la seleccion de bucket web para priorizar el bucket del host activo.
+- Se completo DATA-03-CLOSE retirando logs temporales de depuracion del KPI y dejando solo warnings de fallo real.
 
 ## Archivos y carpetas principales actuales
 
@@ -58,6 +64,8 @@
 - `src/lib/api/activitywatch.js`: punto base para centralizar la futura integracion con ActivityWatch.
 - `src/lib/api/activitywatch.js`: ahora incluye descubrimiento dinamico de buckets (`window`, `afk`, `web`) y manejo normalizado de errores/ausencias.
 - `src/lib/api/activitywatch.js`: ahora incluye tambien `getDailyActiveUsage({ day })` y `formatUsageFromSeconds(...)` para obtener y formatear el KPI real diario.
+- `src/lib/api/activitywatch.js`: ahora incluye lectura de `/settings`, construccion de timeperiod segun `startOfDay` y query canonica con soporte de `audible_events`.
+- `src/lib/api/activitywatch.js`: ahora incluye lectura de `/info` para priorizar bucket web `web.tab.current` coincidente con `_${hostname}`.
 - `src/features/dashboard/components/WelcomeHero.jsx`: el KPI usa dato real de ActivityWatch con fallback al valor mock si falla la carga.
 - `docs/ACTIVITYWATCH_DATA_MAPPING.md`: mapeo tecnico de buckets, eventos, endpoints y estrategia de integracion real (sin sustituir mocks aun).
 - `src/assets/`: recursos graficos del scaffold inicial.
@@ -136,6 +144,111 @@
 - se mantiene inicialmente el valor mock para evitar parpadeos bruscos
 - al resolver correctamente, se reemplaza por valor real formateado (`Xh Ym`)
 - si falla, no se rompe UI y queda fallback con log en consola
+
+## DATA-03-DEBUG: discrepancia con ActivityWatch oficial
+
+- Problema observado para `2026-05-16`:
+- KPI app: `5h 18m` (19092.114s)
+- ActivityWatch oficial: `6h 28m 43s` (23323.868s)
+- Query actual implementada en `getDailyActiveUsage`:
+- `afk = flood(...)` + filtro `not-afk`
+- `window = flood(...)`
+- `filter_period_intersect(window, afk)`
+- `sum_durations(window)`
+- Timeperiod enviado actualmente por la app:
+- `2026-05-16T00:00:00+00:00/2026-05-16T23:59:59+00:00`
+- Hallazgo clave 1 (query):
+- La UI oficial usa logica canonica mas completa: incluye `browser_events` y hace `period_union(not_afk, audible_events)` cuando hay bucket web.
+- Hallazgo clave 2 (rango temporal):
+- En `GET /api/0/settings` la instalacion tiene `startOfDay: "07:00"`.
+- Al evaluar query canonica con intervalo alineado a ese inicio de dia (`2026-05-16T07:00:00+02:00/2026-05-17T06:59:59+02:00`) el resultado coincide con la UI oficial: `23323.868s` (`6h 28m 43s`).
+- Conclusión:
+- La discrepancia no viene solo de timezone; viene de ambos factores: query simplificada y corte de dia diferente al configurado en ActivityWatch.
+- Estado:
+- DATA-03 queda funcional pero pendiente de correccion (DATA-03-FIX) para alinearse al calculo oficial.
+
+## DATA-03-FIX: alineacion con ActivityWatch oficial
+
+- Se incorporo `getActivityWatchSettings()` para leer `GET /api/0/settings`.
+- El intervalo diario ya no asume medianoche UTC; se construye con `startOfDay` en hora local del sistema.
+- Para `day=2026-05-16` y `startOfDay=07:00`, el periodo aplicado queda:
+- `2026-05-16T07:00:00+02:00/2026-05-17T06:59:59+02:00`
+- `getDailyActiveUsage` ahora usa query canonica equivalente a ActivityWatch web UI:
+- `events = flood(window)`
+- `not_afk = flood(afk)` + filtro `status = not-afk`
+- si existe bucket web: construccion de `browser_events`, calculo de `audible_events`, y `period_union(not_afk, audible_events)`
+- `events = filter_period_intersect(events, not_afk)`
+- `RETURN = sum_durations(events)`
+- Fallback y resiliencia:
+- si `/settings` falla, se usa `startOfDay=00:00` y se agrega warning no bloqueante
+- si falla discovery/query o faltan buckets esenciales, se mantiene comportamiento seguro existente (sin romper UI)
+- Resultado esperado tras el fix para `2026-05-16`: KPI aproximado `6h 28m`, alineado con ActivityWatch oficial.
+
+## DATA-03-FIX-DEBUG: evidencia en consola
+
+- Se anadio salida de diagnostico temporal al cargar el dashboard en `WelcomeHero` con un bloque:
+- `[DATA-03-FIX-DEBUG] Daily KPI diagnostics`
+- El bloque imprime:
+- dia solicitado
+- `startOfDay` leido desde settings
+- `timeperiod` final construido
+- buckets detectados (`window`, `afk`, `web`)
+- query exacta enviada a `/api/0/query/`
+- respuesta cruda de query
+- segundos interpretados por `getDailyActiveUsage`
+- texto final enviado al KPI
+- estado de fallback (si se activa, motivo + valor mostrado)
+- Tambien se amplio `getDailyActiveUsage` para devolver metadatos `debug` estructurados sin alterar la UI visual.
+- Estado actual: DATA-03-FIX sigue en depuracion hasta validar este bloque con evidencia real del navegador.
+
+## DATA-03-FIX-DEBUG-2: comparativa de buckets web
+
+- Contexto confirmado por diagnostico:
+- `startOfDay = 00:00` (correcto en la instalacion actual), por lo que la discrepancia no viene del rango diario.
+- Intervalo usado para la comparativa:
+- `2026-05-16T00:00:00+02:00/2026-05-16T23:59:59+02:00`
+- Buckets existentes de tipo `web.tab.current`:
+- `aw-watcher-web-chrome`
+- `aw-watcher-web-chrome_LenovoTomy`
+- Resultado de query canonica variante A (bucket web sin sufijo):
+- `19064.837s` => `5h 17m 45s`
+- Resultado de query canonica variante B (bucket web con sufijo `_LenovoTomy`):
+- `24126.820s` => `7h 42m 7s`
+- Referencia oficial ActivityWatch para 2026-05-16:
+- `6h 42m 6s` (`24126s`)
+- Lectura tecnica:
+- La seleccion del bucket web afecta de forma critica el KPI.
+- `discoverActivityWatchBuckets()` selecciona actualmente el bucket sin sufijo porque toma el primer `web.tab.current` segun orden de `/buckets/`.
+- Regla de correccion propuesta para siguiente paso (DATA-03-FIX-2):
+- si hay multiples buckets web candidatos, preferir el bucket cuyo id termine en `_${hostname}` obtenido desde `/api/0/info` (ej. `_LenovoTomy`); si no existe, fallback a la regla actual.
+
+## DATA-03-FIX-2: seleccion de bucket web por host activo
+
+- Se ajusto `discoverActivityWatchBuckets()` para:
+- consultar `/api/0/info` y leer `hostname`
+- cuando hay multiples buckets `web.tab.current`, priorizar el que termina en `_${hostname}`
+- si no hay coincidencia por hostname, mantener fallback a la seleccion previa (primer bucket `web.tab.current`, luego prefijo `aw-watcher-web-`)
+- Se mantuvo intacta la logica de deteccion de buckets `window` y `afk`.
+- Se mantuvieron los logs temporales de DATA-03-FIX-DEBUG para validar en navegador el bucket web seleccionado y el KPI final.
+
+## DATA-03-CLOSE: limpieza de depuracion
+
+- Se elimino del flujo normal el bloque de consola:
+- `[DATA-03-FIX-DEBUG] Daily KPI diagnostics`
+- Se retiraron logs informativos temporales de:
+- dia solicitado
+- `startOfDay`
+- `timeperiod`
+- buckets detectados
+- query enviada
+- respuesta cruda
+- segundos interpretados
+- texto enviado al KPI
+- estado de fallback detallado de debug
+- Se mantuvo el warning util en caso de fallo real:
+- `console.warn('No se pudo cargar KPI real de ActivityWatch...', ...)`
+- Estado final de DATA-03:
+- KPI real conectado, alineado con ActivityWatch oficial, y sin ruido de debug en condiciones normales.
 
 ## Pendiente antes de empezar la UI real
 

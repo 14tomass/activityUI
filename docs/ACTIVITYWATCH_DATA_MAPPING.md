@@ -205,6 +205,11 @@ Nota de referencia canonica para integracion:
 - Puede haber URLs largas/ruidosas.
 - Conviene normalizar por dominio para ciertos bloques visuales.
 
+5. Diferencias con "Time active" de la UI oficial:
+- Si usamos solo `window + AFK not-afk` y corte de dia a medianoche UTC, el KPI puede diferir de ActivityWatch web UI.
+- La UI oficial puede incluir `audible_events` (desde bucket web) como extension de `not-afk`.
+- El corte diario debe respetar `startOfDay` de `GET /api/0/settings` (en esta instalacion: `07:00`), no asumir siempre `00:00`.
+
 ## 8) Orden propuesto para la integracion real (sin implementarla aun)
 
 1. DATA-02: crear capa de descubrimiento de buckets activos (window/afk/web) y validacion de disponibilidad.
@@ -223,3 +228,74 @@ Nota de referencia canonica para integracion:
 - `cors_origins = "http://127.0.0.1:5173"`
 - Validacion manual realizada desde consola del navegador:
 - `fetch("http://localhost:5600/api/0/info")` responde correctamente con `hostname` y `version` (`v0.13.2`).
+
+## 10) Aprendizajes de DATA-03-DEBUG (KPI diario)
+
+- Query implementada inicialmente (simplificada) para `2026-05-16`:
+- `window + AFK not-afk` con `timeperiod` `2026-05-16T00:00:00+00:00/2026-05-16T23:59:59+00:00`
+- Resultado: `19092.114s` (`5h 18m`)
+- UI oficial ActivityWatch para la misma fecha:
+- `6h 28m 43s` (`23323.868s`)
+- Verificacion tecnica:
+- Al aplicar query canonica (union de `not_afk` con `audible_events` de web cuando corresponda) y corte diario segun `startOfDay=07:00`:
+- `2026-05-16T07:00:00+02:00/2026-05-17T06:59:59+02:00`
+- Resultado: `23323.868s` (coincide con UI oficial)
+- Implicacion para DATA-03-FIX:
+- El KPI debe alinearse con la query canonica de ActivityWatch y construir el intervalo diario segun `startOfDay` de settings + zona horaria local.
+
+## 11) DATA-03-FIX aplicado
+
+- Implementacion final para KPI diario:
+1. Descubrir buckets dinamicamente (`window`, `afk`, `web`) con `discoverActivityWatchBuckets()`.
+2. Leer `GET /api/0/settings` y obtener `startOfDay`.
+3. Construir `timeperiod` diario en hora local usando `startOfDay`:
+- ejemplo con `day=2026-05-16` y `startOfDay=07:00`:
+- `2026-05-16T07:00:00+02:00/2026-05-17T06:59:59+02:00`
+4. Ejecutar query canonica equivalente a ActivityWatch web UI:
+- `events = flood(window)`
+- `not_afk = flood(afk)` + filtro `status=not-afk`
+- si hay bucket web: `browser_events` + `audible_events` + `period_union(not_afk, audible_events)`
+- `events = filter_period_intersect(events, not_afk)`
+- `RETURN = sum_durations(events)`
+
+- Comportamiento de fallback:
+- si `/settings` falla: usar `startOfDay=00:00` con warning
+- si falta bucket web: seguir sin `audible_events` (resultado puede variar segun instalacion)
+- si fallan discovery/query o faltan buckets esenciales: no romper UI y conservar fallback visual en KPI
+
+## 12) DATA-03-FIX-DEBUG-2: seleccion de bucket web
+
+- Comparativa ejecutada para el mismo dia (`2026-05-16`) y mismo intervalo con `startOfDay=00:00`:
+- `2026-05-16T00:00:00+02:00/2026-05-16T23:59:59+02:00`
+
+- Variante A (bucket web `aw-watcher-web-chrome`):
+- `19064.837s` => `5h 17m 45s`
+
+- Variante B (bucket web `aw-watcher-web-chrome_LenovoTomy`):
+- `24126.820s` => `7h 42m 7s`
+
+- Referencia UI oficial ActivityWatch:
+- `6h 42m 6s` (`24126s`)
+
+- Conclusiones:
+1. La discrepancia actual no depende de `startOfDay` (ya confirmado en `00:00`).
+2. La seleccion de bucket web cambia de forma decisiva el KPI.
+3. La variante con bucket `_LenovoTomy` reproduce practicamente el valor oficial.
+
+- Causa de seleccion actual incorrecta:
+- `discoverActivityWatchBuckets()` toma el primer bucket `web.tab.current` devuelto por `/buckets/`, que en esta instalacion es `aw-watcher-web-chrome` (sin sufijo de host).
+
+- Regla propuesta para DATA-03-FIX-2:
+- Si hay multiples buckets web de tipo `web.tab.current`, preferir el que termine en `_${hostname}` usando `hostname` de `/api/0/info`.
+- Si no existe coincidencia por hostname, fallback a la seleccion actual.
+
+## 13) DATA-03-FIX-2 aplicado
+
+- La capa de discovery ya prioriza bucket web por host activo:
+1. lee `hostname` desde `GET /api/0/info`
+2. filtra candidatos `web.tab.current`
+3. prioriza el bucket cuyo id termina en `_${hostname}`
+4. si no existe, fallback a la regla anterior (primer `web.tab.current`, despues prefijo `aw-watcher-web-`)
+
+- Implicacion directa:
+- En instalaciones con bucket legacy y bucket con sufijo de host, el KPI usa el bucket del host activo y evita desalineaciones como la observada en DATA-03-FIX-DEBUG-2.

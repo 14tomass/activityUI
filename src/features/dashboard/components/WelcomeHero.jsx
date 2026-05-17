@@ -94,7 +94,8 @@ function WelcomeHero() {
       }
 
       if (result.ok && typeof result.seconds === 'number') {
-        setKpiUsageLabel(formatUsageFromSeconds(result.seconds))
+        const formatted = formatUsageFromSeconds(result.seconds)
+        setKpiUsageLabel(formatted)
         return
       }
 

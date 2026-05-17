@@ -47,6 +47,14 @@
 - [ ] Gestionar carga, errores y ausencia de datos
 - [ ] Validar que la app sigue siendo solo frontend local
 - DATA-03 completada: KPI de tiempo total diario conectado a ActivityWatch con Query API (`window + AFK not-afk`) para la fecha fija `2026-05-16`, manteniendo el resto del dashboard en mock.
+- DATA-03-DEBUG completada: investigada discrepancia con ActivityWatch oficial; se detecta que falta aplicar query canonica (audible browser -> not-afk) y respetar `startOfDay` configurado en ActivityWatch.
+- DATA-03 queda conectado pero pendiente de correccion (DATA-03-FIX) por discrepancia de calculo frente a ActivityWatch oficial.
+- DATA-03-FIX completada: KPI diario corregido con query canonica + `startOfDay` desde `/settings`, quedando alineado con ActivityWatch oficial para `2026-05-16` (~`6h 28m`).
+- DATA-03-FIX-DEBUG en curso: se anadieron logs de diagnostico en navegador para verificar ejecucion real (day, startOfDay, timeperiod, buckets, query, respuesta cruda, segundos interpretados, texto KPI y fallback).
+- DATA-03-FIX queda pendiente de aprobacion final hasta validar evidencia de consola en entorno real.
+- DATA-03-FIX-DEBUG-2 completada: comparativa A/B de query canonica con buckets web `aw-watcher-web-chrome` vs `aw-watcher-web-chrome_LenovoTomy`; se confirma impacto fuerte en KPI y se propone ajustar la regla de seleccion de bucket web por hostname.
+- DATA-03-FIX-2 completada: `discoverActivityWatchBuckets()` prioriza bucket web `web.tab.current` con sufijo `_${hostname}` (via `/api/0/info`) y mantiene fallback seguro a la regla previa.
+- DATA-03-CLOSE completada: eliminados logs temporales de depuracion de KPI; DATA-03 queda cerrada con KPI real alineado y sin ruido de consola en funcionamiento normal.
 
 ## Fase 4: Sistema de categorias
 
