@@ -76,7 +76,13 @@
 - DATA-07 implementada: tarjeta visual de categorias conectada a `getDailyCategoryUsage({ day: "2026-05-16" })` manteniendo orden/colores del diseno y fallback mock ante fallo.
 - DATA-07-VERIFY completada: validado en navegador que la UI recibe y representa correctamente duraciones/porcentajes reales (`validation: OK`).
 - DATA-07-CLOSE completada: retirado bloque temporal `[DATA-07-VERIFY]` y mantenidos solo warnings utiles ante fallo real de carga.
-- DATA-08 pendiente: conectar el modal de detalle de categoria con desglose real por apps/sitios del dia seleccionado.
+- DATA-08 implementada: modal de detalle de categoria conectado a desglose real por apps/sitios del dia (`2026-05-16`) usando la misma clasificacion por tramos de DATA-06 (sin doble conteo).
+- DATA-08-VERIFY pendiente: validar en navegador que el total del modal coincide con la tarjeta y que los items muestran mezcla real website/application.
+- DATA-08-FIX-INTERACTION implementada: clic en filas de categorias del Home abre correctamente el modal real de detalle, con limpieza inmediata de contenido previo y estado de carga visible.
+- DATA-08-FIX-INTERACTION implementada: en Configuracion, clic en categoria abre modal de edicion (no detalle analitico).
+- DATA-08-FIX-EDITING implementada: modal de edicion usa reglas reales por categoria, permite anadir/eliminar reglas y guardar con persistencia en `localStorage`.
+- DATA-08-FIX-ENGINE implementada: motor de categorias y detalle usa reglas persistidas editables con fallback a defaults.
+- DATA-08-FIX-VERIFY en curso: logs temporales `[DATA-08-FIX-VERIFY]` y `[CONFIG-CATEGORIES-VERIFY]` para validar interaccion, persistencia y uso de reglas en motor.
 - DATA-09 pendiente: permitir inspeccionar una franja del grafico por horas al hacer clic en una barra y mostrar desglose real de apps/sitios dentro de esa hora.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido

@@ -44,6 +44,9 @@
 - Se acordo ampliacion funcional del roadmap antes de nuevas implementaciones:
 - DATA-08 para conectar el modal de detalle de categoria a desglose real por apps/sitios.
 - DATA-09 para inspeccion por clic de barras en "Uso por horas" con desglose real por franja.
+- Se implemento DATA-08 conectando el modal de detalle de categoria a datos reales por apps/sitios para la categoria seleccionada y el dia `2026-05-16`.
+- Se implemento DATA-08-FIX corrigiendo interaccion y UX del detalle por categoria, y habilitando edicion real de reglas con persistencia local.
+- Se corrigio DATA-08-FIX-INTERACTION para que el acceso principal al detalle funcione desde la tarjeta de categorias del Home, no solo desde Configuracion.
 
 ## Archivos y carpetas principales actuales
 
@@ -465,6 +468,58 @@
 - Conectar el modal de detalle de categoria (actualmente mock) a datos reales del dia seleccionado para listar apps/sitios y sus duraciones dentro de cada categoria.
 - **DATA-09 (pendiente)**:
 - Anadir interaccion de clic en barras de "Uso por horas" para mostrar detalle real de consumo por apps/sitios dentro de la franja seleccionada.
+
+## DATA-08: modal de detalle de categoria con datos reales
+
+- Se anadio `getDailyCategoryDetailUsage({ day, category })` en `src/lib/api/activitywatch.js`.
+- La funcion reutiliza la misma arquitectura validada en DATA-06:
+- prioridad `web -> app -> Otros`
+- clasificacion por tramos
+- sin doble conteo
+- Devuelve:
+- `category`
+- `totalSeconds`
+- `formattedTotal`
+- `items[]` con `label`, `sourceType`, `seconds`, `formattedDuration`, `percentage`
+- Se conecto el modal de detalle en `WelcomeHero`:
+- al pulsar categoria en tarjeta del dashboard se abre el modal con esa categoria seleccionada
+- al pulsar categoria en drawer tambien abre detalle real de esa categoria
+- titulo y total del modal ahora son dinamicos
+- lista del modal mezcla websites/apps segun composicion real de la categoria
+- si falla la carga del detalle real, se mantiene fallback mock y warning controlado
+
+## DATA-08-FIX-INTERACTION: flujo Home -> detalle
+
+- Bug detectado:
+- el modal estaba montado dentro del bloque condicional de `isSettingsOpen`, por lo que solo se renderizaba cuando el panel de Configuracion estaba abierto.
+- Fix aplicado:
+- las filas de la tarjeta de categorias del Home son clicables y abren detalle real de la categoria seleccionada.
+- el modal de detalle ahora se renderiza de forma independiente al estado del panel lateral.
+- el acceso desde Configuracion se mantiene como flujo secundario sin romper comportamiento.
+- Verificacion temporal activa:
+- bloque de consola `[DATA-08-FIX-VERIFY] Dashboard category click` con fuente, categoria pulsada, apertura de modal y validacion `OK/MISMATCH`.
+
+## DATA-08-FIX: UX de detalle y edicion real
+
+- Se corrigio la latencia percibida en cambio de categoria:
+- al cambiar categoria se limpia inmediatamente el contenido anterior
+- se activa estado de carga visible en el modal
+- no se mantiene contenido obsoleto mientras llega la nueva respuesta
+- Se anadio cache en memoria por categoria para reducir esperas en reaperturas sucesivas dentro de la misma sesion.
+- Flujo de Configuracion ajustado:
+- clic en categoria dentro del panel abre modal de edicion (no detalle analitico).
+- Modal de edicion funcional:
+- carga reglas reales de la categoria seleccionada
+- permite anadir reglas (heuristica simple: texto con `.` => dominio, resto => aplicacion)
+- permite eliminar reglas existentes
+- `Guardar cambios` persiste reglas en `localStorage`
+- `Cancelar` descarta cambios no guardados
+- Motor de categorias actualizado:
+- `getDailyCategoryUsage` y `getDailyCategoryDetailUsage` consumen reglas persistidas editables
+- fallback automatico a reglas por defecto si no existe persistencia
+- Verificacion temporal activa:
+- `[DATA-08-FIX-VERIFY] Category detail interaction`
+- `[CONFIG-CATEGORIES-VERIFY] Category rules editing`
 
 ## Pendiente antes de empezar la UI real
 

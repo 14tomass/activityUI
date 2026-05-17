@@ -38,14 +38,15 @@ const BROWSER_APP_NAMES = [
 ]
 
 const CATEGORY_KEYS = ['Estudio', 'Entretenimiento', 'Productividad', 'Otros']
+const CATEGORY_RULES_STORAGE_KEY = 'activityui.categoryRules.v1'
 
-const CATEGORY_DOMAIN_RULES = {
+const DEFAULT_CATEGORY_DOMAIN_RULES = {
   Estudio: ['chatgpt.com', 'stackoverflow.com', 'notion.so'],
   Entretenimiento: ['youtube.com', 'tiktok.com', 'instagram.com', 'x.com'],
   Productividad: [],
 }
 
-const CATEGORY_APP_RULES = {
+const DEFAULT_CATEGORY_APP_RULES = {
   Estudio: [],
   Entretenimiento: [],
   Productividad: ['codex.exe', 'windowsterminal.exe', 'code.exe', 'explorer.exe', 'notion.exe'],
@@ -53,6 +54,88 @@ const CATEGORY_APP_RULES = {
 
 export function getActivityWatchApiBaseUrl() {
   return ACTIVITYWATCH_API_BASE_URL
+}
+
+function buildDefaultCategoryRules() {
+  return {
+    Estudio: {
+      domains: [...(DEFAULT_CATEGORY_DOMAIN_RULES.Estudio ?? [])],
+      applications: [...(DEFAULT_CATEGORY_APP_RULES.Estudio ?? [])],
+    },
+    Entretenimiento: {
+      domains: [...(DEFAULT_CATEGORY_DOMAIN_RULES.Entretenimiento ?? [])],
+      applications: [...(DEFAULT_CATEGORY_APP_RULES.Entretenimiento ?? [])],
+    },
+    Productividad: {
+      domains: [...(DEFAULT_CATEGORY_DOMAIN_RULES.Productividad ?? [])],
+      applications: [...(DEFAULT_CATEGORY_APP_RULES.Productividad ?? [])],
+    },
+    Otros: {
+      domains: [],
+      applications: [],
+    },
+  }
+}
+
+function sanitizeRulesPayload(payload) {
+  if (!isObject(payload)) {
+    return null
+  }
+
+  const defaults = buildDefaultCategoryRules()
+  const sanitized = {}
+  for (const category of CATEGORY_KEYS) {
+    const entry = isObject(payload[category]) ? payload[category] : {}
+    const domains = Array.isArray(entry.domains)
+      ? entry.domains.filter((value) => typeof value === 'string' && value.trim().length > 0)
+      : defaults[category].domains
+    const applications = Array.isArray(entry.applications)
+      ? entry.applications.filter((value) => typeof value === 'string' && value.trim().length > 0)
+      : defaults[category].applications
+    sanitized[category] = { domains, applications }
+  }
+
+  return sanitized
+}
+
+function getRulesFromStorage() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CATEGORY_RULES_STORAGE_KEY)
+    if (!raw) {
+      return null
+    }
+
+    const parsed = JSON.parse(raw)
+    return sanitizeRulesPayload(parsed)
+  } catch {
+    return null
+  }
+}
+
+export function getCategoryRules() {
+  return getRulesFromStorage() ?? buildDefaultCategoryRules()
+}
+
+export function saveCategoryRules(rules) {
+  const sanitized = sanitizeRulesPayload(rules)
+  if (!sanitized) {
+    return false
+  }
+
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return false
+  }
+
+  try {
+    window.localStorage.setItem(CATEGORY_RULES_STORAGE_KEY, JSON.stringify(sanitized))
+    return true
+  } catch {
+    return false
+  }
 }
 
 function parseStartOfDay(value) {
@@ -282,21 +365,23 @@ function domainMatchesRule(domain, rule) {
   return normalizedDomain === normalizedRule || normalizedDomain.endsWith(`.${normalizedRule}`)
 }
 
-function classifyDomain(domain) {
-  for (const category of Object.keys(CATEGORY_DOMAIN_RULES)) {
-    const rules = CATEGORY_DOMAIN_RULES[category]
-    if (rules.some((rule) => domainMatchesRule(domain, rule))) {
+function classifyDomain(domain, rules) {
+  for (const category of CATEGORY_KEYS) {
+    const categoryRules = rules?.[category]
+    const domains = Array.isArray(categoryRules?.domains) ? categoryRules.domains : []
+    if (domains.some((rule) => domainMatchesRule(domain, rule))) {
       return category
     }
   }
   return null
 }
 
-function classifyApp(app) {
+function classifyApp(app, rules) {
   const normalizedApp = toLowerSafe(app)
-  for (const category of Object.keys(CATEGORY_APP_RULES)) {
-    const rules = CATEGORY_APP_RULES[category]
-    if (rules.some((rule) => normalizedApp === toLowerSafe(rule))) {
+  for (const category of CATEGORY_KEYS) {
+    const categoryRules = rules?.[category]
+    const applications = Array.isArray(categoryRules?.applications) ? categoryRules.applications : []
+    if (applications.some((rule) => normalizedApp === toLowerSafe(rule))) {
       return category
     }
   }
@@ -944,7 +1029,7 @@ async function getDailyBrowserDomainEvents({ day }) {
   }
 }
 
-function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
+function aggregateCategoryUsage({ activeEvents, browserDomainEvents, categoryRules }) {
   const totals = ensureCategoryTotals()
   const detailsByCategory = new Map(CATEGORY_KEYS.map((category) => [category, { domains: new Set(), apps: new Set() }]))
   const itemTotalsByCategory = ensureCategoryItemTotals()
@@ -960,7 +1045,7 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
     const isBrowserApp = BROWSER_APP_NAMES.some((name) => toLowerSafe(name) === toLowerSafe(app))
 
     if (!isBrowserApp) {
-      const category = classifyApp(app) ?? 'Otros'
+      const category = classifyApp(app, categoryRules) ?? 'Otros'
       totals.set(category, totals.get(category) + range.seconds)
       detailsByCategory.get(category).apps.add(app)
       addCategoryItemUsage(itemTotalsByCategory, {
@@ -984,7 +1069,7 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
       const overlapEnd = Math.min(range.endMs, browserEvent.endMs)
       if (overlapEnd > overlapStart) {
         const overlapSeconds = (overlapEnd - overlapStart) / 1000
-        const category = classifyDomain(browserEvent.domain) ?? 'Otros'
+        const category = classifyDomain(browserEvent.domain, categoryRules) ?? 'Otros'
         totals.set(category, totals.get(category) + overlapSeconds)
         detailsByCategory.get(category).domains.add(browserEvent.domain)
         addCategoryItemUsage(itemTotalsByCategory, {
@@ -1000,7 +1085,7 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
 
     const leftoverMs = Math.max(0, range.endMs - range.startMs - coveredMs)
     if (leftoverMs > 0) {
-      const fallbackCategory = classifyApp(app) ?? 'Otros'
+      const fallbackCategory = classifyApp(app, categoryRules) ?? 'Otros'
       totals.set(fallbackCategory, totals.get(fallbackCategory) + leftoverMs / 1000)
       detailsByCategory.get(fallbackCategory).apps.add(app)
       addCategoryItemUsage(itemTotalsByCategory, {
@@ -1072,6 +1157,7 @@ export async function getDailyWebsiteUsage({ day }) {
 }
 
 export async function getDailyCategoryUsage({ day }) {
+  const categoryRules = getCategoryRules()
   const [dailyActiveResult, activeEventsResult, browserEventsResult] = await Promise.all([
     getDailyActiveUsage({ day }),
     (async () => {
@@ -1190,6 +1276,7 @@ export async function getDailyCategoryUsage({ day }) {
   const aggregation = aggregateCategoryUsage({
     activeEvents: activeEventsResult.events,
     browserDomainEvents: browserEventsResult.events,
+    categoryRules,
   })
 
   const totalSeconds = Array.from(aggregation.totals.values()).reduce((acc, value) => acc + value, 0)
@@ -1213,16 +1300,14 @@ export async function getDailyCategoryUsage({ day }) {
     details: {
       day,
       classificationPriority: 'domain_then_app_then_otros',
-      categoryRules: {
-        domain: CATEGORY_DOMAIN_RULES,
-        app: CATEGORY_APP_RULES,
-      },
+      categoryRules,
       kpiTotalSeconds: dailyActiveResult.seconds,
     },
   }
 }
 
 export async function getDailyCategoryDetailUsage({ day, category }) {
+  const categoryRules = getCategoryRules()
   const targetCategory = CATEGORY_KEYS.includes(category) ? category : null
   if (!targetCategory) {
     return {
@@ -1364,6 +1449,7 @@ export async function getDailyCategoryDetailUsage({ day, category }) {
   const aggregation = aggregateCategoryUsage({
     activeEvents: activeEventsResult.events,
     browserDomainEvents: browserEventsResult.events,
+    categoryRules,
   })
   const totalSeconds = aggregation.totals.get(targetCategory) ?? 0
   const itemsRaw = Array.from(aggregation.itemTotalsByCategory.get(targetCategory)?.values() ?? [])
@@ -1388,6 +1474,7 @@ export async function getDailyCategoryDetailUsage({ day, category }) {
     details: {
       day,
       classificationPriority: 'domain_then_app_then_otros',
+      categoryRules,
       kpiTotalSeconds: dailyActiveResult.seconds,
     },
   }

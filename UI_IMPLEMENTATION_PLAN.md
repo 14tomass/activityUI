@@ -153,6 +153,11 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - **DATA-08 (futuro)**: el modal de detalle de categoria (hoy mock) debe conectarse a datos reales para mostrar exactamente en que apps/sitios se consume el tiempo de cada categoria en el dia activo.
 - **DATA-09 (futuro)**: el grafico "Uso por horas" incorporara interaccion por clic en barra para inspeccionar una franja horaria concreta y ver su desglose real de apps/sitios.
 
+## Aclaracion de flujo (post DATA-08)
+
+- El acceso principal al detalle analitico de categoria es desde Home (tarjeta de categorias del dashboard).
+- El panel de Configuracion queda orientado a modificar reglas de categorias, por lo que el clic en categoria desde ese panel debe abrir el modal de edicion.
+
 ## Primera tarea recomendada
 
 Implementar primero la **base visual del dashboard principal con mocks estaticos**, sin drawer ni modales. Es la mejor primera tarea porque fija la direccion visual, define espaciado, tipografia, contenedores y primitives, y reduce mucho el riesgo antes de montar capas interactivas encima.

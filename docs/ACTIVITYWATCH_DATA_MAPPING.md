@@ -442,3 +442,20 @@ Nota de referencia canonica para integracion:
 
 - Para **DATA-08** (detalle real por categoria), la capa de datos debera devolver desglose diario por categoria con items de app/sitio y duracion (sin doble conteo), reutilizando la misma base canonica de actividad ya validada.
 - Para **DATA-09** (detalle real por franja horaria), las consultas o transformaciones deberan permitir filtrar/segmentar eventos por intervalo horario especifico y devolver top apps/sitios de esa franja.
+
+## 22) DATA-08 implementado (detalle real por categoria)
+
+- Se implemento `getDailyCategoryDetailUsage({ day, category })` para obtener el detalle real de una categoria concreta.
+- La funcion reutiliza la misma clasificacion por tramos de `getDailyCategoryUsage`:
+- prioridad `web -> app -> Otros`
+- sin doble conteo
+- El detalle por categoria devuelve items mezclando fuentes `website` y `application`, con duracion y porcentaje relativo dentro de la categoria.
+
+## 23) Reglas editables de categorizacion (DATA-08-FIX)
+
+- `getDailyCategoryUsage` y `getDailyCategoryDetailUsage` consumen reglas editables por categoria desde `localStorage`.
+- Si no hay reglas persistidas validas, se usa fallback a reglas por defecto del proyecto.
+- Estructura de reglas por categoria:
+- `domains[]`
+- `applications[]`
+- Esta capa mantiene la clasificacion por tramos ya validada (prioridad `web -> app -> Otros`, sin doble conteo).

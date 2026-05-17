@@ -19,6 +19,7 @@
 - Para DATA-05, el calculo de websites sigue logica Browser Style de ActivityWatch: interseccion de eventos web con ventanas activas de navegador + `split_url_events`, antes de agrupar por dominio.
 - Para DATA-06, la categorizacion de tiempo activo sigue prioridad estable: dominio web (si existe) -> aplicacion activa -> `Otros`.
 - Para DATA-06, no se permite doble conteo: cada tramo temporal activo se asigna a una unica categoria.
+- Para la edicion de categorias (DATA-08+), las reglas de clasificacion se mantienen en almacenamiento local del navegador (`localStorage`) con fallback automatico a reglas por defecto si no hay persistencia.
 
 ### Estrategia de implementacion
 
