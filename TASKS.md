@@ -46,6 +46,7 @@
 - [ ] Implementar capa de acceso a datos del frontend
 - [ ] Gestionar carga, errores y ausencia de datos
 - [ ] Validar que la app sigue siendo solo frontend local
+- DATA-03 completada: KPI de tiempo total diario conectado a ActivityWatch con Query API (`window + AFK not-afk`) para la fecha fija `2026-05-16`, manteniendo el resto del dashboard en mock.
 
 ## Fase 4: Sistema de categorias
 

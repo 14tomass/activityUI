@@ -21,6 +21,14 @@ API REST local y presentara los datos con una interfaz mas cuidada.
 - Este proyecto se esta desarrollando dentro de Ubuntu/WSL.
 - Ejecuta los comandos `npm` desde la terminal de Ubuntu/WSL situada en la carpeta del proyecto.
 
+## ActivityWatch en local (CORS)
+
+- Para desarrollo frontend en `http://127.0.0.1:5173`, configura `aw-server` para permitir ese origen.
+- Ruta de configuracion usada en Windows:
+- `C:\Users\tomas\AppData\Local\activitywatch\activitywatch\aw-server\aw-server.toml`
+- En `[server]`:
+- `cors_origins = "http://127.0.0.1:5173"`
+
 ## Desarrollo
 
 Instalar dependencias:

@@ -213,3 +213,13 @@ Nota de referencia canonica para integracion:
 4. DATA-05: conectar ranking por apps y por sitios.
 5. DATA-06: definir y aplicar primera version de reglas de categorizacion local.
 6. DATA-07: sustituir mocks del dashboard de forma incremental con fallback seguro.
+
+## 9) Requisitos de desarrollo local (CORS)
+
+- Para consumir la API local de ActivityWatch desde el frontend en desarrollo (`http://127.0.0.1:5173`), es necesario habilitar ese origen en `aw-server`.
+- Configuracion aplicada y validada en Windows:
+- Archivo: `C:\Users\tomas\AppData\Local\activitywatch\activitywatch\aw-server\aw-server.toml`
+- Seccion `[server]`:
+- `cors_origins = "http://127.0.0.1:5173"`
+- Validacion manual realizada desde consola del navegador:
+- `fetch("http://localhost:5600/api/0/info")` responde correctamente con `hostname` y `version` (`v0.13.2`).

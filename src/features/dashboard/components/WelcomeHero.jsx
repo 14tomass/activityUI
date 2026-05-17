@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { dashboardOverview } from '../../../mocks/dashboard'
+import { formatUsageFromSeconds, getDailyActiveUsage } from '../../../lib/api/activitywatch'
 
 const calendarIcon = (
   <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]">
@@ -75,11 +76,37 @@ const chevronRightIcon = (
 function WelcomeHero() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
+  const [kpiUsageLabel, setKpiUsageLabel] = useState(dashboardOverview.totalUsage)
 
   const closeSettings = () => {
     setActiveModal(null)
     setIsSettingsOpen(false)
   }
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadDailyUsage = async () => {
+      const result = await getDailyActiveUsage({ day: '2026-05-16' })
+
+      if (cancelled) {
+        return
+      }
+
+      if (result.ok && typeof result.seconds === 'number') {
+        setKpiUsageLabel(formatUsageFromSeconds(result.seconds))
+        return
+      }
+
+      console.warn('No se pudo cargar KPI real de ActivityWatch.', result.error, result.warnings)
+    }
+
+    loadDailyUsage()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <section className="relative flex w-full max-w-[1180px] justify-center">
@@ -121,7 +148,7 @@ function WelcomeHero() {
 
         <div className="mt-7">
           <h1 className="text-[3.75rem] font-semibold leading-none tracking-[-0.07em] text-slate-900 sm:text-[4.9rem]">
-            {dashboardOverview.totalUsage}
+            {kpiUsageLabel}
           </h1>
           <p className="mt-4 text-[1.32rem] font-normal tracking-[-0.02em] text-slate-500/80">
             Tiempo total de uso hoy

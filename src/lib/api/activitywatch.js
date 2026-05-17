@@ -1,8 +1,28 @@
 const ACTIVITYWATCH_API_BASE_URL = 'http://localhost:5600/api/0'
 const BUCKETS_ENDPOINT = `${ACTIVITYWATCH_API_BASE_URL}/buckets/`
+const QUERY_ENDPOINT = `${ACTIVITYWATCH_API_BASE_URL}/query/`
 
 export function getActivityWatchApiBaseUrl() {
   return ACTIVITYWATCH_API_BASE_URL
+}
+
+function toIsoDayInterval(day) {
+  return `${day}T00:00:00+00:00/${day}T23:59:59+00:00`
+}
+
+function normalizeQueryTotalSeconds(payload) {
+  if (Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'number') {
+    return payload[0]
+  }
+
+  if (Array.isArray(payload) && payload.length > 0 && Array.isArray(payload[0])) {
+    const nested = payload[0]
+    if (nested.length > 0 && typeof nested[0] === 'number') {
+      return nested[0]
+    }
+  }
+
+  return null
 }
 
 function isObject(value) {
@@ -122,4 +142,111 @@ export async function discoverActivityWatchBuckets() {
       },
     }
   }
+}
+
+export async function getDailyActiveUsage({ day }) {
+  const discovery = await discoverActivityWatchBuckets()
+
+  if (!discovery.ok) {
+    return {
+      ok: false,
+      seconds: null,
+      buckets: discovery.buckets,
+      warnings: discovery.warnings,
+      error: discovery.error,
+    }
+  }
+
+  const windowBucketId = discovery.buckets.window?.id ?? null
+  const afkBucketId = discovery.buckets.afk?.id ?? null
+
+  if (!windowBucketId || !afkBucketId) {
+    return {
+      ok: false,
+      seconds: null,
+      buckets: discovery.buckets,
+      warnings: discovery.warnings,
+      error: {
+        code: 'activitywatch_missing_required_buckets',
+        message: 'Falta bucket window o AFK para calcular tiempo activo diario.',
+        details: { missing: discovery.missing },
+      },
+    }
+  }
+
+  const timeperiods = [toIsoDayInterval(day)]
+  const query = [
+    `afk = flood(query_bucket(find_bucket("${afkBucketId}")));`,
+    'afk = filter_keyvals(afk, "status", ["not-afk"]);',
+    `window = flood(query_bucket(find_bucket("${windowBucketId}")));`,
+    'window = filter_period_intersect(window, afk);',
+    'RETURN = sum_durations(window);',
+  ]
+
+  try {
+    const response = await fetch(QUERY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeperiods, query }),
+    })
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        seconds: null,
+        buckets: discovery.buckets,
+        warnings: discovery.warnings,
+        error: {
+          code: 'activitywatch_query_http_error',
+          message: `ActivityWatch query respondio con HTTP ${response.status}.`,
+          details: { status: response.status },
+        },
+      }
+    }
+
+    const payload = await response.json()
+    const seconds = normalizeQueryTotalSeconds(payload)
+
+    if (seconds === null) {
+      return {
+        ok: false,
+        seconds: null,
+        buckets: discovery.buckets,
+        warnings: discovery.warnings,
+        error: {
+          code: 'activitywatch_query_unexpected_payload',
+          message: 'La Query API devolvio un formato no esperado.',
+          details: { payload },
+        },
+      }
+    }
+
+    return {
+      ok: true,
+      seconds,
+      buckets: discovery.buckets,
+      warnings: discovery.warnings,
+      error: null,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      seconds: null,
+      buckets: discovery.buckets,
+      warnings: discovery.warnings,
+      error: {
+        code: 'activitywatch_query_failed',
+        message: 'No se pudo completar la query de tiempo activo diario.',
+        details: { cause: error instanceof Error ? error.message : String(error) },
+      },
+    }
+  }
+}
+
+export function formatUsageFromSeconds(totalSeconds) {
+  const safeSeconds = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0
+  const totalMinutes = Math.floor(safeSeconds / 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${hours}h ${minutes}m`
 }

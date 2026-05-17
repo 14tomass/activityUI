@@ -20,6 +20,8 @@
 - Se completo DATA-01 con analisis tecnico de la API local de ActivityWatch sobre la instalacion real y documentacion de mapeo en `docs/ACTIVITYWATCH_DATA_MAPPING.md`.
 - Se completo DATA-02 con una capa de descubrimiento dinamico de buckets y validacion basica de disponibilidad en `src/lib/api/activitywatch.js`, sin conectar todavia datos a la UI.
 - Se completo DATA-02-VERIFY con un script manual de terminal para comprobar el discovery de buckets contra ActivityWatch local.
+- Se documento y valido la configuracion CORS para desarrollo local, confirmando comunicacion navegador (`127.0.0.1:5173`) -> ActivityWatch (`localhost:5600`).
+- Se completo DATA-03 conectando el KPI central de "Tiempo total de uso" a dato real de ActivityWatch (fecha fija `2026-05-16`) con calculo canonico `window + AFK not-afk`.
 
 ## Archivos y carpetas principales actuales
 
@@ -55,6 +57,8 @@
 - `src/mocks/dashboard.js`: ampliado con datos `categoryEdit` para encabezado, texto explicativo, lista y placeholder.
 - `src/lib/api/activitywatch.js`: punto base para centralizar la futura integracion con ActivityWatch.
 - `src/lib/api/activitywatch.js`: ahora incluye descubrimiento dinamico de buckets (`window`, `afk`, `web`) y manejo normalizado de errores/ausencias.
+- `src/lib/api/activitywatch.js`: ahora incluye tambien `getDailyActiveUsage({ day })` y `formatUsageFromSeconds(...)` para obtener y formatear el KPI real diario.
+- `src/features/dashboard/components/WelcomeHero.jsx`: el KPI usa dato real de ActivityWatch con fallback al valor mock si falla la carga.
 - `docs/ACTIVITYWATCH_DATA_MAPPING.md`: mapeo tecnico de buckets, eventos, endpoints y estrategia de integracion real (sin sustituir mocks aun).
 - `src/assets/`: recursos graficos del scaffold inicial.
 
@@ -80,6 +84,8 @@
 - DATA-02 validada con lint tras introducir capa de descubrimiento API sin impacto visual en la UI.
 - Build de DATA-02 pendiente de revalidacion en un shell Ubuntu/WSL con `npm` disponible en PATH (en esta sesion `npm` no estaba disponible dentro de `wsl.exe`).
 - DATA-02-VERIFY anade una validacion manual reproducible desde terminal via `npm run check:activitywatch-buckets`.
+- Comunicacion navegador -> ActivityWatch validada manualmente desde `http://127.0.0.1:5173` con `fetch("http://localhost:5600/api/0/info")` devolviendo `hostname: LenovoTomy` y `version: v0.13.2`.
+- DATA-03 implementada con manejo de fallback: si discovery/query falla, se conserva el valor mock del KPI y se registra warning controlado en consola.
 
 ## Funcion actual de src/lib/api/activitywatch.js
 
@@ -116,6 +122,20 @@
 - lista `missing`
 - lista `warnings`
 - `error` detallado si existe
+
+## DATA-03: KPI real de tiempo total diario
+
+- Se anadio una consulta reutilizable `getDailyActiveUsage({ day })` en capa API.
+- Flujo tecnico aplicado:
+- discovery dinamico de buckets (`window` y `afk`)
+- construccion de `timeperiods` ISO para el dia solicitado
+- `POST /api/0/query/` con interseccion de ventana contra AFK `not-afk`
+- suma total con `sum_durations(window)`
+- El KPI central ahora se hidrata en `WelcomeHero` al montar el componente.
+- Decision de estado de carga/fallo en esta iteracion:
+- se mantiene inicialmente el valor mock para evitar parpadeos bruscos
+- al resolver correctamente, se reemplaza por valor real formateado (`Xh Ym`)
+- si falla, no se rompe UI y queda fallback con log en consola
 
 ## Pendiente antes de empezar la UI real
 
