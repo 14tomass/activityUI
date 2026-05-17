@@ -514,12 +514,20 @@
 - permite eliminar reglas existentes
 - `Guardar cambios` persiste reglas en `localStorage`
 - `Cancelar` descarta cambios no guardados
+- Ajustes UX adicionales:
+- modal de detalle limita el contenido visible a top 7 por duracion y agrega el resto en una fila `Otras webs y apps`
+- el modal de detalle tiene altura maxima y scroll interno para evitar perder la `X` de cierre
+- el modal de detalle abierto desde Home ya no muestra boton `Editar`
+- en edicion de Configuracion se elimino el boton `+`; `Guardar cambios` procesa tambien el input pendiente
 - Motor de categorias actualizado:
 - `getDailyCategoryUsage` y `getDailyCategoryDetailUsage` consumen reglas persistidas editables
 - fallback automatico a reglas por defecto si no existe persistencia
 - Verificacion temporal activa:
 - `[DATA-08-FIX-VERIFY] Category detail interaction`
 - `[CONFIG-CATEGORIES-VERIFY] Category rules editing`
+- `[CONFIG-CATEGORIES-VERIFY-2] Save input rule directly`
+- `[DATA-08-UX-VERIFY] Category detail truncation`
+- `[HOME-LOADING-VERIFY] Initial dashboard loading state`
 
 ## Pendiente antes de empezar la UI real
 
@@ -563,3 +571,135 @@
 - categorias (`categories`, `appCount`)
 - detalle de categoria (`categoryDetail`)
 - edicion de categoria (`categoryEdit`)
+
+## DATA-08-UX-FIX-2
+
+- Se corrigio el loading infinito del modal de detalle por categoria con un ciclo de request robusto basado en token (`useRef`) y salida garantizada de estado de carga.
+- Si la carga falla, el modal deja de cargar y muestra mensaje neutro de no disponible (sin bloquear cierre ni interaccion).
+- `Guardar cambios` en modal de edicion ahora persiste reglas y mantiene el modal abierto; el cierre queda reservado a `X` y `Cancelar`.
+- Placeholders de carga simplificados a `-` en KPI, total de detalle y duraciones de categorias durante carga.
+- La tarjeta "Uso por horas" ahora renderiza 24 barras dentro del contenedor sin overflow horizontal y eje compacto que llega explicitamente a `23`.
+- Verificacion temporal activa:
+- `[DATA-08-DETAIL-LOADING-DEBUG] Category detail request lifecycle`
+- `[CONFIG-SAVE-STAYS-OPEN-VERIFY] Category edit save behavior`
+
+## CONFIG-CATEGORIES-FIX-3
+
+- Comportamiento de `Guardar cambios` ajustado por caso:
+- input vacio: guarda/persiste y cierra modal.
+- input con texto: guarda/anade regla/persiste y mantiene modal abierto.
+- Regla de inferencia corregida:
+- entradas terminadas en `.exe` se clasifican como `application`.
+- `http://` o `https://` y dominios validos se clasifican como `website`.
+- resto de texto se clasifica como `application`.
+- Normalizacion aplicada en reglas y matching:
+- `trim` y comparacion case-insensitive.
+- normalizacion de dominio sin `www.`.
+- Migracion segura incluida:
+- si una regla `.exe` estaba guardada por error en `domains`, el sanitizado la mueve automaticamente a `applications` al leer/guardar reglas.
+- Bloques de verificacion temporal activos:
+- `[CONFIG-SAVE-EMPTY-CLOSE-VERIFY] Save with empty input closes modal`
+- `[CONFIG-SAVE-WITH-INPUT-STAYS-OPEN-VERIFY] Save with pending rule stays open`
+- `[CONFIG-APP-RULE-TYPE-VERIFY] Executable app rule classification`
+- `[CONFIG-CATEGORY-ENGINE-VERIFY] Saved rule affects category totals`
+
+## CONFIG-CATEGORIES-FIX-3-CLOSE
+
+- Se retiraron los logs temporales de validacion funcional del flujo de guardado y clasificacion:
+- `[CONFIG-CATEGORIES-VERIFY-2] Save input rule directly`
+- `[CONFIG-SAVE-WITH-INPUT-STAYS-OPEN-VERIFY] Save with pending rule stays open`
+- `[CONFIG-APP-RULE-TYPE-VERIFY] Executable app rule classification`
+- `[CONFIG-CATEGORY-ENGINE-VERIFY] Saved rule affects category totals`
+- `[CONFIG-SAVE-EMPTY-CLOSE-VERIFY] Save with empty input closes modal`
+- Se mantiene intacta la logica funcional validada:
+- `X` cierra modal
+- `Guardar` con input vacio guarda y cierra
+- `Guardar` con input con texto anade/guarda y mantiene abierto
+- `.exe` inferido como `application`
+- normalizacion robusta (`trim` + case-insensitive) y migracion segura de reglas `.exe` mal tipadas
+
+## DATA-08-CLOSE-FINAL
+
+- Se retiraron los logs temporales de depuracion/validacion restantes de DATA-08:
+- `[HOME-LOADING-VERIFY] Initial dashboard loading state`
+- `[DATA-08-DETAIL-LOADING-DEBUG] Category detail request lifecycle`
+- `[DATA-08-FIX-VERIFY] Category detail interaction`
+- `[DATA-08-UX-VERIFY] Category detail truncation`
+- `[CONFIG-SAVE-STAYS-OPEN-VERIFY] Category edit save behavior` (ya no presente en flujo actual)
+- Se mantiene intacta la funcionalidad validada de Home->detalle real, edicion en Configuracion, truncado top 7 + agregado, placeholders neutros y grafica horaria 00-23 sin overflow.
+- En funcionamiento normal quedan solo `console.warn` utiles ante fallos reales de carga/API.
+
+## UI-LAYOUT-FIX-01
+
+- Se recoloco el boton flotante de Configuracion para anclarlo al viewport con `position: fixed` en la zona superior derecha, evitando desplazamiento hacia el centro en pantallas anchas.
+- Se mantuvo el estilo visual del boton (circulo blanco, sombra e icono centrado), ajustando solo posicion y jerarquia.
+- Se corrigio el layout del panel lateral para altura completa usable:
+- contenedor del panel con `h-screen` y soporte `100dvh`
+- cabecera superior en posicion `sticky` para mantener titulo y `X` siempre visibles
+- bloque de contenido con `overflow-y-auto` para scroll interno cuando hay mas contenido
+- Resultado: categorias inferiores y boton "Crear nueva categoria" quedan accesibles sin recortes.
+
+## CONFIG-CATEGORIES-CREATE-01
+
+- Se implemento creacion real de categorias desde el panel lateral de Configuracion.
+- Flujo nuevo:
+- click en `Crear nueva categoria` abre modal de creacion
+- validacion de nombre (`trim`, no vacio, sin duplicados case-insensitive)
+- `Guardar` crea categoria, persiste en `localStorage` y actualiza Settings/Home
+- Se adapto la capa de categorias para soportar categorias dinamicas:
+- reglas ya no dependen solo de lista fija; se conservan categorias base y se anaden categorias de usuario
+- persistencia incluye metadatos de orden/colores para categorias nuevas
+- Integracion en UI:
+- categorias nuevas aparecen en lista de Configuracion (editables) y en tarjeta del Home
+- categorias sin uso muestran valor neutro (`0h 0m`) y barra vacia
+- detalle de categoria desde Home funciona tambien para categorias nuevas (estado vacio limpio si no hay uso)
+- Integracion en motor:
+- el clasificador y agregador usan lista dinamica de categorias
+- si una regla se asigna a categoria nueva, el uso pasa a esa categoria y deja de computarse en fallback previo
+- Criterio de color:
+- categoria nueva recibe color automatico de una paleta corta predefinida; si se agota, fallback neutro.
+- Verificacion temporal activa:
+- `[CONFIG-CATEGORY-CREATE-VERIFY] New category creation`
+- `[CONFIG-CATEGORY-CREATE-ENGINE-VERIFY] New category participates in engine`
+
+## CONFIG-CATEGORIES-CREATE-01-CLOSE
+
+- Se retiraron los logs temporales de validacion:
+- `[CONFIG-CATEGORY-CREATE-VERIFY] New category creation`
+- `[CONFIG-CATEGORY-CREATE-ENGINE-VERIFY] New category participates in engine`
+- Se mantiene intacta la funcionalidad aprobada:
+- creacion real de categorias con validaciones
+- persistencia en `localStorage`
+- aparicion en Configuracion y Home
+- edicion de reglas sobre categorias nuevas
+- participacion en motor de categorizacion dinamico
+- Mejoras futuras no bloqueantes registradas:
+- eliminar categorias
+- renombrar categorias
+- personalizar color de categorias
+
+## DATA-09
+
+- Se implemento detalle real por franja horaria al hacer clic en barras de "Uso por horas".
+- Nueva funcion de capa API: `getHourlyUsageDetail({ day, hourIndex })`.
+- Retorno estructurado:
+- `hourIndex`
+- `intervalLabel`
+- `totalSeconds`
+- `formattedTotal`
+- `items[]` con `label`, `sourceType`, `seconds`, `formattedDuration`, `percentage`
+- Criterio de calculo:
+- base de eventos activos canonicos por dia ActivityWatch
+- prioridad web por solapamiento temporal con eventos de navegador
+- fallback a aplicacion para tiempo remanente
+- sin doble conteo
+- Integracion en UI:
+- las 24 barras son clicables
+- al pulsar, se abre modal inmediatamente con loading y se limpia estado previo
+- control robusto de clicks rapidos con token de request para evitar respuestas viejas
+- Manejo visual:
+- top 7 items + fila agregada `Otras webs y apps` cuando aplica
+- estado vacio limpio para franjas sin actividad
+- mensaje neutro y `console.warn` en caso de fallo real de carga
+- Verificacion temporal activa:
+- `[DATA-09-VERIFY] Hourly bar detail consistency` (coherencia entre total de barra y total del modal, tolerancia <= 2s)

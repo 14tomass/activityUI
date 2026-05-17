@@ -20,6 +20,13 @@
 - Para DATA-06, la categorizacion de tiempo activo sigue prioridad estable: dominio web (si existe) -> aplicacion activa -> `Otros`.
 - Para DATA-06, no se permite doble conteo: cada tramo temporal activo se asigna a una unica categoria.
 - Para la edicion de categorias (DATA-08+), las reglas de clasificacion se mantienen en almacenamiento local del navegador (`localStorage`) con fallback automatico a reglas por defecto si no hay persistencia.
+- En detalle analitico de categoria se mostraran como maximo los 7 items principales por duracion y el resto se agrupara en una fila `Otras webs y apps`.
+- El detalle analitico del Home no incluye accion de edicion; la edicion de reglas queda reservada al panel de Configuracion.
+- En carga inicial del Home se usan placeholders neutros y nunca valores mock realistas que puedan confundirse con datos reales.
+- En reglas editables, entradas que terminan en `.exe` se clasifican siempre como `application` (aunque contengan punto) para evitar tratarlas como dominio web.
+- El sistema de categorias soporta categorias dinamicas de usuario persistidas en `localStorage`, manteniendo como base `Estudio`, `Entretenimiento`, `Productividad` y `Otros`.
+- Las categorias creadas por usuario reciben color automatico desde una paleta corta predefinida; si no hay color libre, fallback neutro.
+- El detalle por franja horaria (DATA-09) sigue la misma regla anti-doble-conteo del proyecto: prioridad web por solapamiento temporal y fallback a aplicacion para tiempo remanente.
 
 ### Estrategia de implementacion
 

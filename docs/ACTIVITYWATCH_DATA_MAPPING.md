@@ -459,3 +459,19 @@ Nota de referencia canonica para integracion:
 - `domains[]`
 - `applications[]`
 - Esta capa mantiene la clasificacion por tramos ya validada (prioridad `web -> app -> Otros`, sin doble conteo).
+
+## 24) DATA-09 (detalle por franja horaria)
+
+- Nueva capacidad de datos: detalle real por barra horaria mediante `getHourlyUsageDetail({ day, hourIndex })`.
+- Base de calculo:
+- eventos activos canonicos del dia ActivityWatch
+- recorte estricto al intervalo de una hora (`hourIndex`)
+- prioridad web por solapamiento temporal con eventos de navegador
+- fallback a app para tiempo remanente
+- sin doble conteo
+- Salida orientada a UI:
+- `intervalLabel`
+- `totalSeconds` / `formattedTotal`
+- items ordenados por duracion (`website` + `application`) con porcentaje relativo
+- Criterio de coherencia:
+- el total del detalle horario debe coincidir con el total de la barra correspondiente (tolerancia operativa <= 2s por redondeo flotante).

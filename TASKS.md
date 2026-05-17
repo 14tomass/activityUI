@@ -82,8 +82,32 @@
 - DATA-08-FIX-INTERACTION implementada: en Configuracion, clic en categoria abre modal de edicion (no detalle analitico).
 - DATA-08-FIX-EDITING implementada: modal de edicion usa reglas reales por categoria, permite anadir/eliminar reglas y guardar con persistencia en `localStorage`.
 - DATA-08-FIX-ENGINE implementada: motor de categorias y detalle usa reglas persistidas editables con fallback a defaults.
+- DATA-08-UX-FIX implementada: detalle limita a top 7 + fila agregada `Otras webs y apps`, con scroll interno y cabecera/X siempre visibles.
+- DATA-08-UX-FIX implementada: modal de detalle de Home sin boton `Editar`; edicion solo desde Configuracion.
+- DATA-08-UX-FIX implementada: eliminacion de boton `+` en edicion; `Guardar cambios` procesa input pendiente y persiste.
+- DATA-08-UX-FIX implementada: Home arranca con loading states neutros (sin mocks realistas en KPI, horas y categorias).
 - DATA-08-FIX-VERIFY en curso: logs temporales `[DATA-08-FIX-VERIFY]` y `[CONFIG-CATEGORIES-VERIFY]` para validar interaccion, persistencia y uso de reglas en motor.
-- DATA-09 pendiente: permitir inspeccionar una franja del grafico por horas al hacer clic en una barra y mostrar desglose real de apps/sitios dentro de esa hora.
+- DATA-08-UX-FIX-2 implementada: corregido ciclo de carga del detalle real (sin loading infinito), con salida a estado neutro si falla.
+- DATA-08-UX-FIX-2 implementada: `Guardar cambios` en edicion persiste reglas y mantiene el modal abierto.
+- DATA-08-UX-FIX-2 implementada: placeholders de carga simplificados a `-` en Home y detalle.
+- DATA-08-UX-FIX-2 implementada: grafico horario ajustado para contener 24 barras dentro de tarjeta y mostrar rango hasta `23`.
+- DATA-08-UX-FIX-2 en verificacion: logs temporales `[DATA-08-DETAIL-LOADING-DEBUG]` y `[CONFIG-SAVE-STAYS-OPEN-VERIFY]`.
+- CONFIG-CATEGORIES-FIX-3 implementada: `Guardar cambios` ahora cierra solo con input vacio; con input con texto guarda/anade regla y mantiene el modal abierto.
+- CONFIG-CATEGORIES-FIX-3 implementada: inferencia de reglas corregida (`.exe` => `application`) con normalizacion `trim + case-insensitive`.
+- CONFIG-CATEGORIES-FIX-3 implementada: migracion segura en lectura/sanitizado para reglas `.exe` que hubieran quedado guardadas en `domains`.
+- CONFIG-CATEGORIES-FIX-3-CLOSE completada: retirados logs temporales de validacion de guardado/inferencia/impacto, manteniendo solo warnings utiles ante errores reales.
+- DATA-08-CLOSE-FINAL completada: retirados logs temporales de loading/interaccion/truncado en Home y detalle de categoria; se mantienen solo warnings de error real.
+- UI-LAYOUT-FIX-01 completada: boton de configuracion anclado arriba-derecha del viewport y panel lateral con altura/scroll interno para evitar contenido inaccesible.
+- CONFIG-CATEGORIES-CREATE-01 completada: creacion real de categorias desde Configuracion con validaciones de nombre, persistencia local y render dinamico en Settings/Home.
+- CONFIG-CATEGORIES-CREATE-01 completada: categorias nuevas integradas en el motor de categorizacion y editables con el flujo existente de reglas.
+- CONFIG-CATEGORIES-CREATE-01 en verificacion: logs temporales `[CONFIG-CATEGORY-CREATE-VERIFY]` y `[CONFIG-CATEGORY-CREATE-ENGINE-VERIFY]`.
+- CONFIG-CATEGORIES-CREATE-01-CLOSE completada: retirados logs temporales de creacion/engine y mantenidos solo warnings utiles ante errores reales.
+- Mejora futura no bloqueante: permitir eliminar categorias creadas por usuario.
+- Mejora futura no bloqueante: permitir renombrar categorias.
+- Mejora futura no bloqueante: permitir personalizar color de categorias.
+- DATA-09 implementada: clic en barra de "Uso por horas" abre modal con detalle real por franja (apps/webs), ordenado por duracion y sin doble conteo.
+- DATA-09 implementada: modal horario con loading robusto, estado vacio, top 7 + fila agregada `Otras webs y apps`.
+- DATA-09 en verificacion: log temporal `[DATA-09-VERIFY] Hourly bar detail consistency` para coherencia barra vs detalle.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 

@@ -38,7 +38,15 @@ const BROWSER_APP_NAMES = [
 ]
 
 const CATEGORY_KEYS = ['Estudio', 'Entretenimiento', 'Productividad', 'Otros']
+const CATEGORY_META_KEY = '__meta'
 const CATEGORY_RULES_STORAGE_KEY = 'activityui.categoryRules.v1'
+const DEFAULT_CATEGORY_COLORS = {
+  Estudio: '#1677f2',
+  Entretenimiento: '#ff2f5a',
+  Productividad: '#2cb64d',
+  Otros: '#8f949f',
+}
+const CUSTOM_CATEGORY_COLOR_PALETTE = ['#f59e0b', '#8b5cf6', '#06b6d4', '#22c55e', '#ef4444', '#14b8a6']
 
 const DEFAULT_CATEGORY_DOMAIN_RULES = {
   Estudio: ['chatgpt.com', 'stackoverflow.com', 'notion.so'],
@@ -50,6 +58,76 @@ const DEFAULT_CATEGORY_APP_RULES = {
   Estudio: [],
   Entretenimiento: [],
   Productividad: ['codex.exe', 'windowsterminal.exe', 'code.exe', 'explorer.exe', 'notion.exe'],
+}
+
+function normalizeRuleValue(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : ''
+}
+
+function looksLikeHttpUrl(value) {
+  return /^https?:\/\//i.test(value)
+}
+
+function looksLikeExecutable(value) {
+  return /\.exe$/i.test(value)
+}
+
+function looksLikeDomain(value) {
+  if (looksLikeHttpUrl(value)) {
+    return true
+  }
+  if (looksLikeExecutable(value)) {
+    return false
+  }
+  return /^(?:[a-z0-9-]+\.)+[a-z]{2,}$/i.test(value)
+}
+
+export function inferCategoryRuleSourceType(rawValue) {
+  const normalized = normalizeRuleValue(rawValue)
+  if (!normalized) {
+    return null
+  }
+  if (looksLikeExecutable(normalized)) {
+    return 'application'
+  }
+  if (looksLikeDomain(normalized)) {
+    return 'website'
+  }
+  return 'application'
+}
+
+function normalizeDomainRule(value) {
+  const normalized = normalizeRuleValue(value)
+  if (!normalized) {
+    return ''
+  }
+
+  if (looksLikeHttpUrl(normalized)) {
+    try {
+      const parsed = new URL(normalized)
+      const hostname = normalizeRuleValue(parsed.hostname)
+      return hostname.startsWith('www.') ? hostname.slice(4) : hostname
+    } catch {
+      return ''
+    }
+  }
+
+  return normalized.startsWith('www.') ? normalized.slice(4) : normalized
+}
+
+function normalizeApplicationRule(value) {
+  return normalizeRuleValue(value)
+}
+
+function normalizeCategoryName(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function toCategoryId(name) {
+  return normalizeCategoryName(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'category'
 }
 
 export function getActivityWatchApiBaseUrl() {
@@ -74,7 +152,50 @@ function buildDefaultCategoryRules() {
       domains: [],
       applications: [],
     },
+    [CATEGORY_META_KEY]: {
+      customOrder: [],
+      colors: { ...DEFAULT_CATEGORY_COLORS },
+    },
   }
+}
+
+function getCategoryNamesFromRules(rules) {
+  const base = [...CATEGORY_KEYS]
+  if (!isObject(rules)) {
+    return base
+  }
+
+  const customOrder = Array.isArray(rules?.[CATEGORY_META_KEY]?.customOrder)
+    ? rules[CATEGORY_META_KEY].customOrder
+        .map((value) => normalizeCategoryName(value))
+        .filter((value) => value.length > 0 && !CATEGORY_KEYS.includes(value))
+    : []
+
+  const customFromKeys = Object.keys(rules)
+    .map((key) => normalizeCategoryName(key))
+    .filter((key) => key.length > 0 && key !== CATEGORY_META_KEY && !CATEGORY_KEYS.includes(key))
+
+  const seen = new Set(base)
+  const orderedCustom = [...customOrder, ...customFromKeys].filter((name) => {
+    if (seen.has(name)) {
+      return false
+    }
+    seen.add(name)
+    return true
+  })
+
+  return [...base, ...orderedCustom]
+}
+
+function resolveCategoryColor(category, colorMap = {}) {
+  const raw = colorMap?.[category]
+  if (typeof raw === 'string' && raw.trim().length > 0) {
+    return raw
+  }
+  if (DEFAULT_CATEGORY_COLORS[category]) {
+    return DEFAULT_CATEGORY_COLORS[category]
+  }
+  return '#8f949f'
 }
 
 function sanitizeRulesPayload(payload) {
@@ -84,15 +205,56 @@ function sanitizeRulesPayload(payload) {
 
   const defaults = buildDefaultCategoryRules()
   const sanitized = {}
-  for (const category of CATEGORY_KEYS) {
+  const categories = getCategoryNamesFromRules(payload)
+  for (const category of categories) {
     const entry = isObject(payload[category]) ? payload[category] : {}
-    const domains = Array.isArray(entry.domains)
-      ? entry.domains.filter((value) => typeof value === 'string' && value.trim().length > 0)
-      : defaults[category].domains
-    const applications = Array.isArray(entry.applications)
-      ? entry.applications.filter((value) => typeof value === 'string' && value.trim().length > 0)
-      : defaults[category].applications
+    const rawDomains = Array.isArray(entry.domains)
+      ? entry.domains
+      : defaults[category]?.domains ?? []
+    const rawApplications = Array.isArray(entry.applications)
+      ? entry.applications
+      : defaults[category]?.applications ?? []
+
+    const domainSet = new Set()
+    const appSet = new Set()
+
+    for (const value of rawDomains) {
+      const inferredType = inferCategoryRuleSourceType(value)
+      if (inferredType === 'application') {
+        const normalizedApp = normalizeApplicationRule(value)
+        if (normalizedApp) {
+          appSet.add(normalizedApp)
+        }
+        continue
+      }
+      const normalizedDomain = normalizeDomainRule(value)
+      if (normalizedDomain) {
+        domainSet.add(normalizedDomain)
+      }
+    }
+
+    for (const value of rawApplications) {
+      const normalizedApp = normalizeApplicationRule(value)
+      if (normalizedApp) {
+        appSet.add(normalizedApp)
+      }
+    }
+
+    const domains = Array.from(domainSet)
+    const applications = Array.from(appSet)
     sanitized[category] = { domains, applications }
+  }
+
+  const customOrder = categories.filter((category) => !CATEGORY_KEYS.includes(category))
+  const payloadColors = isObject(payload[CATEGORY_META_KEY]?.colors) ? payload[CATEGORY_META_KEY].colors : {}
+  const colors = {}
+  for (const category of categories) {
+    colors[category] = resolveCategoryColor(category, payloadColors)
+  }
+
+  sanitized[CATEGORY_META_KEY] = {
+    customOrder,
+    colors,
   }
 
   return sanitized
@@ -120,6 +282,25 @@ export function getCategoryRules() {
   return getRulesFromStorage() ?? buildDefaultCategoryRules()
 }
 
+export function getCategoryDefinitions() {
+  const rules = getCategoryRules()
+  const categories = getCategoryNamesFromRules(rules)
+  const colors = rules?.[CATEGORY_META_KEY]?.colors ?? {}
+
+  return categories.map((name) => {
+    const ruleEntry = rules?.[name] ?? { domains: [], applications: [] }
+    const appCount =
+      (Array.isArray(ruleEntry.domains) ? ruleEntry.domains.length : 0) +
+      (Array.isArray(ruleEntry.applications) ? ruleEntry.applications.length : 0)
+    return {
+      id: toCategoryId(name),
+      label: name,
+      color: resolveCategoryColor(name, colors),
+      appCount,
+    }
+  })
+}
+
 export function saveCategoryRules(rules) {
   const sanitized = sanitizeRulesPayload(rules)
   if (!sanitized) {
@@ -135,6 +316,81 @@ export function saveCategoryRules(rules) {
     return true
   } catch {
     return false
+  }
+}
+
+export function createCategory(rawName) {
+  const trimmedName = normalizeCategoryName(rawName)
+  const normalizedName = normalizeRuleValue(trimmedName)
+
+  if (!trimmedName) {
+    return {
+      ok: false,
+      code: 'invalid_empty_name',
+      message: 'El nombre de la categoria no puede estar vacio.',
+      normalizedName,
+    }
+  }
+
+  const currentRules = getCategoryRules()
+  const categoryNames = getCategoryNamesFromRules(currentRules)
+  const duplicateDetected = categoryNames.some(
+    (name) => normalizeRuleValue(name) === normalizedName
+  )
+  if (duplicateDetected) {
+    return {
+      ok: false,
+      code: 'duplicate_category_name',
+      message: 'Ya existe una categoria con ese nombre.',
+      normalizedName,
+    }
+  }
+
+  const currentColors = currentRules?.[CATEGORY_META_KEY]?.colors ?? {}
+  const usedColors = new Set(Object.values(currentColors))
+  const pickedColor =
+    CUSTOM_CATEGORY_COLOR_PALETTE.find((color) => !usedColors.has(color)) ?? '#8f949f'
+
+  const nextRules = {
+    ...currentRules,
+    [trimmedName]: {
+      domains: [],
+      applications: [],
+    },
+    [CATEGORY_META_KEY]: {
+      customOrder: [
+        ...(Array.isArray(currentRules?.[CATEGORY_META_KEY]?.customOrder)
+          ? currentRules[CATEGORY_META_KEY].customOrder
+          : []),
+        trimmedName,
+      ],
+      colors: {
+        ...currentColors,
+        [trimmedName]: pickedColor,
+      },
+    },
+  }
+
+  const persisted = saveCategoryRules(nextRules)
+  if (!persisted) {
+    return {
+      ok: false,
+      code: 'storage_write_failed',
+      message: 'No se pudo guardar la nueva categoria.',
+      normalizedName,
+    }
+  }
+
+  return {
+    ok: true,
+    category: {
+      id: toCategoryId(trimmedName),
+      label: trimmedName,
+      color: pickedColor,
+      appCount: 0,
+    },
+    normalizedName,
+    duplicateDetected: false,
   }
 }
 
@@ -360,13 +616,16 @@ function toLowerSafe(value) {
 }
 
 function domainMatchesRule(domain, rule) {
-  const normalizedDomain = toLowerSafe(domain)
-  const normalizedRule = toLowerSafe(rule)
+  const normalizedDomain = normalizeDomainRule(domain)
+  const normalizedRule = normalizeDomainRule(rule)
+  if (!normalizedDomain || !normalizedRule) {
+    return false
+  }
   return normalizedDomain === normalizedRule || normalizedDomain.endsWith(`.${normalizedRule}`)
 }
 
-function classifyDomain(domain, rules) {
-  for (const category of CATEGORY_KEYS) {
+function classifyDomain(domain, rules, categoryNames) {
+  for (const category of categoryNames) {
     const categoryRules = rules?.[category]
     const domains = Array.isArray(categoryRules?.domains) ? categoryRules.domains : []
     if (domains.some((rule) => domainMatchesRule(domain, rule))) {
@@ -376,24 +635,24 @@ function classifyDomain(domain, rules) {
   return null
 }
 
-function classifyApp(app, rules) {
-  const normalizedApp = toLowerSafe(app)
-  for (const category of CATEGORY_KEYS) {
+function classifyApp(app, rules, categoryNames) {
+  const normalizedApp = normalizeApplicationRule(app)
+  for (const category of categoryNames) {
     const categoryRules = rules?.[category]
     const applications = Array.isArray(categoryRules?.applications) ? categoryRules.applications : []
-    if (applications.some((rule) => normalizedApp === toLowerSafe(rule))) {
+    if (applications.some((rule) => normalizedApp === normalizeApplicationRule(rule))) {
       return category
     }
   }
   return null
 }
 
-function ensureCategoryTotals() {
-  return new Map(CATEGORY_KEYS.map((category) => [category, 0]))
+function ensureCategoryTotals(categoryNames) {
+  return new Map(categoryNames.map((category) => [category, 0]))
 }
 
-function ensureCategoryItemTotals() {
-  return new Map(CATEGORY_KEYS.map((category) => [category, new Map()]))
+function ensureCategoryItemTotals(categoryNames) {
+  return new Map(categoryNames.map((category) => [category, new Map()]))
 }
 
 function addCategoryItemUsage(itemTotalsByCategory, { category, sourceType, label, seconds }) {
@@ -765,6 +1024,28 @@ function buildHourlyBars(secondsByHour) {
   })
 }
 
+function padHour(value) {
+  return String(value).padStart(2, '0')
+}
+
+function buildHourIntervalLabel(dayRange, hourIndex) {
+  const hourMs = 60 * 60 * 1000
+  const start = new Date(dayRange.start.getTime() + hourIndex * hourMs)
+  const end = new Date(start.getTime() + hourMs)
+  return `${padHour(start.getHours())}:00 – ${padHour(end.getHours())}:00`
+}
+
+function formatUsageCompactFromSeconds(totalSeconds) {
+  const safeSeconds = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0
+  const totalMinutes = Math.floor(safeSeconds / 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours === 0) {
+    return `${minutes}m`
+  }
+  return `${hours}h ${minutes}m`
+}
+
 export async function getHourlyActiveUsage({ day }) {
   const context = await resolveDailyUsageContext({
     day,
@@ -837,6 +1118,238 @@ export async function getHourlyActiveUsage({ day }) {
       error: {
         code: 'activitywatch_query_failed',
         message: 'No se pudo completar la query de uso por horas.',
+        details: { cause: error instanceof Error ? error.message : String(error) },
+      },
+    }
+  }
+}
+
+export async function getHourlyUsageDetail({ day, hourIndex }) {
+  if (!Number.isInteger(hourIndex) || hourIndex < 0 || hourIndex > 23) {
+    return {
+      ok: false,
+      hourIndex,
+      intervalLabel: null,
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: [],
+      error: {
+        code: 'activitywatch_invalid_hour_index',
+        message: `Franja horaria invalida: ${hourIndex}.`,
+      },
+    }
+  }
+
+  const context = await resolveDailyUsageContext({
+    day,
+    requiredBuckets: ['window', 'afk'],
+    missingBucketsMessage: 'Falta bucket window o AFK para calcular detalle por franja horaria.',
+  })
+
+  if (!context.ok) {
+    return {
+      ok: false,
+      hourIndex,
+      intervalLabel: null,
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: context.warnings,
+      error: context.error,
+    }
+  }
+
+  const query = buildCanonicalDailyEventsQuery({
+    windowBucketId: context.bucketIds.window,
+    afkBucketId: context.bucketIds.afk,
+    webBucketId: context.bucketIds.web,
+  })
+
+  try {
+    const activeQueryResult = await runQuery({ timeperiod: context.details.timeperiod, query })
+    if (!activeQueryResult.ok) {
+      return {
+        ok: false,
+        hourIndex,
+        intervalLabel: buildHourIntervalLabel(context.details.dayRange, hourIndex),
+        totalSeconds: null,
+        formattedTotal: null,
+        items: [],
+        warnings: context.warnings,
+        error: activeQueryResult.error,
+      }
+    }
+
+    const activeEvents = normalizeQueryEvents(activeQueryResult.payload)
+    if (!activeEvents) {
+      return {
+        ok: false,
+        hourIndex,
+        intervalLabel: buildHourIntervalLabel(context.details.dayRange, hourIndex),
+        totalSeconds: null,
+        formattedTotal: null,
+        items: [],
+        warnings: context.warnings,
+        error: {
+          code: 'activitywatch_query_unexpected_payload',
+          message: 'La Query API devolvio un formato no esperado para detalle horario.',
+          details: { payload: activeQueryResult.payload },
+        },
+      }
+    }
+
+    let browserDomainEvents = []
+    const warnings = [...context.warnings]
+    if (context.bucketIds.web) {
+      const browserQuery = buildWebsiteBrowserStyleEventsQuery({
+        windowBucketId: context.bucketIds.window,
+        webBucketId: context.bucketIds.web,
+      })
+      const browserQueryResult = await runQuery({
+        timeperiod: context.details.timeperiod,
+        query: browserQuery,
+      })
+      if (browserQueryResult.ok) {
+        const rawBrowserEvents = normalizeQueryEvents(browserQueryResult.payload)
+        if (rawBrowserEvents) {
+          browserDomainEvents = rawBrowserEvents
+            .map((event) => {
+              const range = extractEventTimeRange(event)
+              if (!range) {
+                return null
+              }
+              return {
+                startMs: range.startMs,
+                endMs: range.endMs,
+                domain: extractDomain(event?.data?.url),
+              }
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.startMs - b.startMs)
+        } else {
+          warnings.push({
+            code: 'browser_events_unexpected_payload',
+            severity: 'warning',
+            message: 'No se pudo interpretar el payload de eventos web; se usa fallback por app.',
+          })
+        }
+      } else {
+        warnings.push({
+          code: 'browser_events_query_failed',
+          severity: 'warning',
+          message: 'No se pudo cargar detalle web por franja; se usa fallback por app.',
+        })
+      }
+    }
+
+    const hourMs = 60 * 60 * 1000
+    const hourStartMs = context.details.dayRange.start.getTime() + hourIndex * hourMs
+    const hourEndMs = hourStartMs + hourMs
+    const itemsMap = new Map()
+    const addItemSeconds = ({ label, sourceType, seconds }) => {
+      if (!Number.isFinite(seconds) || seconds <= 0) {
+        return
+      }
+      const safeLabel = normalizeKey(label, sourceType === 'website' ? 'unknown' : 'unknown-app')
+      const key = `${sourceType}:${safeLabel}`
+      const current = itemsMap.get(key) ?? { label: safeLabel, sourceType, seconds: 0 }
+      current.seconds += seconds
+      itemsMap.set(key, current)
+    }
+
+    let totalSeconds = 0
+    let browserIndex = 0
+    for (const event of activeEvents) {
+      const range = extractEventTimeRange(event)
+      if (!range) {
+        continue
+      }
+
+      const clippedStart = Math.max(range.startMs, hourStartMs)
+      const clippedEnd = Math.min(range.endMs, hourEndMs)
+      if (clippedEnd <= clippedStart) {
+        continue
+      }
+
+      const clippedSeconds = (clippedEnd - clippedStart) / 1000
+      totalSeconds += clippedSeconds
+
+      const app = normalizeKey(event?.data?.app, 'unknown-app')
+      const isBrowserApp = BROWSER_APP_NAMES.some((name) => toLowerSafe(name) === toLowerSafe(app))
+
+      if (!isBrowserApp || browserDomainEvents.length === 0) {
+        addItemSeconds({ label: app, sourceType: 'application', seconds: clippedSeconds })
+        continue
+      }
+
+      while (browserIndex < browserDomainEvents.length && browserDomainEvents[browserIndex].endMs <= clippedStart) {
+        browserIndex += 1
+      }
+
+      let coveredMs = 0
+      let scanIndex = browserIndex
+      while (scanIndex < browserDomainEvents.length && browserDomainEvents[scanIndex].startMs < clippedEnd) {
+        const browserEvent = browserDomainEvents[scanIndex]
+        const overlapStart = Math.max(clippedStart, browserEvent.startMs)
+        const overlapEnd = Math.min(clippedEnd, browserEvent.endMs)
+        if (overlapEnd > overlapStart) {
+          const overlapSeconds = (overlapEnd - overlapStart) / 1000
+          addItemSeconds({
+            label: browserEvent.domain,
+            sourceType: 'website',
+            seconds: overlapSeconds,
+          })
+          coveredMs += overlapEnd - overlapStart
+        }
+        scanIndex += 1
+      }
+
+      const leftoverMs = Math.max(0, clippedEnd - clippedStart - coveredMs)
+      if (leftoverMs > 0) {
+        addItemSeconds({
+          label: app,
+          sourceType: 'application',
+          seconds: leftoverMs / 1000,
+        })
+      }
+    }
+
+    const itemsRaw = Array.from(itemsMap.values()).sort((a, b) => b.seconds - a.seconds)
+    const items = itemsRaw.map((item) => ({
+      label: item.label,
+      sourceType: item.sourceType,
+      seconds: item.seconds,
+      formattedDuration: formatUsageCompactFromSeconds(item.seconds),
+      percentage: totalSeconds > 0 ? Number(((item.seconds / totalSeconds) * 100).toFixed(2)) : 0,
+    }))
+
+    return {
+      ok: true,
+      hourIndex,
+      intervalLabel: buildHourIntervalLabel(context.details.dayRange, hourIndex),
+      totalSeconds,
+      formattedTotal: formatUsageCompactFromSeconds(totalSeconds),
+      items,
+      warnings,
+      error: null,
+      details: {
+        startOfDay: context.details.startOfDay,
+        timeperiod: context.details.timeperiod,
+      },
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      hourIndex,
+      intervalLabel: buildHourIntervalLabel(context.details.dayRange, hourIndex),
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: context.warnings,
+      error: {
+        code: 'activitywatch_query_failed',
+        message: 'No se pudo calcular el detalle horario.',
         details: { cause: error instanceof Error ? error.message : String(error) },
       },
     }
@@ -1029,10 +1542,13 @@ async function getDailyBrowserDomainEvents({ day }) {
   }
 }
 
-function aggregateCategoryUsage({ activeEvents, browserDomainEvents, categoryRules }) {
-  const totals = ensureCategoryTotals()
-  const detailsByCategory = new Map(CATEGORY_KEYS.map((category) => [category, { domains: new Set(), apps: new Set() }]))
-  const itemTotalsByCategory = ensureCategoryItemTotals()
+function aggregateCategoryUsage({ activeEvents, browserDomainEvents, categoryRules, categoryNames }) {
+  const totals = ensureCategoryTotals(categoryNames)
+  const detailsByCategory = new Map(
+    categoryNames.map((category) => [category, { domains: new Set(), apps: new Set() }])
+  )
+  const itemTotalsByCategory = ensureCategoryItemTotals(categoryNames)
+  const fallbackCategory = categoryNames.includes('Otros') ? 'Otros' : categoryNames[0]
 
   let browserIndex = 0
   for (const event of activeEvents) {
@@ -1045,7 +1561,7 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents, categoryRul
     const isBrowserApp = BROWSER_APP_NAMES.some((name) => toLowerSafe(name) === toLowerSafe(app))
 
     if (!isBrowserApp) {
-      const category = classifyApp(app, categoryRules) ?? 'Otros'
+      const category = classifyApp(app, categoryRules, categoryNames) ?? fallbackCategory
       totals.set(category, totals.get(category) + range.seconds)
       detailsByCategory.get(category).apps.add(app)
       addCategoryItemUsage(itemTotalsByCategory, {
@@ -1069,7 +1585,8 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents, categoryRul
       const overlapEnd = Math.min(range.endMs, browserEvent.endMs)
       if (overlapEnd > overlapStart) {
         const overlapSeconds = (overlapEnd - overlapStart) / 1000
-        const category = classifyDomain(browserEvent.domain, categoryRules) ?? 'Otros'
+        const category =
+          classifyDomain(browserEvent.domain, categoryRules, categoryNames) ?? fallbackCategory
         totals.set(category, totals.get(category) + overlapSeconds)
         detailsByCategory.get(category).domains.add(browserEvent.domain)
         addCategoryItemUsage(itemTotalsByCategory, {
@@ -1085,11 +1602,12 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents, categoryRul
 
     const leftoverMs = Math.max(0, range.endMs - range.startMs - coveredMs)
     if (leftoverMs > 0) {
-      const fallbackCategory = classifyApp(app, categoryRules) ?? 'Otros'
-      totals.set(fallbackCategory, totals.get(fallbackCategory) + leftoverMs / 1000)
-      detailsByCategory.get(fallbackCategory).apps.add(app)
+      const leftoverCategory =
+        classifyApp(app, categoryRules, categoryNames) ?? fallbackCategory
+      totals.set(leftoverCategory, totals.get(leftoverCategory) + leftoverMs / 1000)
+      detailsByCategory.get(leftoverCategory).apps.add(app)
       addCategoryItemUsage(itemTotalsByCategory, {
-        category: fallbackCategory,
+        category: leftoverCategory,
         sourceType: 'application',
         label: app,
         seconds: leftoverMs / 1000,
@@ -1158,6 +1676,8 @@ export async function getDailyWebsiteUsage({ day }) {
 
 export async function getDailyCategoryUsage({ day }) {
   const categoryRules = getCategoryRules()
+  const categoryNames = getCategoryNamesFromRules(categoryRules)
+  const categoryColors = categoryRules?.[CATEGORY_META_KEY]?.colors ?? {}
   const [dailyActiveResult, activeEventsResult, browserEventsResult] = await Promise.all([
     getDailyActiveUsage({ day }),
     (async () => {
@@ -1277,10 +1797,11 @@ export async function getDailyCategoryUsage({ day }) {
     activeEvents: activeEventsResult.events,
     browserDomainEvents: browserEventsResult.events,
     categoryRules,
+    categoryNames,
   })
 
   const totalSeconds = Array.from(aggregation.totals.values()).reduce((acc, value) => acc + value, 0)
-  const categories = CATEGORY_KEYS.map((category) => {
+  const categories = categoryNames.map((category) => {
     const seconds = aggregation.totals.get(category) ?? 0
     const percentage = totalSeconds > 0 ? (seconds / totalSeconds) * 100 : 0
     return {
@@ -1288,6 +1809,7 @@ export async function getDailyCategoryUsage({ day }) {
       seconds,
       formattedDuration: formatUsageFromSeconds(seconds),
       percentage: Number(percentage.toFixed(2)),
+      color: resolveCategoryColor(category, categoryColors),
     }
   })
 
@@ -1308,7 +1830,8 @@ export async function getDailyCategoryUsage({ day }) {
 
 export async function getDailyCategoryDetailUsage({ day, category }) {
   const categoryRules = getCategoryRules()
-  const targetCategory = CATEGORY_KEYS.includes(category) ? category : null
+  const categoryNames = getCategoryNamesFromRules(categoryRules)
+  const targetCategory = categoryNames.includes(category) ? category : null
   if (!targetCategory) {
     return {
       ok: false,
@@ -1450,6 +1973,7 @@ export async function getDailyCategoryDetailUsage({ day, category }) {
     activeEvents: activeEventsResult.events,
     browserDomainEvents: browserEventsResult.events,
     categoryRules,
+    categoryNames,
   })
   const totalSeconds = aggregation.totals.get(targetCategory) ?? 0
   const itemsRaw = Array.from(aggregation.itemTotalsByCategory.get(targetCategory)?.values() ?? [])

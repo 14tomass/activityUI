@@ -142,7 +142,6 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - Animaciones refinadas de drawer y modales.
 - Gestion real de alta, borrado o reordenacion de apps dentro de categorias.
 - Conectar el modal de detalle de categoria a datos reales de ActivityWatch (desglose por apps/sitios del dia seleccionado).
-- Permitir clic en barras de "Uso por horas" para abrir detalle real de apps/sitios consumidos en la franja seleccionada.
 - Sistema completo de iconos por aplicacion o dominio.
 - Responsive fino para mobile si Figma no define explicitamente esa version.
 - Estados vacios, validaciones de formulario y mensajes de error.
@@ -151,12 +150,22 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 ## Evolucion funcional acordada tras DATA-07
 
 - **DATA-08 (futuro)**: el modal de detalle de categoria (hoy mock) debe conectarse a datos reales para mostrar exactamente en que apps/sitios se consume el tiempo de cada categoria en el dia activo.
-- **DATA-09 (futuro)**: el grafico "Uso por horas" incorporara interaccion por clic en barra para inspeccionar una franja horaria concreta y ver su desglose real de apps/sitios.
+- **DATA-09 (implementada)**: el grafico "Uso por horas" ya incorpora clic por barra para inspeccionar una franja concreta con desglose real de apps/sitios, manteniendo top 7 + agregado y estado vacio limpio.
 
 ## Aclaracion de flujo (post DATA-08)
 
 - El acceso principal al detalle analitico de categoria es desde Home (tarjeta de categorias del dashboard).
 - El panel de Configuracion queda orientado a modificar reglas de categorias, por lo que el clic en categoria desde ese panel debe abrir el modal de edicion.
+- El panel de Configuracion incluye creacion de categorias: el CTA abre modal de alta con validacion de nombre y persistencia local.
+- En carga inicial del Home, los bloques analiticos deben mostrar placeholders neutros y no valores mock realistas.
+- El detalle por categoria debe limpiar contenido previo al cambiar de categoria y resolver siempre a estado cargado o no disponible (sin loading infinito).
+- En edicion de categorias, `Guardar cambios` tiene comportamiento condicional:
+- con input vacio guarda y cierra
+- con input con texto guarda/anade y se mantiene abierto para continuar editando
+- `X` siempre cierra
+- La grafica de horas debe mostrar 24 franjas (00-23) dentro del contenedor, sin overflow horizontal.
+- El boton flotante de Configuracion debe quedar anclado al viewport en esquina superior derecha (no depender del contenedor centrado).
+- El panel lateral de Configuracion debe soportar scroll interno y mantener cabecera visible para evitar contenido inferior inaccesible.
 
 ## Primera tarea recomendada
 
