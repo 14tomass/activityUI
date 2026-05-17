@@ -79,21 +79,17 @@ function formatDateWithOffset(date) {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetRemainder}`
 }
 
-function buildDayTimeperiod(day, startOfDay = DEFAULT_START_OF_DAY) {
+function buildDayRange(day, startOfDay = DEFAULT_START_OF_DAY) {
   const [year, month, date] = day.split('-').map((part) => Number.parseInt(part, 10))
-  if (
-    Number.isNaN(year) ||
-    Number.isNaN(month) ||
-    Number.isNaN(date)
-  ) {
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(date)) {
     return null
   }
 
   const { hours, minutes } = parseStartOfDay(startOfDay)
   const start = new Date(year, month - 1, date, hours, minutes, 0, 0)
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1000)
-
-  return `${formatDateWithOffset(start)}/${formatDateWithOffset(end)}`
+  const timeperiod = `${formatDateWithOffset(start)}/${formatDateWithOffset(end)}`
+  return { start, end, timeperiod }
 }
 
 function normalizeQueryTotalSeconds(payload) {
@@ -109,6 +105,13 @@ function normalizeQueryTotalSeconds(payload) {
   }
 
   return null
+}
+
+function normalizeQueryEvents(payload) {
+  if (!Array.isArray(payload) || payload.length === 0 || !Array.isArray(payload[0])) {
+    return null
+  }
+  return payload[0]
 }
 
 function buildCanonicalDailyActiveQuery({ windowBucketId, afkBucketId, webBucketId }) {
@@ -131,6 +134,30 @@ function buildCanonicalDailyActiveQuery({ windowBucketId, afkBucketId, webBucket
 
   query.push('events = filter_period_intersect(events, not_afk);')
   query.push('RETURN = sum_durations(events);')
+
+  return query
+}
+
+function buildCanonicalDailyEventsQuery({ windowBucketId, afkBucketId, webBucketId }) {
+  const query = [
+    `events = flood(query_bucket(find_bucket("${windowBucketId}")));`,
+    `not_afk = flood(query_bucket(find_bucket("${afkBucketId}")));`,
+    'not_afk = filter_keyvals(not_afk, "status", ["not-afk"]);',
+  ]
+
+  if (webBucketId) {
+    query.push(`browser_events = flood(query_bucket("${webBucketId}"));`)
+    query.push(
+      `window_browser = filter_keyvals(events, "app", ${JSON.stringify(BROWSER_APP_NAMES)});`
+    )
+    query.push('browser_events = filter_period_intersect(browser_events, window_browser);')
+    query.push('browser_events = split_url_events(browser_events);')
+    query.push('audible_events = filter_keyvals(browser_events, "audible", [true]);')
+    query.push('not_afk = period_union(not_afk, audible_events);')
+  }
+
+  query.push('events = filter_period_intersect(events, not_afk);')
+  query.push('RETURN = events;')
 
   return query
 }
@@ -347,9 +374,9 @@ export async function getDailyActiveUsage({ day }) {
   const startOfDay = settingsResult.ok
     ? settingsResult.settings?.startOfDay ?? DEFAULT_START_OF_DAY
     : DEFAULT_START_OF_DAY
-  const timeperiod = buildDayTimeperiod(day, startOfDay)
+  const dayRange = buildDayRange(day, startOfDay)
 
-  if (!timeperiod) {
+  if (!dayRange) {
     return {
       ok: false,
       seconds: null,
@@ -362,7 +389,7 @@ export async function getDailyActiveUsage({ day }) {
     }
   }
 
-  const timeperiods = [timeperiod]
+  const timeperiods = [dayRange.timeperiod]
   const query = buildCanonicalDailyActiveQuery({
     windowBucketId,
     afkBucketId,
@@ -423,7 +450,7 @@ export async function getDailyActiveUsage({ day }) {
       error: null,
       details: {
         startOfDay,
-        timeperiod,
+        timeperiod: dayRange.timeperiod,
       },
     }
   } catch (error) {
@@ -435,6 +462,188 @@ export async function getDailyActiveUsage({ day }) {
       error: {
         code: 'activitywatch_query_failed',
         message: 'No se pudo completar la query de tiempo activo diario.',
+        details: { cause: error instanceof Error ? error.message : String(error) },
+      },
+    }
+  }
+}
+
+function aggregateActiveEventsByHour(events, dayRange) {
+  const secondsByHour = Array.from({ length: 24 }, () => 0)
+  const hourMs = 60 * 60 * 1000
+  const dayStartMs = dayRange.start.getTime()
+  const dayEndMs = dayRange.end.getTime() + 1
+
+  for (const event of events) {
+    const timestamp = new Date(event.timestamp).getTime()
+    const durationSeconds = Number(event.duration)
+    if (!Number.isFinite(timestamp) || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+      continue
+    }
+
+    const eventStart = Math.max(timestamp, dayStartMs)
+    const eventEnd = Math.min(timestamp + durationSeconds * 1000, dayEndMs)
+    if (eventEnd <= eventStart) {
+      continue
+    }
+
+    let cursor = eventStart
+    while (cursor < eventEnd) {
+      const index = Math.floor((cursor - dayStartMs) / hourMs)
+      if (index < 0 || index >= 24) {
+        break
+      }
+
+      const currentHourEnd = Math.min(dayStartMs + (index + 1) * hourMs, eventEnd)
+      const overlapSeconds = (currentHourEnd - cursor) / 1000
+      secondsByHour[index] += overlapSeconds
+      cursor = currentHourEnd
+    }
+  }
+
+  const totalSeconds = secondsByHour.reduce((sum, value) => sum + value, 0)
+  return { secondsByHour, totalSeconds }
+}
+
+function buildHourlyBars(secondsByHour) {
+  const maxSeconds = Math.max(...secondsByHour, 0)
+  const highlightedIndex = secondsByHour.findIndex((value) => value === maxSeconds && maxSeconds > 0)
+
+  return secondsByHour.map((seconds, index) => {
+    const normalizedValue = maxSeconds > 0 ? (seconds / maxSeconds) * 100 : 0
+    return {
+      hour: String(index).padStart(2, '0'),
+      value: Number(normalizedValue.toFixed(2)),
+      highlighted: index === highlightedIndex,
+      seconds,
+    }
+  })
+}
+
+export async function getHourlyActiveUsage({ day }) {
+  const discovery = await discoverActivityWatchBuckets()
+
+  if (!discovery.ok) {
+    return {
+      ok: false,
+      hourlyBars: null,
+      totalSeconds: null,
+      warnings: discovery.warnings,
+      error: discovery.error,
+    }
+  }
+
+  const windowBucketId = discovery.buckets.window?.id ?? null
+  const afkBucketId = discovery.buckets.afk?.id ?? null
+  const webBucketId = discovery.buckets.web?.id ?? null
+
+  if (!windowBucketId || !afkBucketId) {
+    return {
+      ok: false,
+      hourlyBars: null,
+      totalSeconds: null,
+      warnings: discovery.warnings,
+      error: {
+        code: 'activitywatch_missing_required_buckets',
+        message: 'Falta bucket window o AFK para calcular uso por horas.',
+        details: { missing: discovery.missing },
+      },
+    }
+  }
+
+  const settingsResult = await getActivityWatchSettings()
+  const startOfDay = settingsResult.ok
+    ? settingsResult.settings?.startOfDay ?? DEFAULT_START_OF_DAY
+    : DEFAULT_START_OF_DAY
+  const dayRange = buildDayRange(day, startOfDay)
+
+  if (!dayRange) {
+    return {
+      ok: false,
+      hourlyBars: null,
+      totalSeconds: null,
+      warnings: discovery.warnings,
+      error: {
+        code: 'activitywatch_invalid_day',
+        message: `Dia invalido para calcular uso por horas: ${day}.`,
+      },
+    }
+  }
+
+  const query = buildCanonicalDailyEventsQuery({
+    windowBucketId,
+    afkBucketId,
+    webBucketId,
+  })
+  const mergedWarnings = [...discovery.warnings]
+  if (!settingsResult.ok) {
+    mergedWarnings.push({
+      code: 'settings_unavailable_using_default_start_of_day',
+      severity: 'warning',
+      message: 'No se pudo leer /settings; se usa startOfDay por defecto 00:00.',
+    })
+  }
+
+  try {
+    const response = await fetch(QUERY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeperiods: [dayRange.timeperiod], query }),
+    })
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        hourlyBars: null,
+        totalSeconds: null,
+        warnings: mergedWarnings,
+        error: {
+          code: 'activitywatch_query_http_error',
+          message: `ActivityWatch query respondio con HTTP ${response.status}.`,
+          details: { status: response.status },
+        },
+      }
+    }
+
+    const payload = await response.json()
+    const events = normalizeQueryEvents(payload)
+
+    if (!events) {
+      return {
+        ok: false,
+        hourlyBars: null,
+        totalSeconds: null,
+        warnings: mergedWarnings,
+        error: {
+          code: 'activitywatch_query_unexpected_payload',
+          message: 'La Query API devolvio un formato no esperado para eventos horarios.',
+          details: { payload },
+        },
+      }
+    }
+
+    const aggregation = aggregateActiveEventsByHour(events, dayRange)
+    const hourlyBars = buildHourlyBars(aggregation.secondsByHour)
+    return {
+      ok: true,
+      hourlyBars,
+      totalSeconds: aggregation.totalSeconds,
+      warnings: mergedWarnings,
+      error: null,
+      details: {
+        startOfDay,
+        timeperiod: dayRange.timeperiod,
+      },
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      hourlyBars: null,
+      totalSeconds: null,
+      warnings: mergedWarnings,
+      error: {
+        code: 'activitywatch_query_failed',
+        message: 'No se pudo completar la query de uso por horas.',
         details: { cause: error instanceof Error ? error.message : String(error) },
       },
     }

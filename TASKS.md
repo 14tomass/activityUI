@@ -55,6 +55,8 @@
 - DATA-03-FIX-DEBUG-2 completada: comparativa A/B de query canonica con buckets web `aw-watcher-web-chrome` vs `aw-watcher-web-chrome_LenovoTomy`; se confirma impacto fuerte en KPI y se propone ajustar la regla de seleccion de bucket web por hostname.
 - DATA-03-FIX-2 completada: `discoverActivityWatchBuckets()` prioriza bucket web `web.tab.current` con sufijo `_${hostname}` (via `/api/0/info`) y mantiene fallback seguro a la regla previa.
 - DATA-03-CLOSE completada: eliminados logs temporales de depuracion de KPI; DATA-03 queda cerrada con KPI real alineado y sin ruido de consola en funcionamiento normal.
+- DATA-04 completada: tarjeta "Uso por horas" conectada a datos reales canónicos de ActivityWatch para `2026-05-16`, con 24 barras horarias y fallback mock si falla la carga.
+- DATA-04-VERIFY en curso: bloque temporal de consola añadido para verificar coherencia entre total diario KPI y suma de las 24 franjas horarias (`OK` si la diferencia es <= 2 segundos).
 
 ## Fase 4: Sistema de categorias
 

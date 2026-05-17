@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { dashboardOverview } from '../../../mocks/dashboard'
-import { formatUsageFromSeconds, getDailyActiveUsage } from '../../../lib/api/activitywatch'
+import {
+  formatUsageFromSeconds,
+  getDailyActiveUsage,
+  getHourlyActiveUsage,
+} from '../../../lib/api/activitywatch'
 
 const calendarIcon = (
   <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]">
@@ -77,6 +81,7 @@ function WelcomeHero() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
   const [kpiUsageLabel, setKpiUsageLabel] = useState(dashboardOverview.totalUsage)
+  const [hourlyUsage, setHourlyUsage] = useState(dashboardOverview.hourlyUsage)
 
   const closeSettings = () => {
     setActiveModal(null)
@@ -85,6 +90,28 @@ function WelcomeHero() {
 
   useEffect(() => {
     let cancelled = false
+    let dailySecondsForVerification = null
+    let hourlySecondsForVerification = null
+
+    const maybeLogHourlyConsistency = () => {
+      if (
+        typeof dailySecondsForVerification !== 'number' ||
+        typeof hourlySecondsForVerification !== 'number'
+      ) {
+        return
+      }
+
+      const differenceSeconds = Math.abs(dailySecondsForVerification - hourlySecondsForVerification)
+      const validation = differenceSeconds <= 2 ? 'OK' : 'MISMATCH'
+
+      console.log('[DATA-04-VERIFY] Hourly usage consistency')
+      console.log(`1) daily KPI total seconds: ${dailySecondsForVerification}`)
+      console.log(`2) hourly bars total seconds: ${hourlySecondsForVerification}`)
+      console.log(`3) difference seconds: ${differenceSeconds}`)
+      console.log(`4) daily KPI formatted: ${formatUsageFromSeconds(dailySecondsForVerification)}`)
+      console.log(`5) hourly sum formatted: ${formatUsageFromSeconds(hourlySecondsForVerification)}`)
+      console.log(`6) validation: ${validation}`)
+    }
 
     const loadDailyUsage = async () => {
       const result = await getDailyActiveUsage({ day: '2026-05-16' })
@@ -94,15 +121,35 @@ function WelcomeHero() {
       }
 
       if (result.ok && typeof result.seconds === 'number') {
+        dailySecondsForVerification = result.seconds
         const formatted = formatUsageFromSeconds(result.seconds)
         setKpiUsageLabel(formatted)
+        maybeLogHourlyConsistency()
         return
       }
 
       console.warn('No se pudo cargar KPI real de ActivityWatch.', result.error, result.warnings)
     }
 
+    const loadHourlyUsage = async () => {
+      const result = await getHourlyActiveUsage({ day: '2026-05-16' })
+
+      if (cancelled) {
+        return
+      }
+
+      if (result.ok && Array.isArray(result.hourlyBars)) {
+        hourlySecondsForVerification = result.totalSeconds
+        setHourlyUsage(result.hourlyBars)
+        maybeLogHourlyConsistency()
+        return
+      }
+
+      console.warn('No se pudo cargar uso por horas real de ActivityWatch.', result.error, result.warnings)
+    }
+
     loadDailyUsage()
+    loadHourlyUsage()
 
     return () => {
       cancelled = true
@@ -172,7 +219,7 @@ function WelcomeHero() {
 
             <div className="flex flex-col">
               <div className="flex h-[162px] items-end gap-[7px]">
-                {dashboardOverview.hourlyUsage.map((item) => (
+                {hourlyUsage.map((item) => (
                   <div
                     key={item.hour}
                     className={`w-3.5 rounded-t-[10px] ${

@@ -102,6 +102,10 @@ Consultas objetivo para el dashboard:
 - Opcion A: traer eventos filtrados y agrupar en frontend por hora local
 - Opcion B: evaluar query mas avanzada por bloques horarios (mas compleja)
 
+Implementacion aplicada en DATA-04:
+- Se usa Opcion A con query canónica (`RETURN = events`) y agregacion frontend en 24 bins horarios del dia ActivityWatch.
+- Los eventos que cruzan horas se reparten proporcionalmente entre franjas.
+
 ## 5) Estructura real de eventos observada
 
 ## 5.1 Eventos de ventana/aplicacion (`currentwindow`)
@@ -299,3 +303,20 @@ Nota de referencia canonica para integracion:
 
 - Implicacion directa:
 - En instalaciones con bucket legacy y bucket con sufijo de host, el KPI usa el bucket del host activo y evita desalineaciones como la observada en DATA-03-FIX-DEBUG-2.
+
+## 14) DATA-04 aplicado (tarjeta "Uso por horas")
+
+- Nueva funcion: `getHourlyActiveUsage({ day })`.
+- Reutiliza:
+1. discovery dinamico de buckets (incluida prioridad web por hostname)
+2. lectura de `startOfDay` desde settings
+3. query canónica de actividad
+- Flujo:
+1. Query canónica con `RETURN = events`
+2. Construccion del rango diario ActivityWatch (24h)
+3. Agregacion de segundos activos por cada una de las 24 horas consecutivas del rango
+4. Normalizacion de barras respecto a la hora maxima
+- Decisión visual:
+- barra azul = franja con mayor tiempo de uso real.
+- En caso de fallo (API/query/buckets):
+- fallback a barras mock y warning controlado en consola.

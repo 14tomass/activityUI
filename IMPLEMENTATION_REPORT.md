@@ -28,6 +28,7 @@
 - Se completo DATA-03-FIX-DEBUG-2 comparando la query canonica con ambos buckets web disponibles para aislar el efecto del bucket seleccionado.
 - Se completo DATA-03-FIX-2 corrigiendo la seleccion de bucket web para priorizar el bucket del host activo.
 - Se completo DATA-03-CLOSE retirando logs temporales de depuracion del KPI y dejando solo warnings de fallo real.
+- Se completo DATA-04 conectando la tarjeta "Uso por horas" con datos reales canónicos agrupados en 24 franjas horarias.
 
 ## Archivos y carpetas principales actuales
 
@@ -66,7 +67,9 @@
 - `src/lib/api/activitywatch.js`: ahora incluye tambien `getDailyActiveUsage({ day })` y `formatUsageFromSeconds(...)` para obtener y formatear el KPI real diario.
 - `src/lib/api/activitywatch.js`: ahora incluye lectura de `/settings`, construccion de timeperiod segun `startOfDay` y query canonica con soporte de `audible_events`.
 - `src/lib/api/activitywatch.js`: ahora incluye lectura de `/info` para priorizar bucket web `web.tab.current` coincidente con `_${hostname}`.
+- `src/lib/api/activitywatch.js`: ahora incluye `getHourlyActiveUsage({ day })` con agregacion horaria y reparto de eventos que cruzan limites de hora.
 - `src/features/dashboard/components/WelcomeHero.jsx`: el KPI usa dato real de ActivityWatch con fallback al valor mock si falla la carga.
+- `src/features/dashboard/components/WelcomeHero.jsx`: la grafica "Uso por horas" ahora consume estado real horario con fallback a mocks.
 - `docs/ACTIVITYWATCH_DATA_MAPPING.md`: mapeo tecnico de buckets, eventos, endpoints y estrategia de integracion real (sin sustituir mocks aun).
 - `src/assets/`: recursos graficos del scaffold inicial.
 
@@ -249,6 +252,23 @@
 - `console.warn('No se pudo cargar KPI real de ActivityWatch...', ...)`
 - Estado final de DATA-03:
 - KPI real conectado, alineado con ActivityWatch oficial, y sin ruido de debug en condiciones normales.
+
+## DATA-04: Uso por horas real
+
+- Se reutilizo la misma base canónica validada en DATA-03 (window + afk + web/audible + startOfDay).
+- Se implemento `getHourlyActiveUsage({ day })` en capa API:
+- ejecuta query canónica con `RETURN = events`
+- construye el rango ActivityWatch del dia (`startOfDay` + 24h)
+- agrega duracion activa en 24 bins horarios consecutivos
+- prorratea eventos cuando cruzan limites de hora
+- normaliza barras al maximo horario para render visual proporcional
+- Se mantuvo el diseño visual existente de la tarjeta.
+- Decisión de resaltado:
+- la barra azul es la hora con mayor actividad real del dia.
+- Criterio de etiquetas:
+- se mantienen las etiquetas UI actuales (`00, 03, 06, 09, 12, 15, 18, 21`) para preservar consistencia visual en esta iteracion.
+- Manejo de fallos:
+- si falla carga horaria o faltan buckets, se conserva fallback mock y se emite warning controlado en consola.
 
 ## Pendiente antes de empezar la UI real
 
