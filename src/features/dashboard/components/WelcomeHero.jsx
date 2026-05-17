@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { dashboardOverview } from '../../../mocks/dashboard'
-import { formatUsageFromSeconds, getDailyActiveUsage, getHourlyActiveUsage } from '../../../lib/api/activitywatch'
+import {
+  formatUsageFromSeconds,
+  getDailyActiveUsage,
+  getDailyCategoryUsage,
+  getHourlyActiveUsage,
+} from '../../../lib/api/activitywatch'
 
 const calendarIcon = (
   <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]">
@@ -73,11 +78,14 @@ const chevronRightIcon = (
   </svg>
 )
 
+const CATEGORY_VISUAL_ORDER = ['Estudio', 'Entretenimiento', 'Productividad', 'Otros']
+
 function WelcomeHero() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
   const [kpiUsageLabel, setKpiUsageLabel] = useState(dashboardOverview.totalUsage)
   const [hourlyUsage, setHourlyUsage] = useState(dashboardOverview.hourlyUsage)
+  const [categoryUsageCard, setCategoryUsageCard] = useState(dashboardOverview.categories)
 
   const closeSettings = () => {
     setActiveModal(null)
@@ -118,8 +126,39 @@ function WelcomeHero() {
       console.warn('No se pudo cargar uso por horas real de ActivityWatch.', result.error, result.warnings)
     }
 
+    const loadCategoryUsage = async () => {
+      const result = await getDailyCategoryUsage({ day: '2026-05-16' })
+
+      if (cancelled) {
+        return
+      }
+
+      if (result.ok && Array.isArray(result.categories)) {
+        const categoriesByLabel = new Map(result.categories.map((item) => [item.category, item]))
+        const visualCategories = CATEGORY_VISUAL_ORDER.map((label) => {
+          const matched = categoriesByLabel.get(label)
+          const fallback = dashboardOverview.categories.find((category) => category.label === label)
+          return {
+            ...fallback,
+            duration: matched?.formattedDuration ?? fallback.duration,
+            progress: matched ? Math.max(0, Math.min(100, matched.percentage)) : fallback.progress,
+          }
+        })
+
+        setCategoryUsageCard(visualCategories)
+        return
+      }
+
+      console.warn(
+        'No se pudo cargar uso por categorias real de ActivityWatch; se mantiene fallback mock.',
+        result.error,
+        result.warnings
+      )
+    }
+
     loadDailyUsage()
     loadHourlyUsage()
+    loadCategoryUsage()
 
     return () => {
       cancelled = true
@@ -211,7 +250,7 @@ function WelcomeHero() {
 
         <div className="mt-6 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
           <div className="space-y-4">
-            {dashboardOverview.categories.map((category) => (
+            {categoryUsageCard.map((category) => (
               <div key={category.id}>
                 <div className="mb-1.5 flex items-center justify-between text-[1.24rem] font-semibold tracking-[-0.02em] text-slate-800">
                   <span>{category.label}</span>

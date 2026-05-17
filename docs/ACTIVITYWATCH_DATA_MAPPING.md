@@ -425,3 +425,20 @@ Nota de referencia canonica para integracion:
 - diferencia: `1.338s` (`OK`, dentro del margen <= `2s`)
 - El bloque temporal de consola `[DATA-06-VERIFY] Category usage consistency` fue retirado.
 - En funcionamiento normal quedan solo warnings de fallo real al cargar/categorizar datos.
+
+## 20) DATA-07 implementado (tarjeta visual de categorias)
+
+- La tarjeta visual de categorias ya consume `getDailyCategoryUsage({ day })` (dia fijo actual `2026-05-16`).
+- Se mantiene orden visual estable de categorias:
+1. Estudio
+2. Entretenimiento
+3. Productividad
+4. Otros
+- Las barras usan el porcentaje real devuelto por la capa de categorizacion.
+- En caso de fallo de carga se mantiene fallback mock sin romper UI.
+- DATA-07-CLOSE: retirado el bloque temporal de consola `[DATA-07-VERIFY]`; en funcionamiento normal quedan solo warnings de fallo real.
+
+## 21) Notas tecnicas para roadmap futuro (DATA-08 y DATA-09)
+
+- Para **DATA-08** (detalle real por categoria), la capa de datos debera devolver desglose diario por categoria con items de app/sitio y duracion (sin doble conteo), reutilizando la misma base canonica de actividad ya validada.
+- Para **DATA-09** (detalle real por franja horaria), las consultas o transformaciones deberan permitir filtrar/segmentar eventos por intervalo horario especifico y devolver top apps/sitios de esa franja.

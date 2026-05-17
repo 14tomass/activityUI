@@ -38,6 +38,12 @@
 - Se implemento DATA-06 con primera capa real de categorizacion diaria sin doble conteo, manteniendo UI visual intacta.
 - Se completo DATA-06-VERIFY validando coherencia para `2026-05-16` (KPI `24126.820s`, categorizado `24128.158s`, diferencia `1.338s`, `OK`).
 - Se completo DATA-06-CLOSE retirando logs temporales de depuracion de categorias y manteniendo solo warnings utiles en caso de fallo real.
+- Se implemento DATA-07 conectando la tarjeta visual de categorias del dashboard a datos reales de `getDailyCategoryUsage({ day: "2026-05-16" })` con fallback mock seguro.
+- Se completo DATA-07-VERIFY con validacion `OK` en navegador (datos recibidos y representados correctamente en tarjeta de categorias).
+- Se completo DATA-07-CLOSE retirando logs temporales de verificacion UI y manteniendo solo warnings de fallo real en carga de categorias.
+- Se acordo ampliacion funcional del roadmap antes de nuevas implementaciones:
+- DATA-08 para conectar el modal de detalle de categoria a desglose real por apps/sitios.
+- DATA-09 para inspeccion por clic de barras en "Uso por horas" con desglose real por franja.
 
 ## Archivos y carpetas principales actuales
 
@@ -418,6 +424,47 @@
 - reglas iniciales de clasificacion
 - suma sin doble conteo relevante
 - Se mantienen warnings utiles solo ante errores reales de carga/categorizacion.
+
+## DATA-07: tarjeta visual de categorias conectada a datos reales
+
+- Se conecto la tarjeta de categorias del dashboard a `getDailyCategoryUsage({ day: "2026-05-16" })`.
+- Se mantuvo intacto el diseno visual:
+- orden fijo: `Estudio`, `Entretenimiento`, `Productividad`, `Otros`
+- color por categoria sin cambios
+- duracion a la derecha y barra horizontal por porcentaje real
+- Estrategia de carga/fallo:
+- mientras carga, se conserva el mock existente para evitar parpadeo brusco
+- si falla la carga, se mantiene fallback mock y se emite warning controlado en consola
+- Verificacion temporal activa:
+- bloque `[DATA-07-VERIFY] Category card UI data` con:
+- categorias recibidas desde API
+- categorias enviadas al render visual
+- tiempos formateados por categoria
+- porcentajes usados en barras
+- estado `validation: OK / MISMATCH`
+
+## DATA-07-CLOSE: limpieza de depuracion
+
+- Se elimino del flujo normal el bloque temporal:
+- `[DATA-07-VERIFY] Category card UI data`
+- Se retiraron logs temporales de:
+- categorias recibidas desde `getDailyCategoryUsage()`
+- categorias enviadas al componente visual
+- tiempos formateados por categoria
+- porcentajes usados para las barras
+- `validation: OK / MISMATCH`
+- Se mantiene intacta la logica funcional ya validada:
+- carga real de `getDailyCategoryUsage({ day })`
+- tiempos y porcentajes reales en la tarjeta
+- orden visual fijo de categorias
+- Se mantiene `console.warn` solo ante fallo real al cargar categorias.
+
+## Roadmap ampliado tras DATA-07
+
+- **DATA-08 (pendiente)**:
+- Conectar el modal de detalle de categoria (actualmente mock) a datos reales del dia seleccionado para listar apps/sitios y sus duraciones dentro de cada categoria.
+- **DATA-09 (pendiente)**:
+- Anadir interaccion de clic en barras de "Uso por horas" para mostrar detalle real de consumo por apps/sitios dentro de la franja seleccionada.
 
 ## Pendiente antes de empezar la UI real
 

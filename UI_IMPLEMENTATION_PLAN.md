@@ -141,10 +141,17 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - Navegacion real entre dias, semanas y meses.
 - Animaciones refinadas de drawer y modales.
 - Gestion real de alta, borrado o reordenacion de apps dentro de categorias.
+- Conectar el modal de detalle de categoria a datos reales de ActivityWatch (desglose por apps/sitios del dia seleccionado).
+- Permitir clic en barras de "Uso por horas" para abrir detalle real de apps/sitios consumidos en la franja seleccionada.
 - Sistema completo de iconos por aplicacion o dominio.
 - Responsive fino para mobile si Figma no define explicitamente esa version.
 - Estados vacios, validaciones de formulario y mensajes de error.
 - Integracion con ActivityWatch y transformacion de datos reales.
+
+## Evolucion funcional acordada tras DATA-07
+
+- **DATA-08 (futuro)**: el modal de detalle de categoria (hoy mock) debe conectarse a datos reales para mostrar exactamente en que apps/sitios se consume el tiempo de cada categoria en el dia activo.
+- **DATA-09 (futuro)**: el grafico "Uso por horas" incorporara interaccion por clic en barra para inspeccionar una franja horaria concreta y ver su desglose real de apps/sitios.
 
 ## Primera tarea recomendada
 

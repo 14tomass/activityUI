@@ -73,6 +73,11 @@
 - DATA-06 implementada: primera capa real de categorizacion diaria sin doble conteo (`Estudio`, `Entretenimiento`, `Productividad`, `Otros`) con prioridad web->app y fallback a `Otros`.
 - DATA-06-VERIFY completada: coherencia validada para `2026-05-16` (KPI diario `24126.820s`, total categorizado `24128.158s`, diferencia `1.338s`, `OK`).
 - DATA-06-CLOSE completada: eliminados logs temporales `[DATA-06-VERIFY]` y mantenidos solo warnings utiles ante fallo real.
+- DATA-07 implementada: tarjeta visual de categorias conectada a `getDailyCategoryUsage({ day: "2026-05-16" })` manteniendo orden/colores del diseno y fallback mock ante fallo.
+- DATA-07-VERIFY completada: validado en navegador que la UI recibe y representa correctamente duraciones/porcentajes reales (`validation: OK`).
+- DATA-07-CLOSE completada: retirado bloque temporal `[DATA-07-VERIFY]` y mantenidos solo warnings utiles ante fallo real de carga.
+- DATA-08 pendiente: conectar el modal de detalle de categoria con desglose real por apps/sitios del dia seleccionado.
+- DATA-09 pendiente: permitir inspeccionar una franja del grafico por horas al hacer clic en una barra y mostrar desglose real de apps/sitios dentro de esa hora.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 

@@ -307,6 +307,27 @@ function ensureCategoryTotals() {
   return new Map(CATEGORY_KEYS.map((category) => [category, 0]))
 }
 
+function ensureCategoryItemTotals() {
+  return new Map(CATEGORY_KEYS.map((category) => [category, new Map()]))
+}
+
+function addCategoryItemUsage(itemTotalsByCategory, { category, sourceType, label, seconds }) {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return
+  }
+
+  const categoryMap = itemTotalsByCategory.get(category)
+  if (!categoryMap) {
+    return
+  }
+
+  const safeLabel = normalizeKey(label, sourceType === 'website' ? 'unknown' : 'unknown-app')
+  const key = `${sourceType}:${safeLabel}`
+  const current = categoryMap.get(key) ?? { sourceType, label: safeLabel, seconds: 0 }
+  current.seconds += seconds
+  categoryMap.set(key, current)
+}
+
 function extractEventTimeRange(event) {
   const startMs = new Date(event?.timestamp).getTime()
   const durationSeconds = Number(event?.duration)
@@ -926,6 +947,7 @@ async function getDailyBrowserDomainEvents({ day }) {
 function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
   const totals = ensureCategoryTotals()
   const detailsByCategory = new Map(CATEGORY_KEYS.map((category) => [category, { domains: new Set(), apps: new Set() }]))
+  const itemTotalsByCategory = ensureCategoryItemTotals()
 
   let browserIndex = 0
   for (const event of activeEvents) {
@@ -941,6 +963,12 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
       const category = classifyApp(app) ?? 'Otros'
       totals.set(category, totals.get(category) + range.seconds)
       detailsByCategory.get(category).apps.add(app)
+      addCategoryItemUsage(itemTotalsByCategory, {
+        category,
+        sourceType: 'application',
+        label: app,
+        seconds: range.seconds,
+      })
       continue
     }
 
@@ -959,6 +987,12 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
         const category = classifyDomain(browserEvent.domain) ?? 'Otros'
         totals.set(category, totals.get(category) + overlapSeconds)
         detailsByCategory.get(category).domains.add(browserEvent.domain)
+        addCategoryItemUsage(itemTotalsByCategory, {
+          category,
+          sourceType: 'website',
+          label: browserEvent.domain,
+          seconds: overlapSeconds,
+        })
         coveredMs += overlapEnd - overlapStart
       }
       scanIndex += 1
@@ -969,12 +1003,19 @@ function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
       const fallbackCategory = classifyApp(app) ?? 'Otros'
       totals.set(fallbackCategory, totals.get(fallbackCategory) + leftoverMs / 1000)
       detailsByCategory.get(fallbackCategory).apps.add(app)
+      addCategoryItemUsage(itemTotalsByCategory, {
+        category: fallbackCategory,
+        sourceType: 'application',
+        label: app,
+        seconds: leftoverMs / 1000,
+      })
     }
   }
 
   return {
     totals,
     detailsByCategory,
+    itemTotalsByCategory,
   }
 }
 
@@ -1176,6 +1217,177 @@ export async function getDailyCategoryUsage({ day }) {
         domain: CATEGORY_DOMAIN_RULES,
         app: CATEGORY_APP_RULES,
       },
+      kpiTotalSeconds: dailyActiveResult.seconds,
+    },
+  }
+}
+
+export async function getDailyCategoryDetailUsage({ day, category }) {
+  const targetCategory = CATEGORY_KEYS.includes(category) ? category : null
+  if (!targetCategory) {
+    return {
+      ok: false,
+      category: category ?? null,
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: [],
+      error: {
+        code: 'activitywatch_invalid_category',
+        message: `Categoria invalida para detalle diario: ${category}.`,
+      },
+      details: null,
+    }
+  }
+
+  const [dailyActiveResult, activeEventsResult, browserEventsResult] = await Promise.all([
+    getDailyActiveUsage({ day }),
+    (async () => {
+      const context = await resolveDailyUsageContext({
+        day,
+        requiredBuckets: ['window', 'afk'],
+        missingBucketsMessage: 'Falta bucket window o AFK para calcular detalle de categoria.',
+      })
+
+      if (!context.ok) {
+        return {
+          ok: false,
+          events: [],
+          warnings: context.warnings,
+          error: context.error,
+          details: context.details,
+        }
+      }
+
+      const query = buildCanonicalDailyEventsQuery({
+        windowBucketId: context.bucketIds.window,
+        afkBucketId: context.bucketIds.afk,
+        webBucketId: context.bucketIds.web,
+      })
+
+      try {
+        const queryResult = await runQuery({ timeperiod: context.details.timeperiod, query })
+        if (!queryResult.ok) {
+          return {
+            ok: false,
+            events: [],
+            warnings: context.warnings,
+            error: queryResult.error,
+            details: context.details,
+          }
+        }
+
+        const events = normalizeQueryEvents(queryResult.payload)
+        if (!events) {
+          return {
+            ok: false,
+            events: [],
+            warnings: context.warnings,
+            error: {
+              code: 'activitywatch_query_unexpected_payload',
+              message: 'La Query API devolvio un formato no esperado para eventos de detalle de categoria.',
+              details: { payload: queryResult.payload },
+            },
+            details: context.details,
+          }
+        }
+
+        return {
+          ok: true,
+          events,
+          warnings: context.warnings,
+          error: null,
+          details: context.details,
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          events: [],
+          warnings: context.warnings,
+          error: {
+            code: 'activitywatch_query_failed',
+            message: 'No se pudo obtener la base de eventos para detalle de categoria.',
+            details: { cause: error instanceof Error ? error.message : String(error) },
+          },
+          details: context.details,
+        }
+      }
+    })(),
+    getDailyBrowserDomainEvents({ day }),
+  ])
+
+  const combinedWarnings = [
+    ...(dailyActiveResult.warnings ?? []),
+    ...(activeEventsResult.warnings ?? []),
+    ...(browserEventsResult.warnings ?? []),
+  ]
+
+  if (!dailyActiveResult.ok) {
+    return {
+      ok: false,
+      category: targetCategory,
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: combinedWarnings,
+      error: dailyActiveResult.error,
+      details: null,
+    }
+  }
+
+  if (!activeEventsResult.ok) {
+    return {
+      ok: false,
+      category: targetCategory,
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: combinedWarnings,
+      error: activeEventsResult.error,
+      details: null,
+    }
+  }
+
+  if (!browserEventsResult.ok) {
+    return {
+      ok: false,
+      category: targetCategory,
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: combinedWarnings,
+      error: browserEventsResult.error,
+      details: null,
+    }
+  }
+
+  const aggregation = aggregateCategoryUsage({
+    activeEvents: activeEventsResult.events,
+    browserDomainEvents: browserEventsResult.events,
+  })
+  const totalSeconds = aggregation.totals.get(targetCategory) ?? 0
+  const itemsRaw = Array.from(aggregation.itemTotalsByCategory.get(targetCategory)?.values() ?? [])
+    .sort((a, b) => b.seconds - a.seconds)
+
+  const items = itemsRaw.map((item) => ({
+    label: item.label,
+    sourceType: item.sourceType,
+    seconds: item.seconds,
+    formattedDuration: formatUsageFromSeconds(item.seconds),
+    percentage: totalSeconds > 0 ? Number(((item.seconds / totalSeconds) * 100).toFixed(2)) : 0,
+  }))
+
+  return {
+    ok: true,
+    category: targetCategory,
+    totalSeconds,
+    formattedTotal: formatUsageFromSeconds(totalSeconds),
+    items,
+    warnings: combinedWarnings,
+    error: null,
+    details: {
+      day,
+      classificationPriority: 'domain_then_app_then_otros',
       kpiTotalSeconds: dailyActiveResult.seconds,
     },
   }
