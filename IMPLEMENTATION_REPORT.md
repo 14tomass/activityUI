@@ -29,6 +29,13 @@
 - Se completo DATA-03-FIX-2 corrigiendo la seleccion de bucket web para priorizar el bucket del host activo.
 - Se completo DATA-03-CLOSE retirando logs temporales de depuracion del KPI y dejando solo warnings de fallo real.
 - Se completo DATA-04 conectando la tarjeta "Uso por horas" con datos reales canónicos agrupados en 24 franjas horarias.
+- Se completo DATA-04-VERIFY validando coherencia exacta entre KPI diario y suma horaria (diferencia `0s` para `2026-05-16`).
+- Se completo DATA-04-CLOSE retirando logs temporales de verificacion horaria y manteniendo solo warnings utiles de fallo real.
+- Se completo DATA-05 creando funciones reutilizables para desglose diario real por aplicaciones y sitios web, sin conectarlas todavia a la UI.
+- Se inicio DATA-05-VERIFY-BROWSER con logs temporales en consola del navegador para validar DATA-05 en el entorno real (CORS navegador -> ActivityWatch).
+- Se inicio DATA-05-WEB-DEBUG para comparar websites Variante A (actual) vs Variante B (estilo ActivityWatch Browser) sin modificar todavia la logica final.
+- Se completo DATA-05-WEB-FIX: websites migrado a logica Browser Style validada y retirada toda la instrumentacion temporal de debug.
+- Se implemento DATA-06 con primera capa real de categorizacion diaria sin doble conteo, manteniendo UI visual intacta.
 
 ## Archivos y carpetas principales actuales
 
@@ -42,6 +49,7 @@
 - `README.md`: guia de arranque y contexto general.
 - `scripts/`: utilidades de ejecucion para Vite en este entorno.
 - `scripts/check-activitywatch-buckets.mjs`: comprobacion manual de desarrollo para validar `discoverActivityWatchBuckets()`.
+- `scripts/check-activitywatch-usage.mjs`: comprobacion manual para validar desglose diario real por aplicaciones y sitios web.
 - `public/`: assets publicos.
 - `src/`: codigo fuente principal.
 
@@ -68,6 +76,8 @@
 - `src/lib/api/activitywatch.js`: ahora incluye lectura de `/settings`, construccion de timeperiod segun `startOfDay` y query canonica con soporte de `audible_events`.
 - `src/lib/api/activitywatch.js`: ahora incluye lectura de `/info` para priorizar bucket web `web.tab.current` coincidente con `_${hostname}`.
 - `src/lib/api/activitywatch.js`: ahora incluye `getHourlyActiveUsage({ day })` con agregacion horaria y reparto de eventos que cruzan limites de hora.
+- `src/lib/api/activitywatch.js`: ahora incluye `getDailyApplicationUsage({ day })` y `getDailyWebsiteUsage({ day })` para preparar la futura capa de categorias.
+- `src/lib/api/activitywatch.js`: ahora incluye `getDailyCategoryUsage({ day })` y reglas iniciales de clasificacion por dominio/app con fallback a `Otros`.
 - `src/features/dashboard/components/WelcomeHero.jsx`: el KPI usa dato real de ActivityWatch con fallback al valor mock si falla la carga.
 - `src/features/dashboard/components/WelcomeHero.jsx`: la grafica "Uso por horas" ahora consume estado real horario con fallback a mocks.
 - `docs/ACTIVITYWATCH_DATA_MAPPING.md`: mapeo tecnico de buckets, eventos, endpoints y estrategia de integracion real (sin sustituir mocks aun).
@@ -269,6 +279,126 @@
 - se mantienen las etiquetas UI actuales (`00, 03, 06, 09, 12, 15, 18, 21`) para preservar consistencia visual en esta iteracion.
 - Manejo de fallos:
 - si falla carga horaria o faltan buckets, se conserva fallback mock y se emite warning controlado en consola.
+
+## DATA-04-VERIFY: coherencia KPI diario vs suma horaria
+
+- Se anadio un bloque temporal de diagnostico en consola al cargar dashboard para `2026-05-16`:
+- `[DATA-04-VERIFY] Hourly usage consistency`
+- El bloque imprime:
+- total diario real (segundos) usado por KPI
+- total horario agregado (segundos) usado por barras
+- diferencia absoluta en segundos
+- ambos totales formateados (`Xh Ym`)
+- validacion final `OK` o `MISMATCH`
+- Criterio de validacion:
+- `OK` si la diferencia es <= 2 segundos (tolerancia por redondeo/prorrateo flotante).
+- Resultado validado:
+- `daily KPI total seconds = 24126.82`
+- `hourly bars total seconds = 24126.82`
+- `difference seconds = 0`
+- `validation = OK`
+
+## DATA-04-CLOSE: limpieza de depuracion
+
+- Se elimino del flujo normal el bloque temporal:
+- `[DATA-04-VERIFY] Hourly usage consistency`
+- Se retiraron estos logs temporales:
+- `daily KPI total seconds`
+- `hourly bars total seconds`
+- `difference seconds`
+- `daily KPI formatted`
+- `hourly sum formatted`
+- `validation: OK / MISMATCH`
+- Se mantiene intacta la logica funcional de DATA-04:
+- `getHourlyActiveUsage({ day })`
+- agregacion por solapamiento en 24 franjas
+- coherencia con KPI diario
+- barra azul para la hora de mayor uso
+- Se mantienen warnings utiles solo ante fallos reales de carga.
+
+## DATA-05: capa de datos para apps y sitios
+
+- Se implementaron dos funciones reutilizables en `src/lib/api/activitywatch.js`:
+- `getDailyApplicationUsage({ day })`
+- `getDailyWebsiteUsage({ day })`
+- Ambas reutilizan:
+- discovery dinamico de buckets
+- lectura de `startOfDay` desde settings
+- rango diario ActivityWatch coherente con el KPI
+- selecciÃ³n de bucket web por hostname activo
+- Estructura devuelta preparada para categorizacion futura:
+- aplicaciones: `app`, `seconds`, `formattedDuration`, `classificationHints`
+- sitios: `domain`, `seconds`, `formattedDuration`, `sampleUrl`, `classificationHints`
+- DecisiÃ³n para websites:
+- agrupacion por dominio (`hostname` sin `www.`), no por URL completa.
+- Se anadio validacion manual sin UI:
+- `npm run check:activitywatch-usage`
+- salida esperada: bloque `[DATA-05-VERIFY] Daily application and website usage` con top apps y top domains.
+- Limitacion de entorno detectada:
+- en este proyecto, la comprobacion por script Node en WSL no alcanza `http://localhost:5600` porque ActivityWatch corre en Windows; la validacion fiable para DATA-05 se hace temporalmente desde consola del navegador.
+- Verificacion temporal activa en frontend:
+- `WelcomeHero` imprime bloque `[DATA-05-VERIFY] Daily application and website usage (TEMP)` al cargar la pantalla para `2026-05-16`, mostrando top 10 de apps y top 10 de dominios.
+
+## DATA-05-WEB-DEBUG: discrepancia websites
+
+- Estado validado manualmente:
+- `getDailyApplicationUsage({ day })` aprobado (coincide con ActivityWatch oficial).
+- `getDailyWebsiteUsage({ day })` pendiente (discrepancia en Browser, especialmente `chatgpt.com`).
+- Se anadio comparacion temporal A/B en navegador:
+- bloque de consola `[DATA-05-WEB-DEBUG] Website usage comparison`.
+- Variante A:
+- calculo actual de `getDailyWebsiteUsage` (eventos web crudos agrupados por dominio).
+- Variante B:
+- calculo estilo Browser de ActivityWatch:
+- web events intersectados con ventanas activas de navegador
+- `split_url_events(...)`
+- agrupacion por dominio.
+- El bloque imprime:
+- top domains de A
+- top domains de B
+- comparacion contra valores oficiales de referencia
+- conclusion de coincidencia relativa (A vs B).
+
+## DATA-05-WEB-FIX: websites alineado con ActivityWatch Browser
+
+- Queda demostrado por validacion manual que la Variante B reproduce ActivityWatch Browser con diferencias sub-segundo para `2026-05-16`.
+- Implementacion final aplicada:
+- `getDailyWebsiteUsage({ day })` ahora usa la pipeline Browser Style:
+- eventos web del bucket correcto
+- interseccion con ventanas activas de navegador
+- `split_url_events(...)`
+- agrupacion por dominio
+- contrato de salida mantenido:
+- `domain`
+- `seconds`
+- `formattedDuration`
+- `sampleUrl`
+- `classificationHints`
+- Limpieza aplicada:
+- eliminado bloque temporal `[DATA-05-WEB-DEBUG] Website usage comparison` de consola en frontend.
+- eliminado uso de funciones auxiliares de debug en UI.
+- Estado de DATA-05:
+- aplicaciones aprobadas
+- websites aprobados
+- DATA-05 cerrada.
+
+## DATA-06: primera capa de categorizacion real
+
+- Se implemento `getDailyCategoryUsage({ day })` en capa API.
+- Criterios aplicados:
+- prioridad dominio web cuando hay navegacion activa asociada
+- fallback a aplicacion activa cuando no hay dominio asociado
+- fallback final a `Otros`
+- Sin doble conteo:
+- cada tramo activo se asigna a una sola categoria usando solapamiento temporal en eventos de navegador.
+- Categorias iniciales:
+- `Estudio`
+- `Entretenimiento`
+- `Productividad`
+- `Otros`
+- Se anadio bloque temporal de verificacion en navegador:
+- `[DATA-06-VERIFY] Category usage consistency`
+- muestra KPI diario vs total categorizado, diferencia y validacion `OK/MISMATCH`.
 
 ## Pendiente antes de empezar la UI real
 

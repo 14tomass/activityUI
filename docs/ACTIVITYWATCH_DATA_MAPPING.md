@@ -320,3 +320,99 @@ Nota de referencia canonica para integracion:
 - barra azul = franja con mayor tiempo de uso real.
 - En caso de fallo (API/query/buckets):
 - fallback a barras mock y warning controlado en consola.
+
+## 15) DATA-05 aplicado (capa de desglose por apps y sitios)
+
+- Nuevas funciones reutilizables en capa API:
+1. `getDailyApplicationUsage({ day })`
+2. `getDailyWebsiteUsage({ day })`
+
+- Criterios tecnicos compartidos:
+1. discovery dinamico de buckets
+2. `startOfDay` leido desde `/settings`
+3. rango ActivityWatch del dia solicitado
+4. buckets seleccionados por host activo
+
+- Resultado de `getDailyApplicationUsage`:
+- lista ordenada por duracion descendente
+- campos: `app`, `seconds`, `formattedDuration`, `classificationHints`
+
+- Resultado de `getDailyWebsiteUsage`:
+- lista ordenada por duracion descendente
+- agrupacion por dominio (`hostname` sin `www.`)
+- campos: `domain`, `seconds`, `formattedDuration`, `sampleUrl`, `classificationHints`
+- si una URL no es parseable, se agrupa como `unknown`
+
+- Validacion manual disponible:
+- `npm run check:activitywatch-usage`
+- imprime bloque `[DATA-05-VERIFY] Daily application and website usage` con top apps y top domains reales para `2026-05-16`.
+
+## 16) DATA-05-WEB-DEBUG (websites en depuracion)
+
+- Hallazgo de validacion manual:
+- aplicaciones alineadas con ActivityWatch oficial.
+- websites no alineados aun en pestaña Browser (caso destacado: `chatgpt.com`).
+
+- Hipotesis tecnica en evaluacion:
+- el calculo actual usa eventos web demasiado crudos.
+- ActivityWatch Browser parece aplicar pipeline:
+1. eventos web
+2. interseccion con ventanas activas de navegador
+3. `split_url_events(...)`
+4. agrupacion por dominio.
+
+- Verificacion temporal activa en navegador:
+- bloque `[DATA-05-WEB-DEBUG] Website usage comparison` con:
+1. Variante A (actual)
+2. Variante B (browser-style)
+3. comparacion frente a valores oficiales
+4. conclusion de coincidencia relativa.
+
+## 17) DATA-05-WEB-FIX aplicado (websites aprobado)
+
+- Resultado de la depuracion:
+- la Variante B (Browser Style) replica ActivityWatch Browser para `2026-05-16` con diferencias sub-segundo.
+- Se adopta como implementacion oficial para websites.
+
+- Pipeline final de `getDailyWebsiteUsage({ day })`:
+1. obtener eventos web del bucket seleccionado por host
+2. intersectar con ventanas activas de navegador
+3. aplicar `split_url_events(...)`
+4. agrupar por dominio (`hostname` sin `www.`)
+
+- Estado de DATA-05:
+- `getDailyApplicationUsage({ day })` aprobado
+- `getDailyWebsiteUsage({ day })` aprobado
+- tarea cerrada
+
+## 18) DATA-06 implementado (capa de categorizacion diaria)
+
+- Nueva funcion reutilizable:
+- `getDailyCategoryUsage({ day })`
+
+- Objetivo tecnico:
+- repartir el tiempo activo diario en categorias sin doble conteo:
+1. Estudio
+2. Entretenimiento
+3. Productividad
+4. Otros
+
+- Regla de asignacion estable:
+1. prioridad dominio web cuando hay navegacion activa asociada
+2. fallback a aplicacion activa si no hay web asociada
+3. fallback final a `Otros`
+
+- Estrategia anti-doble-conteo:
+- la base de calculo son eventos activos canonicos del dia
+- en eventos de navegador se reparte por solapamiento con eventos web Browser Style
+- el tiempo remanente de cada evento se clasifica una sola vez por app/`Otros`
+
+- Salida de `getDailyCategoryUsage({ day })`:
+- `category`
+- `seconds`
+- `formattedDuration`
+- `percentage` (respecto al total categorizado)
+
+- Validacion temporal activa en navegador:
+- bloque `[DATA-06-VERIFY] Category usage consistency`
+- compara total KPI diario vs total categorizado y marca `OK` si diferencia <= 2s.

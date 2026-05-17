@@ -56,7 +56,13 @@
 - DATA-03-FIX-2 completada: `discoverActivityWatchBuckets()` prioriza bucket web `web.tab.current` con sufijo `_${hostname}` (via `/api/0/info`) y mantiene fallback seguro a la regla previa.
 - DATA-03-CLOSE completada: eliminados logs temporales de depuracion de KPI; DATA-03 queda cerrada con KPI real alineado y sin ruido de consola en funcionamiento normal.
 - DATA-04 completada: tarjeta "Uso por horas" conectada a datos reales canónicos de ActivityWatch para `2026-05-16`, con 24 barras horarias y fallback mock si falla la carga.
-- DATA-04-VERIFY en curso: bloque temporal de consola añadido para verificar coherencia entre total diario KPI y suma de las 24 franjas horarias (`OK` si la diferencia es <= 2 segundos).
+- DATA-04-VERIFY completada: coherencia validada para `2026-05-16` (KPI diario y suma de 24 franjas coinciden, diferencia `0s`).
+- DATA-04-CLOSE completada: eliminados logs temporales de verificacion horaria; DATA-04 queda cerrada sin ruido de debug en consola.
+- DATA-05 implementada: capa de datos reutilizable para desglose diario por aplicaciones y sitios web.
+- DATA-05-VERIFY-BROWSER en curso: validacion temporal movida al navegador porque `check:activitywatch-usage` en WSL no alcanza `http://localhost:5600` (ActivityWatch corre en Windows).
+- DATA-05-WEB-DEBUG completada: comparacion A/B valida que la Variante B (Browser Style) reproduce ActivityWatch Browser con diferencias sub-segundo.
+- DATA-05-WEB-FIX completada: `getDailyWebsiteUsage({ day })` usa logica Browser Style; logs temporales de debug retirados.
+- Estado DATA-05 cerrado: aplicaciones aprobadas y websites aprobados.
 
 ## Fase 4: Sistema de categorias
 
@@ -64,6 +70,8 @@
 - [ ] Disenar reglas base de clasificacion
 - [ ] Implementar configuracion local de categorias
 - [ ] Reflejar categorias en graficas, listas y resumenes
+- DATA-06 implementada: primera capa real de categorizacion diaria sin doble conteo (`Estudio`, `Entretenimiento`, `Productividad`, `Otros`) con prioridad web->app y fallback a `Otros`.
+- DATA-06-VERIFY en curso: bloque temporal en navegador para validar coherencia matematica entre KPI diario y total categorizado.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 

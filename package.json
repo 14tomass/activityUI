@@ -8,6 +8,7 @@
     "build": "node scripts/vite.mjs build",
     "lint": "eslint .",
     "check:activitywatch-buckets": "node scripts/check-activitywatch-buckets.mjs",
+    "check:activitywatch-usage": "node scripts/check-activitywatch-usage.mjs",
     "preview": "node scripts/vite.mjs preview --host 127.0.0.1"
   },
   "dependencies": {

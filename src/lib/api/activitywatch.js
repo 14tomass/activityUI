@@ -37,6 +37,20 @@ const BROWSER_APP_NAMES = [
   'vivaldi.exe',
 ]
 
+const CATEGORY_KEYS = ['Estudio', 'Entretenimiento', 'Productividad', 'Otros']
+
+const CATEGORY_DOMAIN_RULES = {
+  Estudio: ['chatgpt.com', 'stackoverflow.com', 'notion.so'],
+  Entretenimiento: ['youtube.com', 'tiktok.com', 'instagram.com', 'x.com'],
+  Productividad: [],
+}
+
+const CATEGORY_APP_RULES = {
+  Estudio: [],
+  Entretenimiento: [],
+  Productividad: ['codex.exe', 'windowsterminal.exe', 'code.exe', 'explorer.exe', 'notion.exe'],
+}
+
 export function getActivityWatchApiBaseUrl() {
   return ACTIVITYWATCH_API_BASE_URL
 }
@@ -134,7 +148,6 @@ function buildCanonicalDailyActiveQuery({ windowBucketId, afkBucketId, webBucket
 
   query.push('events = filter_period_intersect(events, not_afk);')
   query.push('RETURN = sum_durations(events);')
-
   return query
 }
 
@@ -158,8 +171,18 @@ function buildCanonicalDailyEventsQuery({ windowBucketId, afkBucketId, webBucket
 
   query.push('events = filter_period_intersect(events, not_afk);')
   query.push('RETURN = events;')
-
   return query
+}
+
+function buildWebsiteBrowserStyleEventsQuery({ windowBucketId, webBucketId }) {
+  return [
+    `window_events = flood(query_bucket(find_bucket("${windowBucketId}")));`,
+    `window_browser = filter_keyvals(window_events, "app", ${JSON.stringify(BROWSER_APP_NAMES)});`,
+    `browser_events = flood(query_bucket("${webBucketId}"));`,
+    'browser_events = filter_period_intersect(browser_events, window_browser);',
+    'browser_events = split_url_events(browser_events);',
+    'RETURN = browser_events;',
+  ]
 }
 
 function isObject(value) {
@@ -204,11 +227,7 @@ function resolveWebBucket(buckets, hostname = null) {
     }
   }
 
-  return (
-    webTypeBuckets[0] ??
-    pickBucketByIdPrefix(buckets, 'aw-watcher-web-') ??
-    null
-  )
+  return webTypeBuckets[0] ?? pickBucketByIdPrefix(buckets, 'aw-watcher-web-') ?? null
 }
 
 function buildWarningMessage(bucketKey, severity = 'warning') {
@@ -222,6 +241,83 @@ function buildWarningMessage(bucketKey, severity = 'warning') {
     code: `missing_${bucketKey}_bucket`,
     severity,
     message: messages[bucketKey],
+  }
+}
+
+function normalizeKey(value, fallback = 'unknown') {
+  if (typeof value !== 'string') {
+    return fallback
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : fallback
+}
+
+function extractDomain(urlValue) {
+  const normalized = normalizeKey(urlValue, 'unknown')
+  if (normalized === 'unknown') {
+    return 'unknown'
+  }
+
+  try {
+    const parsed = new URL(normalized)
+    const hostname = normalizeKey(parsed.hostname, 'unknown')
+    return hostname.startsWith('www.') ? hostname.slice(4) : hostname
+  } catch {
+    return 'unknown'
+  }
+}
+
+function toSortedUsageList(usageMap) {
+  return Array.from(usageMap.values()).sort((a, b) => b.seconds - a.seconds)
+}
+
+function toLowerSafe(value) {
+  return typeof value === 'string' ? value.toLowerCase() : ''
+}
+
+function domainMatchesRule(domain, rule) {
+  const normalizedDomain = toLowerSafe(domain)
+  const normalizedRule = toLowerSafe(rule)
+  return normalizedDomain === normalizedRule || normalizedDomain.endsWith(`.${normalizedRule}`)
+}
+
+function classifyDomain(domain) {
+  for (const category of Object.keys(CATEGORY_DOMAIN_RULES)) {
+    const rules = CATEGORY_DOMAIN_RULES[category]
+    if (rules.some((rule) => domainMatchesRule(domain, rule))) {
+      return category
+    }
+  }
+  return null
+}
+
+function classifyApp(app) {
+  const normalizedApp = toLowerSafe(app)
+  for (const category of Object.keys(CATEGORY_APP_RULES)) {
+    const rules = CATEGORY_APP_RULES[category]
+    if (rules.some((rule) => normalizedApp === toLowerSafe(rule))) {
+      return category
+    }
+  }
+  return null
+}
+
+function ensureCategoryTotals() {
+  return new Map(CATEGORY_KEYS.map((category) => [category, 0]))
+}
+
+function extractEventTimeRange(event) {
+  const startMs = new Date(event?.timestamp).getTime()
+  const durationSeconds = Number(event?.duration)
+  if (!Number.isFinite(startMs) || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    return null
+  }
+
+  return {
+    startMs,
+    endMs: startMs + durationSeconds * 1000,
+    seconds: durationSeconds,
   }
 }
 
@@ -280,9 +376,7 @@ export async function discoverActivityWatchBuckets() {
     return {
       ok: true,
       buckets: {
-        window: windowBucket
-          ? { id: windowBucket.id, type: windowBucket.type ?? null }
-          : null,
+        window: windowBucket ? { id: windowBucket.id, type: windowBucket.type ?? null } : null,
         afk: afkBucket ? { id: afkBucket.id, type: afkBucket.type ?? null } : null,
         web: webBucket ? { id: webBucket.id, type: webBucket.type ?? null } : null,
       },
@@ -321,11 +415,7 @@ export async function getActivityWatchSettings() {
     }
 
     const payload = await response.json()
-    return {
-      ok: true,
-      settings: payload,
-      error: null,
-    }
+    return { ok: true, settings: payload, error: null }
   } catch (error) {
     return {
       ok: false,
@@ -339,34 +429,39 @@ export async function getActivityWatchSettings() {
   }
 }
 
-export async function getDailyActiveUsage({ day }) {
+async function resolveDailyUsageContext({ day, requiredBuckets, missingBucketsMessage }) {
   const discovery = await discoverActivityWatchBuckets()
-
   if (!discovery.ok) {
     return {
       ok: false,
-      seconds: null,
       buckets: discovery.buckets,
       warnings: discovery.warnings,
       error: discovery.error,
+      details: null,
+      bucketIds: { window: null, afk: null, web: null },
     }
   }
 
-  const windowBucketId = discovery.buckets.window?.id ?? null
-  const afkBucketId = discovery.buckets.afk?.id ?? null
-  const webBucketId = discovery.buckets.web?.id ?? null
+  const bucketIds = {
+    window: discovery.buckets.window?.id ?? null,
+    afk: discovery.buckets.afk?.id ?? null,
+    web: discovery.buckets.web?.id ?? null,
+  }
 
-  if (!windowBucketId || !afkBucketId) {
-    return {
-      ok: false,
-      seconds: null,
-      buckets: discovery.buckets,
-      warnings: discovery.warnings,
-      error: {
-        code: 'activitywatch_missing_required_buckets',
-        message: 'Falta bucket window o AFK para calcular tiempo activo diario.',
-        details: { missing: discovery.missing },
-      },
+  for (const bucketKey of requiredBuckets) {
+    if (!bucketIds[bucketKey]) {
+      return {
+        ok: false,
+        buckets: discovery.buckets,
+        warnings: discovery.warnings,
+        error: {
+          code: 'activitywatch_missing_required_buckets',
+          message: missingBucketsMessage,
+          details: { missing: discovery.missing },
+        },
+        details: null,
+        bucketIds,
+      }
     }
   }
 
@@ -379,65 +474,109 @@ export async function getDailyActiveUsage({ day }) {
   if (!dayRange) {
     return {
       ok: false,
-      seconds: null,
       buckets: discovery.buckets,
       warnings: discovery.warnings,
       error: {
         code: 'activitywatch_invalid_day',
         message: `Dia invalido para calcular uso diario: ${day}.`,
       },
+      details: null,
+      bucketIds,
     }
   }
 
-  const timeperiods = [dayRange.timeperiod]
-  const query = buildCanonicalDailyActiveQuery({
-    windowBucketId,
-    afkBucketId,
-    webBucketId,
-  })
-  const mergedWarnings = [...discovery.warnings]
+  const warnings = [...discovery.warnings]
   if (!settingsResult.ok) {
-    mergedWarnings.push({
+    warnings.push({
       code: 'settings_unavailable_using_default_start_of_day',
       severity: 'warning',
       message: 'No se pudo leer /settings; se usa startOfDay por defecto 00:00.',
     })
   }
 
-  try {
-    const response = await fetch(QUERY_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timeperiods, query }),
-    })
+  return {
+    ok: true,
+    buckets: discovery.buckets,
+    warnings,
+    error: null,
+    bucketIds,
+    details: {
+      startOfDay,
+      timeperiod: dayRange.timeperiod,
+      dayRange,
+    },
+  }
+}
 
-    if (!response.ok) {
+async function runQuery({ timeperiod, query }) {
+  const response = await fetch(QUERY_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ timeperiods: [timeperiod], query }),
+  })
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      payload: null,
+      error: {
+        code: 'activitywatch_query_http_error',
+        message: `ActivityWatch query respondio con HTTP ${response.status}.`,
+        details: { status: response.status },
+      },
+    }
+  }
+
+  const payload = await response.json()
+  return { ok: true, payload, error: null }
+}
+
+export async function getDailyActiveUsage({ day }) {
+  const context = await resolveDailyUsageContext({
+    day,
+    requiredBuckets: ['window', 'afk'],
+    missingBucketsMessage: 'Falta bucket window o AFK para calcular tiempo activo diario.',
+  })
+
+  if (!context.ok) {
+    return {
+      ok: false,
+      seconds: null,
+      buckets: context.buckets,
+      warnings: context.warnings,
+      error: context.error,
+    }
+  }
+
+  const query = buildCanonicalDailyActiveQuery({
+    windowBucketId: context.bucketIds.window,
+    afkBucketId: context.bucketIds.afk,
+    webBucketId: context.bucketIds.web,
+  })
+
+  try {
+    const queryResult = await runQuery({ timeperiod: context.details.timeperiod, query })
+    if (!queryResult.ok) {
       return {
         ok: false,
         seconds: null,
-        buckets: discovery.buckets,
-        warnings: mergedWarnings,
-        error: {
-          code: 'activitywatch_query_http_error',
-          message: `ActivityWatch query respondio con HTTP ${response.status}.`,
-          details: { status: response.status },
-        },
+        buckets: context.buckets,
+        warnings: context.warnings,
+        error: queryResult.error,
       }
     }
 
-    const payload = await response.json()
-    const seconds = normalizeQueryTotalSeconds(payload)
-
+    const seconds = normalizeQueryTotalSeconds(queryResult.payload)
     if (seconds === null) {
       return {
         ok: false,
         seconds: null,
-        buckets: discovery.buckets,
-        warnings: mergedWarnings,
+        buckets: context.buckets,
+        warnings: context.warnings,
         error: {
           code: 'activitywatch_query_unexpected_payload',
           message: 'La Query API devolvio un formato no esperado.',
-          details: { payload },
+          details: { payload: queryResult.payload },
         },
       }
     }
@@ -445,20 +584,20 @@ export async function getDailyActiveUsage({ day }) {
     return {
       ok: true,
       seconds,
-      buckets: discovery.buckets,
-      warnings: mergedWarnings,
+      buckets: context.buckets,
+      warnings: context.warnings,
       error: null,
       details: {
-        startOfDay,
-        timeperiod: dayRange.timeperiod,
+        startOfDay: context.details.startOfDay,
+        timeperiod: context.details.timeperiod,
       },
     }
   } catch (error) {
     return {
       ok: false,
       seconds: null,
-      buckets: discovery.buckets,
-      warnings: mergedWarnings,
+      buckets: context.buckets,
+      warnings: context.warnings,
       error: {
         code: 'activitywatch_query_failed',
         message: 'No se pudo completar la query de tiempo activo diario.',
@@ -521,118 +660,66 @@ function buildHourlyBars(secondsByHour) {
 }
 
 export async function getHourlyActiveUsage({ day }) {
-  const discovery = await discoverActivityWatchBuckets()
+  const context = await resolveDailyUsageContext({
+    day,
+    requiredBuckets: ['window', 'afk'],
+    missingBucketsMessage: 'Falta bucket window o AFK para calcular uso por horas.',
+  })
 
-  if (!discovery.ok) {
+  if (!context.ok) {
     return {
       ok: false,
       hourlyBars: null,
       totalSeconds: null,
-      warnings: discovery.warnings,
-      error: discovery.error,
-    }
-  }
-
-  const windowBucketId = discovery.buckets.window?.id ?? null
-  const afkBucketId = discovery.buckets.afk?.id ?? null
-  const webBucketId = discovery.buckets.web?.id ?? null
-
-  if (!windowBucketId || !afkBucketId) {
-    return {
-      ok: false,
-      hourlyBars: null,
-      totalSeconds: null,
-      warnings: discovery.warnings,
-      error: {
-        code: 'activitywatch_missing_required_buckets',
-        message: 'Falta bucket window o AFK para calcular uso por horas.',
-        details: { missing: discovery.missing },
-      },
-    }
-  }
-
-  const settingsResult = await getActivityWatchSettings()
-  const startOfDay = settingsResult.ok
-    ? settingsResult.settings?.startOfDay ?? DEFAULT_START_OF_DAY
-    : DEFAULT_START_OF_DAY
-  const dayRange = buildDayRange(day, startOfDay)
-
-  if (!dayRange) {
-    return {
-      ok: false,
-      hourlyBars: null,
-      totalSeconds: null,
-      warnings: discovery.warnings,
-      error: {
-        code: 'activitywatch_invalid_day',
-        message: `Dia invalido para calcular uso por horas: ${day}.`,
-      },
+      warnings: context.warnings,
+      error: context.error,
     }
   }
 
   const query = buildCanonicalDailyEventsQuery({
-    windowBucketId,
-    afkBucketId,
-    webBucketId,
+    windowBucketId: context.bucketIds.window,
+    afkBucketId: context.bucketIds.afk,
+    webBucketId: context.bucketIds.web,
   })
-  const mergedWarnings = [...discovery.warnings]
-  if (!settingsResult.ok) {
-    mergedWarnings.push({
-      code: 'settings_unavailable_using_default_start_of_day',
-      severity: 'warning',
-      message: 'No se pudo leer /settings; se usa startOfDay por defecto 00:00.',
-    })
-  }
 
   try {
-    const response = await fetch(QUERY_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timeperiods: [dayRange.timeperiod], query }),
-    })
-
-    if (!response.ok) {
+    const queryResult = await runQuery({ timeperiod: context.details.timeperiod, query })
+    if (!queryResult.ok) {
       return {
         ok: false,
         hourlyBars: null,
         totalSeconds: null,
-        warnings: mergedWarnings,
-        error: {
-          code: 'activitywatch_query_http_error',
-          message: `ActivityWatch query respondio con HTTP ${response.status}.`,
-          details: { status: response.status },
-        },
+        warnings: context.warnings,
+        error: queryResult.error,
       }
     }
 
-    const payload = await response.json()
-    const events = normalizeQueryEvents(payload)
-
+    const events = normalizeQueryEvents(queryResult.payload)
     if (!events) {
       return {
         ok: false,
         hourlyBars: null,
         totalSeconds: null,
-        warnings: mergedWarnings,
+        warnings: context.warnings,
         error: {
           code: 'activitywatch_query_unexpected_payload',
           message: 'La Query API devolvio un formato no esperado para eventos horarios.',
-          details: { payload },
+          details: { payload: queryResult.payload },
         },
       }
     }
 
-    const aggregation = aggregateActiveEventsByHour(events, dayRange)
+    const aggregation = aggregateActiveEventsByHour(events, context.details.dayRange)
     const hourlyBars = buildHourlyBars(aggregation.secondsByHour)
     return {
       ok: true,
       hourlyBars,
       totalSeconds: aggregation.totalSeconds,
-      warnings: mergedWarnings,
+      warnings: context.warnings,
       error: null,
       details: {
-        startOfDay,
-        timeperiod: dayRange.timeperiod,
+        startOfDay: context.details.startOfDay,
+        timeperiod: context.details.timeperiod,
       },
     }
   } catch (error) {
@@ -640,13 +727,457 @@ export async function getHourlyActiveUsage({ day }) {
       ok: false,
       hourlyBars: null,
       totalSeconds: null,
-      warnings: mergedWarnings,
+      warnings: context.warnings,
       error: {
         code: 'activitywatch_query_failed',
         message: 'No se pudo completar la query de uso por horas.',
         details: { cause: error instanceof Error ? error.message : String(error) },
       },
     }
+  }
+}
+
+export async function getDailyApplicationUsage({ day }) {
+  const context = await resolveDailyUsageContext({
+    day,
+    requiredBuckets: ['window', 'afk'],
+    missingBucketsMessage: 'Falta bucket window o AFK para calcular uso por aplicacion.',
+  })
+
+  if (!context.ok) {
+    return {
+      ok: false,
+      applications: [],
+      warnings: context.warnings,
+      error: context.error,
+      details: context.details,
+    }
+  }
+
+  const query = buildCanonicalDailyEventsQuery({
+    windowBucketId: context.bucketIds.window,
+    afkBucketId: context.bucketIds.afk,
+    webBucketId: context.bucketIds.web,
+  })
+
+  try {
+    const queryResult = await runQuery({ timeperiod: context.details.timeperiod, query })
+    if (!queryResult.ok) {
+      return {
+        ok: false,
+        applications: [],
+        warnings: context.warnings,
+        error: queryResult.error,
+        details: context.details,
+      }
+    }
+
+    const events = normalizeQueryEvents(queryResult.payload)
+    if (!events) {
+      return {
+        ok: false,
+        applications: [],
+        warnings: context.warnings,
+        error: {
+          code: 'activitywatch_query_unexpected_payload',
+          message: 'La Query API devolvio un formato no esperado para aplicaciones.',
+          details: { payload: queryResult.payload },
+        },
+        details: context.details,
+      }
+    }
+
+    const usageByApp = new Map()
+    for (const event of events) {
+      const app = normalizeKey(event?.data?.app, 'unknown-app')
+      const durationSeconds = Number(event?.duration)
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+        continue
+      }
+
+      const current = usageByApp.get(app) ?? { app, seconds: 0 }
+      current.seconds += durationSeconds
+      usageByApp.set(app, current)
+    }
+
+    const applications = toSortedUsageList(usageByApp).map((entry) => ({
+      app: entry.app,
+      seconds: entry.seconds,
+      formattedDuration: formatUsageFromSeconds(entry.seconds),
+      classificationHints: {
+        type: 'application',
+        app: entry.app,
+      },
+    }))
+
+    return {
+      ok: true,
+      applications,
+      warnings: context.warnings,
+      error: null,
+      details: {
+        startOfDay: context.details.startOfDay,
+        timeperiod: context.details.timeperiod,
+        grouping: 'application',
+      },
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      applications: [],
+      warnings: context.warnings,
+      error: {
+        code: 'activitywatch_query_failed',
+        message: 'No se pudo completar la query de uso por aplicaciones.',
+        details: { cause: error instanceof Error ? error.message : String(error) },
+      },
+      details: context.details,
+    }
+  }
+}
+
+async function getDailyBrowserDomainEvents({ day }) {
+  const context = await resolveDailyUsageContext({
+    day,
+    requiredBuckets: ['window', 'web'],
+    missingBucketsMessage: 'Falta bucket window o web para calcular eventos web por dominio.',
+  })
+
+  if (!context.ok) {
+    return {
+      ok: false,
+      events: [],
+      warnings: context.warnings,
+      error: context.error,
+      details: context.details,
+    }
+  }
+
+  const query = buildWebsiteBrowserStyleEventsQuery({
+    windowBucketId: context.bucketIds.window,
+    webBucketId: context.bucketIds.web,
+  })
+
+  try {
+    const queryResult = await runQuery({ timeperiod: context.details.timeperiod, query })
+    if (!queryResult.ok) {
+      return {
+        ok: false,
+        events: [],
+        warnings: context.warnings,
+        error: queryResult.error,
+        details: context.details,
+      }
+    }
+
+    const rawEvents = normalizeQueryEvents(queryResult.payload)
+    if (!rawEvents) {
+      return {
+        ok: false,
+        events: [],
+        warnings: context.warnings,
+        error: {
+          code: 'activitywatch_query_unexpected_payload',
+          message: 'La Query API devolvio un formato no esperado para eventos web por dominio.',
+          details: { payload: queryResult.payload },
+        },
+        details: context.details,
+      }
+    }
+
+    const events = rawEvents
+      .map((event) => {
+        const range = extractEventTimeRange(event)
+        if (!range) {
+          return null
+        }
+        return {
+          startMs: range.startMs,
+          endMs: range.endMs,
+          domain: extractDomain(event?.data?.url),
+          url: normalizeKey(event?.data?.url, 'unknown'),
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.startMs - b.startMs)
+
+    return {
+      ok: true,
+      events,
+      warnings: context.warnings,
+      error: null,
+      details: context.details,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      events: [],
+      warnings: context.warnings,
+      error: {
+        code: 'activitywatch_query_failed',
+        message: 'No se pudo completar la query de eventos web por dominio.',
+        details: { cause: error instanceof Error ? error.message : String(error) },
+      },
+      details: context.details,
+    }
+  }
+}
+
+function aggregateCategoryUsage({ activeEvents, browserDomainEvents }) {
+  const totals = ensureCategoryTotals()
+  const detailsByCategory = new Map(CATEGORY_KEYS.map((category) => [category, { domains: new Set(), apps: new Set() }]))
+
+  let browserIndex = 0
+  for (const event of activeEvents) {
+    const range = extractEventTimeRange(event)
+    if (!range) {
+      continue
+    }
+
+    const app = normalizeKey(event?.data?.app, 'unknown-app')
+    const isBrowserApp = BROWSER_APP_NAMES.some((name) => toLowerSafe(name) === toLowerSafe(app))
+
+    if (!isBrowserApp) {
+      const category = classifyApp(app) ?? 'Otros'
+      totals.set(category, totals.get(category) + range.seconds)
+      detailsByCategory.get(category).apps.add(app)
+      continue
+    }
+
+    while (browserIndex < browserDomainEvents.length && browserDomainEvents[browserIndex].endMs <= range.startMs) {
+      browserIndex += 1
+    }
+
+    let coveredMs = 0
+    let scanIndex = browserIndex
+    while (scanIndex < browserDomainEvents.length && browserDomainEvents[scanIndex].startMs < range.endMs) {
+      const browserEvent = browserDomainEvents[scanIndex]
+      const overlapStart = Math.max(range.startMs, browserEvent.startMs)
+      const overlapEnd = Math.min(range.endMs, browserEvent.endMs)
+      if (overlapEnd > overlapStart) {
+        const overlapSeconds = (overlapEnd - overlapStart) / 1000
+        const category = classifyDomain(browserEvent.domain) ?? 'Otros'
+        totals.set(category, totals.get(category) + overlapSeconds)
+        detailsByCategory.get(category).domains.add(browserEvent.domain)
+        coveredMs += overlapEnd - overlapStart
+      }
+      scanIndex += 1
+    }
+
+    const leftoverMs = Math.max(0, range.endMs - range.startMs - coveredMs)
+    if (leftoverMs > 0) {
+      const fallbackCategory = classifyApp(app) ?? 'Otros'
+      totals.set(fallbackCategory, totals.get(fallbackCategory) + leftoverMs / 1000)
+      detailsByCategory.get(fallbackCategory).apps.add(app)
+    }
+  }
+
+  return {
+    totals,
+    detailsByCategory,
+  }
+}
+
+export async function getDailyWebsiteUsage({ day }) {
+  const domainEventsResult = await getDailyBrowserDomainEvents({ day })
+  if (!domainEventsResult.ok) {
+    return {
+      ok: false,
+      websites: [],
+      warnings: domainEventsResult.warnings,
+      error: domainEventsResult.error,
+      details: domainEventsResult.details,
+    }
+  }
+
+  const usageByDomain = new Map()
+  for (const event of domainEventsResult.events) {
+    const durationSeconds = (event.endMs - event.startMs) / 1000
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+      continue
+    }
+
+    const current = usageByDomain.get(event.domain) ?? {
+      domain: event.domain,
+      seconds: 0,
+      sampleUrl: event.url,
+    }
+    current.seconds += durationSeconds
+    usageByDomain.set(event.domain, current)
+  }
+
+  const websites = toSortedUsageList(usageByDomain).map((entry) => ({
+    domain: entry.domain,
+    seconds: entry.seconds,
+    formattedDuration: formatUsageFromSeconds(entry.seconds),
+    sampleUrl: entry.sampleUrl,
+    classificationHints: {
+      type: 'website',
+      domain: entry.domain,
+    },
+  }))
+
+  return {
+    ok: true,
+    websites,
+    warnings: domainEventsResult.warnings,
+    error: null,
+    details: {
+      startOfDay: domainEventsResult.details.startOfDay,
+      timeperiod: domainEventsResult.details.timeperiod,
+      grouping: 'domain_browser_style',
+    },
+  }
+}
+
+export async function getDailyCategoryUsage({ day }) {
+  const [dailyActiveResult, activeEventsResult, browserEventsResult] = await Promise.all([
+    getDailyActiveUsage({ day }),
+    (async () => {
+      const context = await resolveDailyUsageContext({
+        day,
+        requiredBuckets: ['window', 'afk'],
+        missingBucketsMessage: 'Falta bucket window o AFK para calcular categorias.',
+      })
+
+      if (!context.ok) {
+        return {
+          ok: false,
+          events: [],
+          warnings: context.warnings,
+          error: context.error,
+          details: context.details,
+        }
+      }
+
+      const query = buildCanonicalDailyEventsQuery({
+        windowBucketId: context.bucketIds.window,
+        afkBucketId: context.bucketIds.afk,
+        webBucketId: context.bucketIds.web,
+      })
+
+      try {
+        const queryResult = await runQuery({ timeperiod: context.details.timeperiod, query })
+        if (!queryResult.ok) {
+          return {
+            ok: false,
+            events: [],
+            warnings: context.warnings,
+            error: queryResult.error,
+            details: context.details,
+          }
+        }
+
+        const events = normalizeQueryEvents(queryResult.payload)
+        if (!events) {
+          return {
+            ok: false,
+            events: [],
+            warnings: context.warnings,
+            error: {
+              code: 'activitywatch_query_unexpected_payload',
+              message: 'La Query API devolvio un formato no esperado para eventos activos.',
+              details: { payload: queryResult.payload },
+            },
+            details: context.details,
+          }
+        }
+
+        return {
+          ok: true,
+          events,
+          warnings: context.warnings,
+          error: null,
+          details: context.details,
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          events: [],
+          warnings: context.warnings,
+          error: {
+            code: 'activitywatch_query_failed',
+            message: 'No se pudo obtener la base de eventos activos para categorias.',
+            details: { cause: error instanceof Error ? error.message : String(error) },
+          },
+          details: context.details,
+        }
+      }
+    })(),
+    getDailyBrowserDomainEvents({ day }),
+  ])
+
+  const combinedWarnings = [
+    ...(dailyActiveResult.warnings ?? []),
+    ...(activeEventsResult.warnings ?? []),
+    ...(browserEventsResult.warnings ?? []),
+  ]
+
+  if (!dailyActiveResult.ok) {
+    return {
+      ok: false,
+      categories: [],
+      totalSeconds: null,
+      warnings: combinedWarnings,
+      error: dailyActiveResult.error,
+      details: null,
+    }
+  }
+
+  if (!activeEventsResult.ok) {
+    return {
+      ok: false,
+      categories: [],
+      totalSeconds: dailyActiveResult.seconds,
+      warnings: combinedWarnings,
+      error: activeEventsResult.error,
+      details: null,
+    }
+  }
+
+  if (!browserEventsResult.ok) {
+    return {
+      ok: false,
+      categories: [],
+      totalSeconds: dailyActiveResult.seconds,
+      warnings: combinedWarnings,
+      error: browserEventsResult.error,
+      details: null,
+    }
+  }
+
+  const aggregation = aggregateCategoryUsage({
+    activeEvents: activeEventsResult.events,
+    browserDomainEvents: browserEventsResult.events,
+  })
+
+  const totalSeconds = Array.from(aggregation.totals.values()).reduce((acc, value) => acc + value, 0)
+  const categories = CATEGORY_KEYS.map((category) => {
+    const seconds = aggregation.totals.get(category) ?? 0
+    const percentage = totalSeconds > 0 ? (seconds / totalSeconds) * 100 : 0
+    return {
+      category,
+      seconds,
+      formattedDuration: formatUsageFromSeconds(seconds),
+      percentage: Number(percentage.toFixed(2)),
+    }
+  })
+
+  return {
+    ok: true,
+    categories,
+    totalSeconds,
+    warnings: combinedWarnings,
+    error: null,
+    details: {
+      day,
+      classificationPriority: 'domain_then_app_then_otros',
+      categoryRules: {
+        domain: CATEGORY_DOMAIN_RULES,
+        app: CATEGORY_APP_RULES,
+      },
+      kpiTotalSeconds: dailyActiveResult.seconds,
+    },
   }
 }
 
