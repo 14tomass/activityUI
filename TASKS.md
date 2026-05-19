@@ -107,7 +107,11 @@
 - Mejora futura no bloqueante: permitir personalizar color de categorias.
 - DATA-09 implementada: clic en barra de "Uso por horas" abre modal con detalle real por franja (apps/webs), ordenado por duracion y sin doble conteo.
 - DATA-09 implementada: modal horario con loading robusto, estado vacio, top 7 + fila agregada `Otras webs y apps`.
-- DATA-09 en verificacion: log temporal `[DATA-09-VERIFY] Hourly bar detail consistency` para coherencia barra vs detalle.
+- DATA-09-CLOSE completada: retirado log temporal `[DATA-09-VERIFY]` y mantenidos solo warnings utiles ante fallos reales.
+- NAV-DATE-01 implementada: selector de fecha diario funcional con estado central `selectedDay`, recarga real de KPI/horas/categorias por dia y bloqueo de navegacion a fechas futuras del dia ActivityWatch.
+- NAV-DATE-01-CLOSE completada: eliminado log temporal `[NAV-DATE-01-VERIFY]` y retirado ruido de debug en navegacion diaria.
+- RANGE-WEEK-01 implementada: tab `Ultima semana` funcional con rango movil de 7 dias, navegacion por bloques semanales y recarga real de KPI, grafico por dias, categorias y detalle por categoria.
+- RANGE-WEEK-01 en verificacion: log temporal `[RANGE-WEEK-01-VERIFY] Weekly range summary consistency` para validar coherencia semanal (total vs barras diarias vs categorias).
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 

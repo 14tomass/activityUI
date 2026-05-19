@@ -27,6 +27,10 @@
 - El sistema de categorias soporta categorias dinamicas de usuario persistidas en `localStorage`, manteniendo como base `Estudio`, `Entretenimiento`, `Productividad` y `Otros`.
 - Las categorias creadas por usuario reciben color automatico desde una paleta corta predefinida; si no hay color libre, fallback neutro.
 - El detalle por franja horaria (DATA-09) sigue la misma regla anti-doble-conteo del proyecto: prioridad web por solapamiento temporal y fallback a aplicacion para tiempo remanente.
+- En navegacion diaria (NAV-DATE-01), al cambiar fecha se cierran modales/paneles abiertos para evitar detalle descontextualizado de otro dia.
+- En navegacion diaria (NAV-DATE-01), se bloquea avanzar a fechas futuras respecto al dia ActivityWatch actual.
+- En modo `Ultima semana` (RANGE-WEEK-01), el rango se define como 7 dias moviles y navega por bloques completos de 7 dias.
+- En modo `Ultima semana`, la navegacion derecha se bloquea cuando el rango termina en el dia ActivityWatch actual.
 
 ### Estrategia de implementacion
 

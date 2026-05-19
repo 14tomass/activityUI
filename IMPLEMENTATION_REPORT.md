@@ -703,3 +703,56 @@
 - mensaje neutro y `console.warn` en caso de fallo real de carga
 - Verificacion temporal activa:
 - `[DATA-09-VERIFY] Hourly bar detail consistency` (coherencia entre total de barra y total del modal, tolerancia <= 2s)
+
+## DATA-09-CLOSE
+
+- Se retiro el bloque temporal de consola `[DATA-09-VERIFY] Hourly bar detail consistency`.
+- Se mantuvo intacta la logica funcional validada del detalle por franja (clic en barra, total coherente, top 7 + agregado, loading robusto y estado vacio).
+- En funcionamiento normal se conservan solo warnings utiles ante fallos reales de ActivityWatch.
+
+## NAV-DATE-01
+
+- El dashboard deja de depender de la fecha fija `2026-05-16` y usa estado central `selectedDay`.
+- Se inicializa el dia seleccionado con el dia ActivityWatch actual, leyendo `startOfDay` desde `/api/0/settings` (fallback `00:00`).
+- La fecha del selector superior ahora es dinamica y se actualiza con flechas:
+- flecha izquierda: dia anterior
+- flecha derecha: dia siguiente, bloqueada al llegar al dia ActivityWatch actual (sin navegar a futuro)
+- Al cambiar de dia:
+- se cierra cualquier modal/panel abierto para evitar contexto desactualizado
+- KPI, grafico por horas y tarjeta de categorias entran en loading neutro (`-` y placeholders)
+- se recargan con datos reales para el nuevo dia
+- se evita mostrar datos anteriores como si fueran del nuevo dia durante la carga
+- NAV-DATE-01-CLOSE: retirado el bloque temporal `[NAV-DATE-01-VERIFY] Daily date navigation` tras la aprobacion funcional.
+- En navegacion diaria normal quedan solo warnings utiles ante fallos reales de carga.
+
+## RANGE-WEEK-01
+
+- Se implemento el tab `Ultima semana` con rango movil de 7 dias consecutivos.
+- Definicion aplicada:
+- al entrar en modo semanal, se toma la semana que termina en el dia ActivityWatch actual
+- flecha izquierda: mueve al bloque semanal anterior (7 dias)
+- flecha derecha: mueve al bloque semanal siguiente y se bloquea cuando el rango ya termina en el dia actual
+- El selector superior muestra rango semanal dinamico:
+- ejemplo `11–17 may`
+- cruce de mes: `28 abr – 4 may`
+- KPI semanal real:
+- suma de uso activo de los 7 dias del rango
+- subtitulo adaptado a contexto semanal
+- Grafico semanal real:
+- la tarjeta pasa a `Uso por dias`
+- 7 barras cronologicas (una por dia), con etiqueta compacta `L M X J V S D`
+- barra azul = dia con mayor uso del rango
+- Categorias semanales reales:
+- agregacion real por categoria para todo el rango, manteniendo categorias dinamicas y reglas editables
+- porcentajes recalculados contra total semanal
+- Detalle semanal por categoria:
+- desde Home se abre modal con desglose acumulado de la categoria en la semana
+- mantiene top 7 + `Otras webs y apps`, scroll interno y cierre usable
+- Capa tecnica reutilizable por rango en `activitywatch.js`:
+- `getRangeActiveUsage({ startDay, endDay })`
+- `getRangeDailyUsageSeries({ startDay, endDay })`
+- `getRangeCategoryUsage({ startDay, endDay })`
+- `getRangeCategoryDetailUsage({ startDay, endDay, category })`
+- Se evita duplicar logica de clasificacion/consistencia porque cada agregado semanal reutiliza la capa diaria ya validada.
+- Verificacion temporal activa:
+- `[RANGE-WEEK-01-VERIFY] Weekly range summary consistency`

@@ -432,6 +432,39 @@ function formatDateWithOffset(date) {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetRemainder}`
 }
 
+function parseIsoDayLocal(isoDay) {
+  const [year, month, day] = String(isoDay)
+    .split('-')
+    .map((part) => Number.parseInt(part, 10))
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return null
+  }
+  return new Date(year, month - 1, day, 12, 0, 0, 0)
+}
+
+function toIsoDayLocal(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function getIsoDaysInRange({ startDay, endDay }) {
+  const startDate = parseIsoDayLocal(startDay)
+  const endDate = parseIsoDayLocal(endDay)
+  if (!startDate || !endDate || startDate > endDate) {
+    return []
+  }
+
+  const days = []
+  const cursor = new Date(startDate)
+  while (cursor <= endDate) {
+    days.push(toIsoDayLocal(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return days
+}
+
 function buildDayRange(day, startOfDay = DEFAULT_START_OF_DAY) {
   const [year, month, date] = day.split('-').map((part) => Number.parseInt(part, 10))
   if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(date)) {
@@ -2001,6 +2034,236 @@ export async function getDailyCategoryDetailUsage({ day, category }) {
       categoryRules,
       kpiTotalSeconds: dailyActiveResult.seconds,
     },
+  }
+}
+
+export async function getRangeActiveUsage({ startDay, endDay }) {
+  const days = getIsoDaysInRange({ startDay, endDay })
+  if (days.length === 0) {
+    return {
+      ok: false,
+      totalSeconds: null,
+      warnings: [],
+      error: {
+        code: 'activitywatch_invalid_day_range',
+        message: 'El rango de dias solicitado no es valido.',
+        details: { startDay, endDay },
+      },
+      details: null,
+    }
+  }
+
+  const results = await Promise.all(days.map((day) => getDailyActiveUsage({ day })))
+  const firstError = results.find((result) => !result.ok)
+  if (firstError) {
+    return {
+      ok: false,
+      totalSeconds: null,
+      warnings: results.flatMap((result) => result.warnings ?? []),
+      error: firstError.error,
+      details: { startDay, endDay, days },
+    }
+  }
+
+  const totalSeconds = results.reduce((sum, result) => sum + (result.seconds ?? 0), 0)
+  return {
+    ok: true,
+    totalSeconds,
+    formattedTotal: formatUsageFromSeconds(totalSeconds),
+    warnings: results.flatMap((result) => result.warnings ?? []),
+    error: null,
+    details: { startDay, endDay, days },
+  }
+}
+
+export async function getRangeDailyUsageSeries({ startDay, endDay }) {
+  const days = getIsoDaysInRange({ startDay, endDay })
+  if (days.length === 0) {
+    return {
+      ok: false,
+      dailySeries: [],
+      warnings: [],
+      error: {
+        code: 'activitywatch_invalid_day_range',
+        message: 'El rango de dias solicitado no es valido.',
+        details: { startDay, endDay },
+      },
+      details: null,
+    }
+  }
+
+  const results = await Promise.all(
+    days.map(async (day) => ({
+      day,
+      usage: await getDailyActiveUsage({ day }),
+    }))
+  )
+  const firstError = results.find((entry) => !entry.usage.ok)
+  if (firstError) {
+    return {
+      ok: false,
+      dailySeries: [],
+      warnings: results.flatMap((entry) => entry.usage.warnings ?? []),
+      error: firstError.usage.error,
+      details: { startDay, endDay, days },
+    }
+  }
+
+  const dailySeries = results.map((entry) => {
+    const seconds = entry.usage.seconds ?? 0
+    return {
+      day: entry.day,
+      seconds,
+      formattedDuration: formatUsageFromSeconds(seconds),
+    }
+  })
+
+  return {
+    ok: true,
+    dailySeries,
+    warnings: results.flatMap((entry) => entry.usage.warnings ?? []),
+    error: null,
+    details: { startDay, endDay, days },
+  }
+}
+
+export async function getRangeCategoryUsage({ startDay, endDay }) {
+  const days = getIsoDaysInRange({ startDay, endDay })
+  if (days.length === 0) {
+    return {
+      ok: false,
+      categories: [],
+      totalSeconds: null,
+      warnings: [],
+      error: {
+        code: 'activitywatch_invalid_day_range',
+        message: 'El rango de dias solicitado no es valido.',
+        details: { startDay, endDay },
+      },
+      details: null,
+    }
+  }
+
+  const results = await Promise.all(days.map((day) => getDailyCategoryUsage({ day })))
+  const firstError = results.find((result) => !result.ok)
+  if (firstError) {
+    return {
+      ok: false,
+      categories: [],
+      totalSeconds: null,
+      warnings: results.flatMap((result) => result.warnings ?? []),
+      error: firstError.error,
+      details: { startDay, endDay, days },
+    }
+  }
+
+  const categoryTotals = new Map()
+  for (const result of results) {
+    for (const category of result.categories ?? []) {
+      const current = categoryTotals.get(category.category) ?? {
+        category: category.category,
+        seconds: 0,
+        color: category.color,
+      }
+      current.seconds += category.seconds ?? 0
+      categoryTotals.set(category.category, current)
+    }
+  }
+
+  const totalSeconds = Array.from(categoryTotals.values()).reduce(
+    (sum, category) => sum + category.seconds,
+    0
+  )
+
+  const categories = Array.from(categoryTotals.values()).map((category) => ({
+    category: category.category,
+    seconds: category.seconds,
+    formattedDuration: formatUsageFromSeconds(category.seconds),
+    percentage: totalSeconds > 0 ? Number(((category.seconds / totalSeconds) * 100).toFixed(2)) : 0,
+    color: category.color,
+  }))
+
+  return {
+    ok: true,
+    categories,
+    totalSeconds,
+    warnings: results.flatMap((result) => result.warnings ?? []),
+    error: null,
+    details: { startDay, endDay, days },
+  }
+}
+
+export async function getRangeCategoryDetailUsage({ startDay, endDay, category }) {
+  const days = getIsoDaysInRange({ startDay, endDay })
+  if (days.length === 0) {
+    return {
+      ok: false,
+      category,
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: [],
+      error: {
+        code: 'activitywatch_invalid_day_range',
+        message: 'El rango de dias solicitado no es valido.',
+        details: { startDay, endDay },
+      },
+      details: null,
+    }
+  }
+
+  const results = await Promise.all(
+    days.map((day) => getDailyCategoryDetailUsage({ day, category }))
+  )
+  const firstError = results.find((result) => !result.ok)
+  if (firstError) {
+    return {
+      ok: false,
+      category,
+      totalSeconds: null,
+      formattedTotal: null,
+      items: [],
+      warnings: results.flatMap((result) => result.warnings ?? []),
+      error: firstError.error,
+      details: { startDay, endDay, days },
+    }
+  }
+
+  const itemTotals = new Map()
+  let totalSeconds = 0
+  for (const result of results) {
+    totalSeconds += result.totalSeconds ?? 0
+    for (const item of result.items ?? []) {
+      const key = `${item.sourceType}:${item.label}`
+      const current = itemTotals.get(key) ?? {
+        label: item.label,
+        sourceType: item.sourceType,
+        seconds: 0,
+      }
+      current.seconds += item.seconds ?? 0
+      itemTotals.set(key, current)
+    }
+  }
+
+  const items = Array.from(itemTotals.values())
+    .sort((a, b) => b.seconds - a.seconds)
+    .map((item) => ({
+      label: item.label,
+      sourceType: item.sourceType,
+      seconds: item.seconds,
+      formattedDuration: formatUsageFromSeconds(item.seconds),
+      percentage: totalSeconds > 0 ? Number(((item.seconds / totalSeconds) * 100).toFixed(2)) : 0,
+    }))
+
+  return {
+    ok: true,
+    category,
+    totalSeconds,
+    formattedTotal: formatUsageFromSeconds(totalSeconds),
+    items,
+    warnings: results.flatMap((result) => result.warnings ?? []),
+    error: null,
+    details: { startDay, endDay, days },
   }
 }
 

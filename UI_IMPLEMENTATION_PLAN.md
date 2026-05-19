@@ -151,6 +151,8 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 
 - **DATA-08 (futuro)**: el modal de detalle de categoria (hoy mock) debe conectarse a datos reales para mostrar exactamente en que apps/sitios se consume el tiempo de cada categoria en el dia activo.
 - **DATA-09 (implementada)**: el grafico "Uso por horas" ya incorpora clic por barra para inspeccionar una franja concreta con desglose real de apps/sitios, manteniendo top 7 + agregado y estado vacio limpio.
+- **NAV-DATE-01 (implementada)**: el dashboard ya navega por dias reales (sin fecha hardcodeada), recargando KPI/horas/categorias por `selectedDay` y bloqueando navegacion a futuro.
+- **RANGE-WEEK-01 (implementada)**: el tab `Ultima semana` ya resume 7 dias reales (KPI, grafico por dias, categorias y detalle por categoria), con navegacion por bloques semanales y bloqueo en semana actual.
 
 ## Aclaracion de flujo (post DATA-08)
 

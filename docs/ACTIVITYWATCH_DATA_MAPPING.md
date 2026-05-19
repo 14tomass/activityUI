@@ -475,3 +475,33 @@ Nota de referencia canonica para integracion:
 - items ordenados por duracion (`website` + `application`) con porcentaje relativo
 - Criterio de coherencia:
 - el total del detalle horario debe coincidir con el total de la barra correspondiente (tolerancia operativa <= 2s por redondeo flotante).
+
+## 25) NAV-DATE-01 (navegacion diaria)
+
+- El dashboard ya no usa dia fijo y pasa `day` dinamico (`selectedDay`) a:
+- `getDailyActiveUsage({ day })`
+- `getHourlyActiveUsage({ day })`
+- `getDailyCategoryUsage({ day })`
+- `getDailyCategoryDetailUsage({ day, category })`
+- `getHourlyUsageDetail({ day, hourIndex })`
+- La capa de datos mantiene la misma semantica ActivityWatch por dia:
+- `startOfDay` leido desde settings
+- construccion de `timeperiod` local para el dia solicitado
+- Al cambiar `day`, solo cambia la entrada del calculo; no cambia la estrategia canonica de actividad.
+
+## 26) RANGE-WEEK-01 (agregacion semanal)
+
+- Se anadio capa reutilizable por rango de dias (base para semana y futuro mes):
+- `getRangeActiveUsage({ startDay, endDay })`
+- `getRangeDailyUsageSeries({ startDay, endDay })`
+- `getRangeCategoryUsage({ startDay, endDay })`
+- `getRangeCategoryDetailUsage({ startDay, endDay, category })`
+- Estrategia aplicada:
+- el resumen semanal se construye agregando resultados diarios ya canonicos, manteniendo:
+- `startOfDay` por dia
+- buckets dinamicos por host
+- prioridad web -> app donde corresponda
+- sin doble conteo relevante
+- Coherencia esperada del modo semanal:
+- total semanal ~= suma de 7 barras diarias (tolerancia <= 2s por flotantes)
+- total semanal ~= suma de categorias semanales (tolerancia <= 2s por flotantes)

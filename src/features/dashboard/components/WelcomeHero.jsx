@@ -3,6 +3,7 @@ import { dashboardOverview } from '../../../mocks/dashboard'
 import {
   createCategory,
   formatUsageFromSeconds,
+  getActivityWatchSettings,
   getCategoryDefinitions,
   getCategoryRules,
   getDailyActiveUsage,
@@ -10,6 +11,10 @@ import {
   getDailyCategoryUsage,
   getHourlyUsageDetail,
   getHourlyActiveUsage,
+  getRangeActiveUsage,
+  getRangeCategoryDetailUsage,
+  getRangeCategoryUsage,
+  getRangeDailyUsageSeries,
   inferCategoryRuleSourceType,
   saveCategoryRules,
 } from '../../../lib/api/activitywatch'
@@ -85,17 +90,113 @@ const chevronRightIcon = (
   </svg>
 )
 
-const HOME_DAY = '2026-05-16'
 const MAX_DETAIL_ITEMS = 7
 const MAX_HOURLY_DETAIL_ITEMS = 7
+const DEFAULT_START_OF_DAY = '00:00'
+const RANGE_MODE_TODAY = 'today'
+const RANGE_MODE_WEEK = 'week'
 
 function normalizeRuleInput(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : ''
 }
 
+function parseStartOfDay(value) {
+  if (typeof value !== 'string') {
+    return { hours: 0, minutes: 0 }
+  }
+
+  const match = value.match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) {
+    return { hours: 0, minutes: 0 }
+  }
+
+  const hours = Number.parseInt(match[1], 10)
+  const minutes = Number.parseInt(match[2], 10)
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return { hours: 0, minutes: 0 }
+  }
+
+  return {
+    hours: Math.min(Math.max(hours, 0), 23),
+    minutes: Math.min(Math.max(minutes, 0), 59),
+  }
+}
+
+function toIsoDayLocal(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function shiftIsoDay(isoDay, deltaDays) {
+  const [year, month, day] = isoDay.split('-').map((part) => Number.parseInt(part, 10))
+  const shifted = new Date(year, month - 1, day + deltaDays, 12, 0, 0, 0)
+  return toIsoDayLocal(shifted)
+}
+
+function formatSelectedDayLabel(isoDay) {
+  const [year, month, day] = isoDay.split('-').map((part) => Number.parseInt(part, 10))
+  const date = new Date(year, month - 1, day, 12, 0, 0, 0)
+  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace('.', '')
+}
+
+function getCurrentActivityWatchDay(startOfDay = DEFAULT_START_OF_DAY) {
+  const now = new Date()
+  const { hours, minutes } = parseStartOfDay(startOfDay)
+  const cutoff = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    hours,
+    minutes,
+    0,
+    0
+  )
+  const effectiveDate = now < cutoff ? new Date(cutoff.getTime() - 24 * 60 * 60 * 1000) : now
+  return toIsoDayLocal(effectiveDate)
+}
+
+function getWeekRangeFromEndDay(endDay) {
+  const startDay = shiftIsoDay(endDay, -6)
+  return { startDay, endDay }
+}
+
+function formatWeekRangeLabel(startDay, endDay) {
+  const [startYear, startMonth, startDate] = startDay.split('-').map((part) => Number.parseInt(part, 10))
+  const [endYear, endMonth, endDate] = endDay.split('-').map((part) => Number.parseInt(part, 10))
+  const start = new Date(startYear, startMonth - 1, startDate, 12, 0, 0, 0)
+  const end = new Date(endYear, endMonth - 1, endDate, 12, 0, 0, 0)
+  const startMonthLabel = start.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')
+  const endMonthLabel = end.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${start.getDate()}–${end.getDate()} ${endMonthLabel}`
+  }
+  return `${start.getDate()} ${startMonthLabel} – ${end.getDate()} ${endMonthLabel}`
+}
+
+function getWeekdayLabel(isoDay) {
+  const [year, month, day] = isoDay.split('-').map((part) => Number.parseInt(part, 10))
+  const date = new Date(year, month - 1, day, 12, 0, 0, 0)
+  const weekday = date.getDay()
+  const labels = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
+  return labels[weekday] ?? '-'
+}
+
 function buildNeutralHourlyBars() {
   return Array.from({ length: 24 }, (_, index) => ({
     hour: String(index).padStart(2, '0'),
+    value: 18,
+    highlighted: false,
+    seconds: 0,
+  }))
+}
+
+function buildNeutralWeeklyBars() {
+  return Array.from({ length: 7 }, (_, index) => ({
+    hour: String(index),
+    day: null,
+    label: '-',
     value: 18,
     highlighted: false,
     seconds: 0,
@@ -110,6 +211,13 @@ function buildLoadingCategories(categoryDefinitions = []) {
     progress: 0,
     color: category.color ?? '#8f949f',
   }))
+}
+
+function buildCategoryDetailCacheKey({ mode, category, day, weekStartDay, weekEndDay }) {
+  if (mode === RANGE_MODE_WEEK) {
+    return `week:${weekStartDay}:${weekEndDay}:${category}`
+  }
+  return `day:${day}:${category}`
 }
 
 function aggregateCategoryDetailItems(detailUsage, categoryLabel) {
@@ -172,6 +280,12 @@ function aggregateHourlyDetailItems(detailUsage) {
 }
 
 function WelcomeHero() {
+  const [activityWatchStartOfDay, setActivityWatchStartOfDay] = useState(DEFAULT_START_OF_DAY)
+  const [selectedDay, setSelectedDay] = useState(() => getCurrentActivityWatchDay(DEFAULT_START_OF_DAY))
+  const [selectedRangeMode, setSelectedRangeMode] = useState(RANGE_MODE_TODAY)
+  const [selectedWeekEndDay, setSelectedWeekEndDay] = useState(() =>
+    getCurrentActivityWatchDay(DEFAULT_START_OF_DAY)
+  )
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
 
@@ -221,6 +335,26 @@ function WelcomeHero() {
     setIsSettingsOpen(false)
   }
 
+  const closeAllModals = useCallback(() => {
+    setActiveModal(null)
+    setSelectedHourIndex(null)
+    setIsHourlyDetailLoading(false)
+    setHourlyDetailError(null)
+    setHourlyDetailUsage({
+      intervalLabel: '-',
+      total: '-',
+      totalSeconds: 0,
+      items: [],
+    })
+    setIsCategoryDetailLoading(false)
+    setCategoryDetailError(null)
+    setCategoryDetailUsage({
+      total: '-',
+      totalSeconds: 0,
+      items: [],
+    })
+  }, [])
+
   const openHourlyDetail = (hourIndex) => {
     setSelectedHourIndex(hourIndex)
     setHourlyDetailUsage({
@@ -238,7 +372,13 @@ function WelcomeHero() {
   const refreshCategoryCard = useCallback(async () => {
     const definitions = getCategoryDefinitions()
     setCategoryDefinitions(definitions)
-    const result = await getDailyCategoryUsage({ day: HOME_DAY })
+    const result =
+      selectedRangeMode === RANGE_MODE_WEEK
+        ? await getRangeCategoryUsage({
+            startDay: getWeekRangeFromEndDay(selectedWeekEndDay).startDay,
+            endDay: getWeekRangeFromEndDay(selectedWeekEndDay).endDay,
+          })
+        : await getDailyCategoryUsage({ day: selectedDay })
     if (!result.ok || !Array.isArray(result.categories)) {
       console.warn(
         'No se pudo cargar uso por categorias real de ActivityWatch; se mantiene estado neutro.',
@@ -262,17 +402,32 @@ function WelcomeHero() {
 
     setCategoryUsageCard(visualCategories)
     return true
-  }, [])
+  }, [selectedDay, selectedRangeMode, selectedWeekEndDay])
 
   const loadCategoryDetailUsage = useCallback(async ({ category, requestId }) => {
-    const cached = categoryDetailCache[category]
+    const weekRange = getWeekRangeFromEndDay(selectedWeekEndDay)
+    const cacheKey = buildCategoryDetailCacheKey({
+      mode: selectedRangeMode,
+      category,
+      day: selectedDay,
+      weekStartDay: weekRange.startDay,
+      weekEndDay: weekRange.endDay,
+    })
+    const cached = categoryDetailCache[cacheKey]
     if (cached) {
       setCategoryDetailUsage(cached)
       setIsCategoryDetailLoading(false)
       return
     }
 
-    const detailResult = await getDailyCategoryDetailUsage({ day: HOME_DAY, category })
+    const detailResult =
+      selectedRangeMode === RANGE_MODE_WEEK
+        ? await getRangeCategoryDetailUsage({
+            startDay: getWeekRangeFromEndDay(selectedWeekEndDay).startDay,
+            endDay: getWeekRangeFromEndDay(selectedWeekEndDay).endDay,
+            category,
+          })
+        : await getDailyCategoryDetailUsage({ day: selectedDay, category })
     if (requestId !== detailRequestTokenRef.current) {
       return
     }
@@ -291,7 +446,7 @@ function WelcomeHero() {
         })),
       }
 
-      setCategoryDetailCache((previous) => ({ ...previous, [category]: mapped }))
+      setCategoryDetailCache((previous) => ({ ...previous, [cacheKey]: mapped }))
       setCategoryDetailUsage(mapped)
       setCategoryDetailError(null)
       setIsCategoryDetailLoading(false)
@@ -305,7 +460,7 @@ function WelcomeHero() {
       detailResult.error,
       detailResult.warnings
     )
-  }, [categoryDetailCache])
+  }, [categoryDetailCache, selectedDay, selectedRangeMode, selectedWeekEndDay])
 
   const openCategoryDetail = (label) => {
     setSelectedCategoryLabel(label)
@@ -327,11 +482,6 @@ function WelcomeHero() {
     })
     setNewRuleInput('')
     setActiveModal('edit')
-
-    console.group('[CONFIG-CATEGORIES-VERIFY] Category rules editing')
-    console.log('edited category:', label)
-    console.log('initial rules loaded:', categoryRules)
-    console.groupEnd()
   }
 
   const openCategoryCreate = () => {
@@ -419,7 +569,7 @@ function WelcomeHero() {
   }
 
   const loadHourlyDetailUsage = useCallback(async ({ hourIndex, requestToken }) => {
-    const detailResult = await getHourlyUsageDetail({ day: HOME_DAY, hourIndex })
+    const detailResult = await getHourlyUsageDetail({ day: selectedDay, hourIndex })
     if (requestToken !== hourlyDetailRequestTokenRef.current) {
       return
     }
@@ -453,36 +603,162 @@ function WelcomeHero() {
     setHourlyDetailError(null)
     setIsHourlyDetailLoading(false)
 
-    const rawItemsCount = mapped.items.length
-    const topItems = mapped.items.slice(0, MAX_HOURLY_DETAIL_ITEMS)
-    const groupedRemainderSeconds =
-      rawItemsCount > MAX_HOURLY_DETAIL_ITEMS
-        ? mapped.items.slice(MAX_HOURLY_DETAIL_ITEMS).reduce((sum, item) => sum + (item.rawSeconds ?? 0), 0)
-        : 0
-    const barSeconds = hourlyUsage[hourIndex]?.seconds ?? 0
-    const difference = Math.abs(barSeconds - mapped.totalSeconds)
-    console.group('[DATA-09-VERIFY] Hourly bar detail consistency')
-    console.log('clicked hour index:', hourIndex)
-    console.log('interval label:', mapped.intervalLabel)
-    console.log('hourly bar total seconds:', barSeconds)
-    console.log('modal detail total seconds:', mapped.totalSeconds)
-    console.log('difference seconds:', difference)
-    console.log('items count raw:', rawItemsCount)
-    console.log('visible top items count:', topItems.length)
-    console.log('grouped remainder seconds:', groupedRemainderSeconds)
-    console.log('loading resolved:', true)
-    console.log('validation:', difference <= 2 ? 'OK' : 'MISMATCH')
-    console.groupEnd()
-  }, [hourlyUsage])
+  }, [selectedDay])
 
   useEffect(() => {
     let cancelled = false
 
-    const bootstrapDashboard = async () => {
+    const bootstrapDaySettings = async () => {
+      const settingsResult = await getActivityWatchSettings()
+      const detectedStartOfDay =
+        settingsResult.ok && typeof settingsResult.settings?.startOfDay === 'string'
+          ? settingsResult.settings.startOfDay
+          : DEFAULT_START_OF_DAY
+
+      if (cancelled) {
+        return
+      }
+
+      const currentDay = getCurrentActivityWatchDay(detectedStartOfDay)
+      setActivityWatchStartOfDay(detectedStartOfDay)
+      setSelectedDay(currentDay)
+      setSelectedWeekEndDay(currentDay)
+    }
+
+    bootstrapDaySettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadDashboard = async () => {
+      setIsKpiLoading(true)
+      setKpiUsageLabel('-')
+      setIsHourlyLoading(true)
+      setHourlyUsage(
+        selectedRangeMode === RANGE_MODE_WEEK ? buildNeutralWeeklyBars() : buildNeutralHourlyBars()
+      )
+      setIsCategoryCardLoading(true)
+      setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
+      setCategoryDetailCache({})
+
+      if (selectedRangeMode === RANGE_MODE_WEEK) {
+        const { startDay, endDay } = getWeekRangeFromEndDay(selectedWeekEndDay)
+        const [weeklyTotalResult, weeklySeriesResult, weeklyCategoryResult] = await Promise.all([
+          getRangeActiveUsage({ startDay, endDay }),
+          getRangeDailyUsageSeries({ startDay, endDay }),
+          getRangeCategoryUsage({ startDay, endDay }),
+        ])
+
+        if (cancelled) {
+          return
+        }
+
+        if (weeklyTotalResult.ok && typeof weeklyTotalResult.totalSeconds === 'number') {
+          setKpiUsageLabel(formatUsageFromSeconds(weeklyTotalResult.totalSeconds))
+        } else {
+          setKpiUsageLabel('-')
+          console.warn(
+            'No se pudo cargar KPI semanal real de ActivityWatch; se mantiene estado neutro.',
+            weeklyTotalResult.error,
+            weeklyTotalResult.warnings
+          )
+        }
+        setIsKpiLoading(false)
+
+        if (weeklySeriesResult.ok && Array.isArray(weeklySeriesResult.dailySeries)) {
+          const maxSeconds = Math.max(0, ...weeklySeriesResult.dailySeries.map((item) => item.seconds ?? 0))
+          const highlightedDay = weeklySeriesResult.dailySeries.reduce(
+            (best, item) => ((item.seconds ?? 0) > (best.seconds ?? -1) ? item : best),
+            { day: null, seconds: -1 }
+          ).day
+          const bars = weeklySeriesResult.dailySeries.map((item) => {
+            const normalized = maxSeconds > 0 ? (item.seconds / maxSeconds) * 100 : 0
+            return {
+              hour: item.day,
+              day: item.day,
+              label: getWeekdayLabel(item.day),
+              value: Math.max(0, Math.min(100, normalized)),
+              highlighted: item.day === highlightedDay && maxSeconds > 0,
+              seconds: item.seconds,
+            }
+          })
+          setHourlyUsage(bars)
+        } else {
+          setHourlyUsage(buildNeutralWeeklyBars())
+          console.warn(
+            'No se pudo cargar uso semanal por dias de ActivityWatch; se mantiene estado neutro.',
+            weeklySeriesResult.error,
+            weeklySeriesResult.warnings
+          )
+        }
+        setIsHourlyLoading(false)
+
+        if (weeklyCategoryResult.ok && Array.isArray(weeklyCategoryResult.categories)) {
+          const definitions = getCategoryDefinitions()
+          setCategoryDefinitions(definitions)
+          const categoriesByLabel = new Map(
+            weeklyCategoryResult.categories.map((item) => [item.category, item])
+          )
+          const visualCategories = definitions.map((definition) => {
+            const matched = categoriesByLabel.get(definition.label)
+            return {
+              id: definition.id,
+              label: definition.label,
+              duration: matched?.formattedDuration ?? '0h 0m',
+              progress: matched ? Math.max(0, Math.min(100, matched.percentage)) : 0,
+              color: definition.color ?? matched?.color ?? '#8f949f',
+            }
+          })
+          setCategoryUsageCard(visualCategories)
+        } else {
+          setCategoryDefinitions(getCategoryDefinitions())
+          setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
+          console.warn(
+            'No se pudo cargar categorias semanales reales de ActivityWatch; se mantiene estado neutro.',
+            weeklyCategoryResult.error,
+            weeklyCategoryResult.warnings
+          )
+        }
+        setIsCategoryCardLoading(false)
+
+        const weeklySeconds = weeklyTotalResult.ok ? weeklyTotalResult.totalSeconds ?? 0 : 0
+        const seriesSeconds = weeklySeriesResult.ok
+          ? (weeklySeriesResult.dailySeries ?? []).reduce((sum, item) => sum + (item.seconds ?? 0), 0)
+          : 0
+        const categoriesSeconds = weeklyCategoryResult.ok
+          ? (weeklyCategoryResult.categories ?? []).reduce((sum, item) => sum + (item.seconds ?? 0), 0)
+          : 0
+        const seriesDifference = Math.abs(weeklySeconds - seriesSeconds)
+        const categoriesDifference = Math.abs(weeklySeconds - categoriesSeconds)
+        const currentWeek = getWeekRangeFromEndDay(getCurrentActivityWatchDay(activityWatchStartOfDay))
+        const isRightDisabledAtCurrentWeek = endDay >= currentWeek.endDay
+
+        console.group('[RANGE-WEEK-01-VERIFY] Weekly range summary consistency')
+        console.log('selected weekly range:', `${startDay} -> ${endDay}`)
+        console.log('weekly total seconds:', weeklySeconds)
+        console.log('sum of 7 daily bar seconds:', seriesSeconds)
+        console.log('difference seconds:', seriesDifference)
+        console.log('categories total seconds:', categoriesSeconds)
+        console.log('difference weekly total vs categories:', categoriesDifference)
+        console.log('visible range label:', formatWeekRangeLabel(startDay, endDay))
+        console.log('right navigation disabled at current week:', isRightDisabledAtCurrentWeek)
+        console.log(
+          'validation:',
+          seriesDifference <= 2 && categoriesDifference <= 2 ? 'OK' : 'MISMATCH'
+        )
+        console.groupEnd()
+        return
+      }
+
       const [dailyResult, hourlyResult, categoryResult] = await Promise.all([
-        getDailyActiveUsage({ day: HOME_DAY }),
-        getHourlyActiveUsage({ day: HOME_DAY }),
-        getDailyCategoryUsage({ day: HOME_DAY }),
+        getDailyActiveUsage({ day: selectedDay }),
+        getHourlyActiveUsage({ day: selectedDay }),
+        getDailyCategoryUsage({ day: selectedDay }),
       ])
 
       if (cancelled) {
@@ -538,15 +814,14 @@ function WelcomeHero() {
         )
       }
       setIsCategoryCardLoading(false)
-
     }
 
-    bootstrapDashboard()
+    loadDashboard()
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [activityWatchStartOfDay, selectedDay, selectedRangeMode, selectedWeekEndDay])
 
   useEffect(() => {
     if (!isCategoryDetailLoading) {
@@ -560,7 +835,7 @@ function WelcomeHero() {
   }, [isCategoryDetailLoading, selectedCategoryLabel, loadCategoryDetailUsage])
 
   useEffect(() => {
-    if (!isHourlyDetailLoading || selectedHourIndex === null) {
+    if (selectedRangeMode !== RANGE_MODE_TODAY || !isHourlyDetailLoading || selectedHourIndex === null) {
       return
     }
 
@@ -568,7 +843,7 @@ function WelcomeHero() {
       hourIndex: selectedHourIndex,
       requestToken: hourlyDetailRequestTokenRef.current,
     })
-  }, [isHourlyDetailLoading, selectedHourIndex, loadHourlyDetailUsage])
+  }, [isHourlyDetailLoading, selectedHourIndex, loadHourlyDetailUsage, selectedRangeMode])
 
   const visibleDetailItems = useMemo(
     () => aggregateCategoryDetailItems(categoryDetailUsage, selectedCategoryLabel),
@@ -581,6 +856,83 @@ function WelcomeHero() {
   const selectedCategoryColor = useMemo(
     () => categoryDefinitions.find((category) => category.label === selectedCategoryLabel)?.color ?? '#8f949f',
     [categoryDefinitions, selectedCategoryLabel]
+  )
+  const selectedWeekRange = useMemo(
+    () => getWeekRangeFromEndDay(selectedWeekEndDay),
+    [selectedWeekEndDay]
+  )
+  const selectedDateLabel = useMemo(() => {
+    if (selectedRangeMode === RANGE_MODE_WEEK) {
+      return formatWeekRangeLabel(selectedWeekRange.startDay, selectedWeekRange.endDay)
+    }
+    return formatSelectedDayLabel(selectedDay)
+  }, [selectedDay, selectedRangeMode, selectedWeekRange.endDay, selectedWeekRange.startDay])
+  const currentActivityWatchDay = useMemo(
+    () => getCurrentActivityWatchDay(activityWatchStartOfDay),
+    [activityWatchStartOfDay]
+  )
+  const isNextDayDisabled = useMemo(() => {
+    if (selectedRangeMode === RANGE_MODE_WEEK) {
+      return selectedWeekRange.endDay >= currentActivityWatchDay
+    }
+    return selectedDay >= currentActivityWatchDay
+  }, [currentActivityWatchDay, selectedDay, selectedRangeMode, selectedWeekRange.endDay])
+
+  const navigateDay = useCallback(
+    (deltaDays) => {
+      if (selectedRangeMode === RANGE_MODE_WEEK) {
+        setSelectedWeekEndDay((previousEndDay) => {
+          const nextEndDay = shiftIsoDay(previousEndDay, deltaDays * 7)
+          if (!nextEndDay) {
+            return previousEndDay
+          }
+          if (deltaDays > 0 && nextEndDay > currentActivityWatchDay) {
+            return previousEndDay
+          }
+          return nextEndDay
+        })
+      } else {
+        setSelectedDay((previousDay) => {
+          const nextDay = shiftIsoDay(previousDay, deltaDays)
+          if (!nextDay) {
+            return previousDay
+          }
+          if (deltaDays > 0 && nextDay > currentActivityWatchDay) {
+            return previousDay
+          }
+          return nextDay
+        })
+      }
+
+      closeAllModals()
+      if (isSettingsOpen) {
+        closeSettings()
+      }
+    },
+    [closeAllModals, currentActivityWatchDay, isSettingsOpen, selectedRangeMode]
+  )
+
+  const handleSelectRangeMode = useCallback(
+    (modeId) => {
+      if (modeId === 'month') {
+        return
+      }
+      if (modeId === selectedRangeMode) {
+        return
+      }
+      const nextMode = modeId === 'week' ? RANGE_MODE_WEEK : RANGE_MODE_TODAY
+      setSelectedRangeMode(nextMode)
+      closeAllModals()
+      if (isSettingsOpen) {
+        closeSettings()
+      }
+      if (nextMode === RANGE_MODE_WEEK) {
+        setSelectedWeekEndDay(currentActivityWatchDay)
+      } else {
+        setSelectedDay(currentActivityWatchDay)
+      }
+    },
+    [closeAllModals, currentActivityWatchDay, isSettingsOpen, selectedRangeMode]
   )
 
   return (
@@ -595,10 +947,13 @@ function WelcomeHero() {
             <button
               key={range.id}
               type="button"
+              onClick={() => handleSelectRangeMode(range.id)}
+              disabled={range.id === 'month'}
               className={`flex-1 rounded-full px-4 py-2.5 text-[0.88rem] font-semibold transition ${
-                range.active
+                (range.id === 'today' && selectedRangeMode === RANGE_MODE_TODAY) ||
+                (range.id === 'week' && selectedRangeMode === RANGE_MODE_WEEK)
                   ? 'bg-[#1877f2] text-white shadow-[0_8px_16px_rgba(24,119,242,0.35)]'
-                  : 'text-slate-700'
+                  : 'text-slate-700 disabled:cursor-not-allowed disabled:opacity-40'
               }`}
             >
               {range.label}
@@ -609,13 +964,24 @@ function WelcomeHero() {
         <div className="mt-5 flex items-center justify-center gap-3 text-slate-400">
           <span>{calendarIcon}</span>
           <div className="flex min-w-[172px] items-center justify-between rounded-full bg-white px-4 py-2.5 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
-            <button type="button" aria-label="Fecha anterior" className="text-slate-400">
+            <button
+              type="button"
+              aria-label="Fecha anterior"
+              onClick={() => navigateDay(-1)}
+              className="text-slate-400"
+            >
               {chevronLeftIcon}
             </button>
             <span className="text-[0.96rem] font-semibold text-slate-800">
-              {dashboardOverview.selectedDateLabel}
+              {selectedDateLabel}
             </span>
-            <button type="button" aria-label="Fecha siguiente" className="text-slate-400">
+            <button
+              type="button"
+              aria-label="Fecha siguiente"
+              onClick={() => navigateDay(1)}
+              disabled={isNextDayDisabled}
+              className="text-slate-400 disabled:cursor-not-allowed disabled:opacity-40"
+            >
               {chevronRightIcon}
             </button>
           </div>
@@ -626,13 +992,15 @@ function WelcomeHero() {
             {isKpiLoading ? '-' : kpiUsageLabel}
           </h1>
           <p className="mt-4 text-[1.32rem] font-normal tracking-[-0.02em] text-slate-500/80">
-            Tiempo total de uso hoy
+            {selectedRangeMode === RANGE_MODE_WEEK
+              ? 'Tiempo total de uso en la ultima semana'
+              : 'Tiempo total de uso hoy'}
           </p>
         </div>
 
         <div className="mt-9 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
           <h2 className="text-[1.72rem] font-semibold tracking-[-0.02em] text-slate-800">
-            Uso por horas
+            {selectedRangeMode === RANGE_MODE_WEEK ? 'Uso por dias' : 'Uso por horas'}
           </h2>
 
           <div className="mt-6 grid grid-cols-[38px_1fr] gap-4">
@@ -645,24 +1013,40 @@ function WelcomeHero() {
             </div>
 
             <div className="flex min-w-0 flex-col overflow-hidden">
-              <div className="grid h-[162px] grid-cols-24 items-end gap-1 overflow-hidden">
+              <div
+                className={`grid h-[162px] items-end gap-1 overflow-hidden ${
+                  selectedRangeMode === RANGE_MODE_WEEK ? 'grid-cols-7' : 'grid-cols-24'
+                }`}
+              >
                 {hourlyUsage.map((item, index) => (
                   <button
                     key={item.hour}
                     type="button"
-                    aria-label={`Ver detalle de ${item.hour}:00`}
-                    onClick={() => openHourlyDetail(index)}
+                    aria-label={
+                      selectedRangeMode === RANGE_MODE_WEEK
+                        ? `Barra de ${item.label ?? 'dia'}`
+                        : `Ver detalle de ${item.hour}:00`
+                    }
+                    onClick={() => {
+                      if (selectedRangeMode === RANGE_MODE_TODAY) {
+                        openHourlyDetail(index)
+                      }
+                    }}
+                    disabled={selectedRangeMode === RANGE_MODE_WEEK}
                     className={`w-full rounded-t-[10px] ${
                       item.highlighted && !isHourlyLoading ? 'bg-[#1677f2]' : 'bg-[#e5e7ef]'
-                    }`}
+                    } ${selectedRangeMode === RANGE_MODE_WEEK ? 'cursor-default' : ''}`}
                     style={{ height: `${Math.max(item.value, 7)}%` }}
                   />
                 ))}
               </div>
 
               <div className="mt-3 flex justify-between text-[0.78rem] text-slate-400">
-                {['00', '03', '06', '09', '12', '15', '18', '21', '23'].map((label) => (
-                  <span key={label}>{label}</span>
+                {(selectedRangeMode === RANGE_MODE_WEEK
+                  ? hourlyUsage.map((item) => item.label ?? '-')
+                  : ['00', '03', '06', '09', '12', '15', '18', '21', '23']
+                ).map((label, index) => (
+                  <span key={`${label}-${index}`}>{label}</span>
                 ))}
               </div>
             </div>
