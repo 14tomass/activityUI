@@ -756,3 +756,38 @@
 - Se evita duplicar logica de clasificacion/consistencia porque cada agregado semanal reutiliza la capa diaria ya validada.
 - Verificacion temporal activa:
 - `[RANGE-WEEK-01-VERIFY] Weekly range summary consistency`
+
+## RANGE-WEEK-01-FIX
+
+- Se corrigio la semantica de `Semana` para usar semana natural de calendario (lunes-domingo), en lugar de 7 dias moviles.
+- Estado semanal modelado por inicio de semana (`selectedWeekStartDay`) y rango derivado (`start + 6`).
+- En semana actual:
+- dias futuros se muestran explicitamente con `0`
+- barras de dias futuros quedan no clicables
+- navegacion derecha bloqueada al estar en la semana actual
+- Eje vertical semanal corregido:
+- escala dinamica en horas (`1h`, `2h`, `3h`, ...) segun maximo diario visible de la semana
+- sin etiquetas incoherentes en minutos para modo `Semana`
+- Clic en barra semanal (dia no futuro):
+- mantiene el modo `Semana`
+- selecciona/deselecciona el dia pulsado dentro de la semana
+- muestra el total diario encima de la barra seleccionada
+- filtra la tarjeta de categorias al dia seleccionado (si no hay seleccion, vuelve al agregado semanal)
+- Tabs visibles renombrados:
+- `Dia`
+- `Semana`
+- `Mes` (sin logica mensual aun)
+- Se separo la carga semanal global de la carga de categorias filtradas por dia:
+- al seleccionar un dia semanal, KPI y grafico de 7 barras permanecen visibles
+- solo la tarjeta de categorias entra en loading y recarga en contexto diario seleccionado
+- Se anadio tooltip de hover en barras semanales con dia/fecha breve y total diario formateado.
+- Se anadio media diaria junto al KPI semanal:
+- semana actual: total semanal / dias transcurridos hasta hoy (inclusive)
+- semana cerrada: total semanal / 7
+- Verificacion temporal activa:
+- `[RANGE-WEEK-01-FIX-VERIFY] Calendar week consistency`
+- `[RANGE-WEEK-AXIS-VERIFY] Weekly chart axis scale`
+- `[RANGE-WEEK-DAY-SELECT-VERIFY] Weekly day selection behavior`
+- `[RANGE-WEEK-DAY-FILTER-VERIFY] Weekly day selection filters categories only`
+- `[RANGE-WEEK-HOVER-VERIFY] Weekly bar tooltip`
+- `[RANGE-WEEK-AVERAGE-VERIFY] Weekly daily average`

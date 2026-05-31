@@ -505,3 +505,16 @@ Nota de referencia canonica para integracion:
 - Coherencia esperada del modo semanal:
 - total semanal ~= suma de 7 barras diarias (tolerancia <= 2s por flotantes)
 - total semanal ~= suma de categorias semanales (tolerancia <= 2s por flotantes)
+
+## 27) RANGE-WEEK-01-FIX (semana calendario)
+
+- El modo `Semana` se interpreta como semana natural lunes-domingo.
+- Para semana actual, los dias futuros se presentan a `0` en UI para mantener 7 columnas fijas y coherencia visual de calendario.
+- El KPI semanal y categorias semanales siguen agregacion por rango completo lunes-domingo.
+- El clic en barra semanal (si no es futura) mantiene el modo `Semana`, selecciona ese dia y usa `getDailyCategoryUsage({ day })` para mostrar categorias del dia seleccionado dentro del contexto semanal.
+- Si se vuelve a pulsar la misma barra seleccionada, se limpia la seleccion y se recupera el agregado semanal de categorias.
+- El eje vertical del grafico semanal debe expresarse en horas dinamicas (`xh`) segun el maximo diario visible del rango.
+- La seleccion de dia semanal no debe recargar KPI semanal ni serie de 7 barras: solo recarga la tarjeta de categorias en contexto diario.
+- La media diaria semanal se calcula sobre dias considerados:
+- semana actual: dias transcurridos desde lunes hasta hoy (inclusive)
+- semanas cerradas: 7 dias

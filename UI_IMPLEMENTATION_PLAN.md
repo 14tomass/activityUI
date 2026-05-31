@@ -153,6 +153,8 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - **DATA-09 (implementada)**: el grafico "Uso por horas" ya incorpora clic por barra para inspeccionar una franja concreta con desglose real de apps/sitios, manteniendo top 7 + agregado y estado vacio limpio.
 - **NAV-DATE-01 (implementada)**: el dashboard ya navega por dias reales (sin fecha hardcodeada), recargando KPI/horas/categorias por `selectedDay` y bloqueando navegacion a futuro.
 - **RANGE-WEEK-01 (implementada)**: el tab `Ultima semana` ya resume 7 dias reales (KPI, grafico por dias, categorias y detalle por categoria), con navegacion por bloques semanales y bloqueo en semana actual.
+- **RANGE-WEEK-01-FIX (implementada)**: `Semana` se ajusta a semana natural lunes-domingo, con dias futuros de semana actual a `0`, eje semanal en horas y clic en barra para seleccionar/deseleccionar dia dentro de Semana (sin navegar a `Dia`) y filtrar categorias de ese dia.
+- **RANGE-WEEK-01-FIX (iteracion UX)**: en seleccion de dia semanal se mantiene siempre visible el resumen semanal (KPI + grafico), tooltip hover por barra y media diaria semanal junto al KPI.
 
 ## Aclaracion de flujo (post DATA-08)
 

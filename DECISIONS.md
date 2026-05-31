@@ -29,8 +29,15 @@
 - El detalle por franja horaria (DATA-09) sigue la misma regla anti-doble-conteo del proyecto: prioridad web por solapamiento temporal y fallback a aplicacion para tiempo remanente.
 - En navegacion diaria (NAV-DATE-01), al cambiar fecha se cierran modales/paneles abiertos para evitar detalle descontextualizado de otro dia.
 - En navegacion diaria (NAV-DATE-01), se bloquea avanzar a fechas futuras respecto al dia ActivityWatch actual.
-- En modo `Ultima semana` (RANGE-WEEK-01), el rango se define como 7 dias moviles y navega por bloques completos de 7 dias.
-- En modo `Ultima semana`, la navegacion derecha se bloquea cuando el rango termina en el dia ActivityWatch actual.
+- En modo `Semana` (RANGE-WEEK-01-FIX), la semantica semanal es natural de calendario: lunes a domingo.
+- En modo `Semana`, los dias futuros de la semana actual se muestran a `0` y no son clicables.
+- En modo `Semana`, el grafico semanal usa escala vertical en horas (etiquetas `xh`) ajustada dinamicamente al maximo diario visible.
+- En modo `Semana`, el clic en una barra de dia no futuro NO navega a `Dia`: mantiene `Semana`, marca seleccion y filtra categorias al dia elegido.
+- En modo `Semana`, al pulsar de nuevo el mismo dia seleccionado se limpia la seleccion y se recupera el agregado semanal de categorias.
+- En modo `Semana`, al seleccionar un dia solo recarga la tarjeta de categorias; KPI semanal y grafico de 7 barras se mantienen visibles y estables.
+- En modo `Semana`, el KPI muestra `Media diaria` calculada con divisor contextual: dias transcurridos en semana actual o `7` en semanas cerradas.
+- En modo `Semana`, el hover de barras muestra tooltip compacto con dia/fecha y total diario.
+- En modo `Semana`, la navegacion derecha se bloquea al llegar a la semana actual (lunes-domingo del dia ActivityWatch actual).
 
 ### Estrategia de implementacion
 

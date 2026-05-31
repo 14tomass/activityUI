@@ -112,6 +112,15 @@
 - NAV-DATE-01-CLOSE completada: eliminado log temporal `[NAV-DATE-01-VERIFY]` y retirado ruido de debug en navegacion diaria.
 - RANGE-WEEK-01 implementada: tab `Ultima semana` funcional con rango movil de 7 dias, navegacion por bloques semanales y recarga real de KPI, grafico por dias, categorias y detalle por categoria.
 - RANGE-WEEK-01 en verificacion: log temporal `[RANGE-WEEK-01-VERIFY] Weekly range summary consistency` para validar coherencia semanal (total vs barras diarias vs categorias).
+- RANGE-WEEK-01-FIX implementada: modo `Semana` corregido a semana natural lunes-domingo, dias futuros de semana actual mostrados a `0`, y navegacion bloqueada en semana actual.
+- RANGE-WEEK-01-FIX implementada: eje vertical semanal corregido a unidades de horas dinamicas (`1h`, `2h`, ...), sin etiquetas incoherentes de minutos.
+- RANGE-WEEK-01-FIX implementada: clic en barra semanal (dia no futuro) mantiene modo `Semana`, muestra total del dia sobre la barra y filtra la tarjeta de categorias al dia seleccionado.
+- RANGE-WEEK-01-FIX implementada: clic repetido sobre el mismo dia semanal deselecciona y vuelve al agregado semanal de categorias.
+- RANGE-WEEK-01-FIX implementada: seleccion de dia semanal ya no dispara recarga global de Semana; solo recarga la tarjeta de categorias (KPI y grafico permanecen visibles).
+- RANGE-WEEK-01-FIX implementada: tooltip hover en barras semanales con dia/fecha corta y total diario formateado.
+- RANGE-WEEK-01-FIX implementada: KPI semanal muestra tambien `Media diaria` (semana actual: divide por dias transcurridos; semanas cerradas: divide por 7).
+- RANGE-WEEK-01-FIX en verificacion: logs temporales `[RANGE-WEEK-01-FIX-VERIFY]`, `[RANGE-WEEK-AXIS-VERIFY]` y `[RANGE-WEEK-DAY-SELECT-VERIFY]`.
+- RANGE-WEEK-01-FIX en verificacion: logs temporales `[RANGE-WEEK-DAY-FILTER-VERIFY]`, `[RANGE-WEEK-HOVER-VERIFY]` y `[RANGE-WEEK-AVERAGE-VERIFY]`.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 
