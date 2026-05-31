@@ -118,7 +118,6 @@
 - RANGE-WEEK-01-FIX implementada: seleccion de dia semanal ya no dispara recarga global de Semana; solo recarga la tarjeta de categorias (KPI y grafico permanecen visibles).
 - RANGE-WEEK-01-FIX implementada: tooltip hover en barras semanales con dia/fecha corta y total diario formateado.
 - RANGE-WEEK-01-FIX implementada: KPI semanal muestra tambien `Media diaria` (semana actual: divide por dias transcurridos; semanas cerradas: divide por 7).
-- RANGE-WEEK-UX-FIX-02 implementada: cache en memoria por `day` y `weekStart` para alternar `Dia`/`Semana` sin recarga completa cuando hay datos ya cargados en sesion.
 - RANGE-WEEK-UX-FIX-02 implementada: hover tooltip semanal retirado; el grafico mantiene solo interaccion por clic.
 - RANGE-WEEK-UX-FIX-02 implementada: al seleccionar dia en `Semana` se preservan KPI+grafico y solo recarga la tarjeta de categorias; se anade resumen intermedio del dia seleccionado.
 - RANGE-WEEK-UX-FIX-02 implementada: regla de resaltado azul ajustada (sin seleccion: hoy en semana actual / mayor uso en semanas pasadas; con seleccion: barra seleccionada).
@@ -129,12 +128,18 @@
 - RANGE-NAV-AND-MONTH-PLAN-01 implementada: vista inicial y orden de tabs cambiados a `Semana | Dia | Mes`.
 - RANGE-NAV-AND-MONTH-PLAN-01 implementada: limites historicos aplicados (Dia: 15 dias, Semana: 5 semanas, Mes: 3 meses) con bloqueo funcional en navegacion.
 - RANGE-NAV-AND-MONTH-PLAN-01 implementada: modo `Mes` simple con KPI total mensual, media diaria mensual, grafico por semanas (`S1..Sn`) y categorias agregadas del mes.
-- RANGE-NAV-AND-MONTH-PLAN-01 en verificacion: logs temporales `[RANGE-TABS-ORDER-VERIFY]`, `[RANGE-NAV-LIMITS-VERIFY]` y `[RANGE-MONTH-01-VERIFY]`.
+- RANGE-NAV-AND-MONTH-PLAN-01 consolidada: retirados logs temporales de verificacion y mantenido `Mes` en version simple.
+- SYNC-ROLLBACK-STATE-01 completada: codigo y documentacion sincronizados con el estado estable posterior a `RANGE-NAV-AND-MONTH-PLAN-01`.
+- SYNC-ROLLBACK-STATE-01 completada: confirmada ausencia de prefetch de dias/semanas y de carga en segundo plano no deseada.
+- SYNC-ROLLBACK-STATE-01 completada: descartadas por ahora las lineas de trabajo de prefetch/rendimiento experimental; no se continuara con `PERFORMANCE-PREFETCH-01` ni `PERFORMANCE-CRITICAL-FIX-01`.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 
+- [ ] Ejecutar QA funcional manual del estado estable posterior a `RANGE-NAV-AND-MONTH-PLAN-01`
 - [ ] Revisar accesibilidad y consistencia visual
 - [ ] Mejorar mensajes de error y estados vacios
 - [ ] Revisar privacidad y no salida de datos
 - [ ] Limpiar codigo, documentacion y estructura final del MVP
 - [ ] Preparar checklist final de entrega
+- QA-FUNCTIONAL-01 completada: creada `QA_CHECKLIST.md` con validacion manual guiada para `Semana`, `Dia`, `Mes`, limites, categorias, detalles, Configuracion, estados de carga/error y consola.
+- QA-FUNCTIONAL-01 pendiente de ejecucion manual: el siguiente paso aprobado es correr la checklist con ActivityWatch real antes de abrir nuevas features o pulido visual.

@@ -38,11 +38,11 @@
 - En modo `Semana`, el KPI muestra `Media diaria` calculada con divisor contextual: dias transcurridos en semana actual o `7` en semanas cerradas.
 - En modo `Semana`, no se usa tooltip hover en barras; la informacion detallada del dia se muestra al seleccionar por clic.
 - En modo `Semana`, la navegacion derecha se bloquea al llegar a la semana actual (lunes-domingo del dia ActivityWatch actual).
-- Se usa cache en memoria de sesion para restaurar rapidamente datos de `Dia` y `Semana` sin recarga completa al alternar tabs cuando ya existe resultado.
 - En el switch semanal `Semana | Dia`, el estado `Dia` queda deshabilitado si no hay barra seleccionada; no se fuerza seleccion automatica de dia.
 - La vista inicial del dashboard pasa a `Semana` y el orden estable de tabs queda `Semana | Dia | Mes`.
 - Se aplican limites historicos de navegacion en cliente: `Dia` hasta 15 dias atras, `Semana` hasta 5 semanas atras y `Mes` hasta 3 meses atras.
 - El modo `Mes` se define como resumen simple (KPI mensual + media diaria + grafico por semanas + categorias agregadas) sin interacciones de detalle por semana en esta fase.
+- Tras el rollback a estado estable posterior a `RANGE-NAV-AND-MONTH-PLAN-01`, no se usa prefetch ni cache agresiva en cliente por ahora; cada cambio de rango recarga solo los datos del contexto visible.
 
 ### Estrategia de implementacion
 

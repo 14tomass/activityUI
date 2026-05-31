@@ -301,13 +301,6 @@ function buildLoadingCategories(categoryDefinitions = []) {
   }))
 }
 
-function buildCategoryDetailCacheKey({ mode, category, day, weekStartDay, weekEndDay }) {
-  if (mode === RANGE_MODE_WEEK) {
-    return `week:${weekStartDay}:${weekEndDay}:${category}`
-  }
-  return `day:${day}:${category}`
-}
-
 function aggregateCategoryDetailItems(detailUsage, categoryLabel) {
   const items = [...detailUsage.items]
   if (items.length <= MAX_DETAIL_ITEMS) {
@@ -413,7 +406,6 @@ function WelcomeHero() {
     totalSeconds: 0,
     items: [],
   })
-  const [categoryDetailCache, setCategoryDetailCache] = useState({})
   const detailRequestTokenRef = useRef(0)
 
   const [editableRules, setEditableRules] = useState(getCategoryRules())
@@ -422,11 +414,6 @@ function WelcomeHero() {
   const [newCategoryNameInput, setNewCategoryNameInput] = useState('')
   const [newCategoryError, setNewCategoryError] = useState('')
   const categoryCardRequestTokenRef = useRef(0)
-  const dayDataCacheRef = useRef({})
-  const weekDataCacheRef = useRef({})
-  const monthDataCacheRef = useRef({})
-  const weekCategoryContextCacheRef = useRef({})
-  const tabsOrderLoggedRef = useRef(false)
 
   const closeSettings = () => {
     setActiveModal(null)
@@ -528,21 +515,6 @@ function WelcomeHero() {
   }, [])
 
   const loadCategoryDetailUsage = useCallback(async ({ category, requestId }) => {
-    const weekRange = getWeekRangeFromStartDay(selectedWeekStartDay)
-    const cacheKey = buildCategoryDetailCacheKey({
-      mode: selectedRangeMode,
-      category,
-      day: selectedDay,
-      weekStartDay: weekRange.startDay,
-      weekEndDay: weekRange.endDay,
-    })
-    const cached = categoryDetailCache[cacheKey]
-    if (cached) {
-      setCategoryDetailUsage(cached)
-      setIsCategoryDetailLoading(false)
-      return
-    }
-
     const detailResult =
       selectedRangeMode === RANGE_MODE_WEEK
         ? await getRangeCategoryDetailUsage({
@@ -569,7 +541,6 @@ function WelcomeHero() {
         })),
       }
 
-      setCategoryDetailCache((previous) => ({ ...previous, [cacheKey]: mapped }))
       setCategoryDetailUsage(mapped)
       setCategoryDetailError(null)
       setIsCategoryDetailLoading(false)
@@ -583,7 +554,7 @@ function WelcomeHero() {
       detailResult.error,
       detailResult.warnings
     )
-  }, [categoryDetailCache, selectedDay, selectedRangeMode, selectedWeekStartDay])
+  }, [selectedDay, selectedRangeMode, selectedWeekStartDay])
 
   const openCategoryDetail = (label) => {
     setSelectedCategoryLabel(label)
@@ -658,7 +629,6 @@ function WelcomeHero() {
     setEditableRules(nextRules)
     setEditDraftRules(nextDraft)
     setNewRuleInput('')
-    setCategoryDetailCache({})
 
     const shouldCloseModal = pendingInput.length === 0
     if (shouldCloseModal) {
@@ -683,7 +653,6 @@ function WelcomeHero() {
 
     setNewCategoryError('')
     setNewCategoryNameInput('')
-    setCategoryDetailCache({})
     setEditableRules(getCategoryRules())
     await refreshCategoryCard()
     setActiveModal(null)
@@ -760,51 +729,6 @@ function WelcomeHero() {
     let cancelled = false
 
     const loadDashboard = async () => {
-      const dayCacheKey = selectedDay
-      const weekCacheKey = selectedWeekStartDay
-      const monthCacheKey = selectedMonthStartDay
-
-      if (selectedRangeMode === RANGE_MODE_TODAY) {
-        const cachedDay = dayDataCacheRef.current[dayCacheKey]
-        if (cachedDay) {
-          setKpiUsageLabel(cachedDay.kpiUsageLabel)
-          setIsKpiLoading(false)
-          setHourlyUsage(cachedDay.hourlyUsage)
-          setIsHourlyLoading(false)
-          setCategoryUsageCard(cachedDay.categoryUsageCard)
-          setIsCategoryCardLoading(false)
-          return
-        }
-      }
-
-      if (selectedRangeMode === RANGE_MODE_WEEK) {
-        const cachedWeek = weekDataCacheRef.current[weekCacheKey]
-        if (cachedWeek) {
-          setKpiUsageLabel(cachedWeek.kpiUsageLabel)
-          setWeeklyTotalSeconds(cachedWeek.weeklyTotalSeconds)
-          setIsKpiLoading(false)
-          setHourlyUsage(cachedWeek.hourlyUsage)
-          setIsHourlyLoading(false)
-          setCategoryUsageCard(cachedWeek.categoryUsageCard)
-          setIsCategoryCardLoading(false)
-          return
-        }
-      }
-
-      if (selectedRangeMode === RANGE_MODE_MONTH) {
-        const cachedMonth = monthDataCacheRef.current[monthCacheKey]
-        if (cachedMonth) {
-          setKpiUsageLabel(cachedMonth.kpiUsageLabel)
-          setWeeklyTotalSeconds(cachedMonth.monthlyTotalSeconds)
-          setIsKpiLoading(false)
-          setHourlyUsage(cachedMonth.hourlyUsage)
-          setIsHourlyLoading(false)
-          setCategoryUsageCard(cachedMonth.categoryUsageCard)
-          setIsCategoryCardLoading(false)
-          return
-        }
-      }
-
       setIsKpiLoading(true)
       setKpiUsageLabel('-')
       setIsHourlyLoading(true)
@@ -817,7 +741,6 @@ function WelcomeHero() {
       )
       setIsCategoryCardLoading(true)
       setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
-      setCategoryDetailCache({})
 
       if (selectedRangeMode === RANGE_MODE_WEEK) {
         const { startDay, endDay } = getWeekRangeFromStartDay(selectedWeekStartDay)
@@ -845,8 +768,9 @@ function WelcomeHero() {
         }
         setIsKpiLoading(false)
 
-        let weeklyBars = []
-        if (weeklySeriesResult.ok && Array.isArray(weeklySeriesResult.dailySeries)) {
+        const weeklyBars =
+          weeklySeriesResult.ok && Array.isArray(weeklySeriesResult.dailySeries)
+            ? (() => {
           const dailySeriesNormalized = weeklySeriesResult.dailySeries.map((item) => ({
             ...item,
             seconds: isIsoDayFuture(item.day, currentActivityWatchDay) ? 0 : item.seconds ?? 0,
@@ -859,7 +783,7 @@ function WelcomeHero() {
           ).day
           const isCurrentWeek = startDay === getWeekStartDay(currentActivityWatchDay)
           const highlightedDay = isCurrentWeek ? currentActivityWatchDay : mostUsedDay
-          weeklyBars = dailySeriesNormalized.map((item) => {
+              return dailySeriesNormalized.map((item) => {
             const normalized = maxSeconds > 0 ? (item.seconds / maxSeconds) * 100 : 0
             return {
               hour: item.day,
@@ -871,9 +795,10 @@ function WelcomeHero() {
               isFutureDay: item.isFutureDay,
             }
           })
-          setHourlyUsage(weeklyBars)
-        } else {
-          setHourlyUsage(buildNeutralWeeklyBars())
+            })()
+            : buildNeutralWeeklyBars()
+        setHourlyUsage(weeklyBars)
+        if (!weeklySeriesResult.ok || !Array.isArray(weeklySeriesResult.dailySeries)) {
           console.warn(
             'No se pudo cargar uso semanal por dias de ActivityWatch; se mantiene estado neutro.',
             weeklySeriesResult.error,
@@ -885,16 +810,6 @@ function WelcomeHero() {
         if (weeklyCategoryResult.ok && Array.isArray(weeklyCategoryResult.categories)) {
           const visualCategories = mapCategoryResultToCard(weeklyCategoryResult)
           setCategoryUsageCard(visualCategories)
-          weekCategoryContextCacheRef.current[`week:${selectedWeekStartDay}`] = visualCategories
-          weekDataCacheRef.current[weekCacheKey] = {
-            kpiUsageLabel:
-              weeklyTotalResult.ok && typeof weeklyTotalResult.totalSeconds === 'number'
-                ? formatUsageFromSeconds(weeklyTotalResult.totalSeconds)
-                : '-',
-            weeklyTotalSeconds: weeklyTotalResult.ok ? weeklyTotalResult.totalSeconds ?? 0 : 0,
-            hourlyUsage: weeklyBars,
-            categoryUsageCard: visualCategories,
-          }
         } else {
           setCategoryDefinitions(getCategoryDefinitions())
           setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
@@ -935,8 +850,9 @@ function WelcomeHero() {
         }
         setIsKpiLoading(false)
 
-        let monthlyBars = buildNeutralMonthlyBars()
-        if (monthlySeriesResult.ok && Array.isArray(monthlySeriesResult.dailySeries)) {
+        const monthlyBars =
+          monthlySeriesResult.ok && Array.isArray(monthlySeriesResult.dailySeries)
+            ? (() => {
           const [year, month] = selectedMonthStartDay.split('-').map((part) => Number.parseInt(part, 10))
           const daysInMonth = new Date(year, month, 0).getDate()
           const weekCount = Math.ceil(daysInMonth / 7)
@@ -967,16 +883,18 @@ function WelcomeHero() {
             { index: -1, seconds: -1 }
           ).index
 
-          monthlyBars = rawWeeks.map((week) => ({
-            hour: week.label,
-            label: week.label,
-            seconds: week.seconds,
-            highlighted: week.index === highlightedWeekIndex && maxWeekSeconds > 0,
-            value: maxWeekSeconds > 0 ? Math.max(0, Math.min(100, (week.seconds / maxWeekSeconds) * 100)) : 0,
-          }))
-          setHourlyUsage(monthlyBars)
-        } else {
-          setHourlyUsage(buildNeutralMonthlyBars())
+              return rawWeeks.map((week) => ({
+                hour: week.label,
+                label: week.label,
+                seconds: week.seconds,
+                highlighted: week.index === highlightedWeekIndex && maxWeekSeconds > 0,
+                value:
+                  maxWeekSeconds > 0 ? Math.max(0, Math.min(100, (week.seconds / maxWeekSeconds) * 100)) : 0,
+              }))
+            })()
+            : buildNeutralMonthlyBars()
+        setHourlyUsage(monthlyBars)
+        if (!monthlySeriesResult.ok || !Array.isArray(monthlySeriesResult.dailySeries)) {
           console.warn(
             'No se pudo cargar uso mensual por semanas de ActivityWatch; se mantiene estado neutro.',
             monthlySeriesResult.error,
@@ -988,18 +906,6 @@ function WelcomeHero() {
         if (monthlyCategoryResult.ok && Array.isArray(monthlyCategoryResult.categories)) {
           const visualCategories = mapCategoryResultToCard(monthlyCategoryResult)
           setCategoryUsageCard(visualCategories)
-          monthDataCacheRef.current[monthCacheKey] = {
-            kpiUsageLabel:
-              monthlyTotalResult.ok && typeof monthlyTotalResult.totalSeconds === 'number'
-                ? formatUsageFromSeconds(monthlyTotalResult.totalSeconds)
-                : '-',
-            monthlyTotalSeconds:
-              monthlyTotalResult.ok && typeof monthlyTotalResult.totalSeconds === 'number'
-                ? monthlyTotalResult.totalSeconds
-                : 0,
-            hourlyUsage: monthlyBars,
-            categoryUsageCard: visualCategories,
-          }
         } else {
           setCategoryDefinitions(getCategoryDefinitions())
           setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
@@ -1010,43 +916,6 @@ function WelcomeHero() {
           )
         }
         setIsCategoryCardLoading(false)
-
-        const monthlySeconds =
-          monthlyTotalResult.ok && typeof monthlyTotalResult.totalSeconds === 'number'
-            ? monthlyTotalResult.totalSeconds
-            : 0
-        const barsSeconds = monthlyBars.reduce((sum, item) => sum + (item.seconds ?? 0), 0)
-        const categoriesSeconds =
-          monthlyCategoryResult.ok && Array.isArray(monthlyCategoryResult.categories)
-            ? monthlyCategoryResult.categories.reduce((sum, item) => sum + (item.seconds ?? 0), 0)
-            : 0
-        const [year, month] = selectedMonthStartDay.split('-').map((part) => Number.parseInt(part, 10))
-        const daysInMonth = new Date(year, month, 0).getDate()
-        const isCurrentMonth = selectedMonthStartDay === getMonthStartDay(currentActivityWatchDay)
-        const daysConsidered = isCurrentMonth
-          ? Math.min(Math.max(Number.parseInt(currentActivityWatchDay.split('-')[2], 10), 1), daysInMonth)
-          : daysInMonth
-        const monthlyAverageSeconds = daysConsidered > 0 ? monthlySeconds / daysConsidered : 0
-
-        console.group('[RANGE-MONTH-01-VERIFY] Monthly summary consistency')
-        console.log('selected month:', formatMonthLabel(selectedMonthStartDay))
-        console.log('month start:', startDay)
-        console.log('month end:', endDay)
-        console.log('monthly total seconds:', monthlySeconds)
-        console.log('sum of weekly bars seconds:', barsSeconds)
-        console.log('difference total vs weekly bars:', Math.abs(monthlySeconds - barsSeconds))
-        console.log('categories total seconds:', categoriesSeconds)
-        console.log('difference total vs categories:', Math.abs(monthlySeconds - categoriesSeconds))
-        console.log('days considered for average:', daysConsidered)
-        console.log('monthly average formatted:', formatUsageFromSeconds(monthlyAverageSeconds))
-        console.log('weekly bars count:', monthlyBars.length)
-        console.log(
-          'validation:',
-          Math.abs(monthlySeconds - barsSeconds) <= 2 && Math.abs(monthlySeconds - categoriesSeconds) <= 2
-            ? 'OK'
-            : 'MISMATCH'
-        )
-        console.groupEnd()
 
         return
       }
@@ -1088,16 +957,6 @@ function WelcomeHero() {
       if (categoryResult.ok && Array.isArray(categoryResult.categories)) {
         const visualCategories = mapCategoryResultToCard(categoryResult)
         setCategoryUsageCard(visualCategories)
-        dayDataCacheRef.current[dayCacheKey] = {
-          kpiUsageLabel:
-            dailyResult.ok && typeof dailyResult.seconds === 'number'
-              ? formatUsageFromSeconds(dailyResult.seconds)
-              : '-',
-          hourlyUsage: hourlyResult.ok && Array.isArray(hourlyResult.hourlyBars)
-            ? hourlyResult.hourlyBars
-            : buildNeutralHourlyBars(),
-          categoryUsageCard: visualCategories,
-        }
       } else {
         setCategoryDefinitions(getCategoryDefinitions())
         setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
@@ -1133,16 +992,6 @@ function WelcomeHero() {
     categoryCardRequestTokenRef.current += 1
     const requestToken = categoryCardRequestTokenRef.current
     const { startDay, endDay } = getWeekRangeFromStartDay(selectedWeekStartDay)
-    const cacheKey = selectedWeekDay
-      ? `day:${selectedWeekDay}`
-      : `week:${selectedWeekStartDay}`
-
-    const cachedCategoryContext = weekCategoryContextCacheRef.current[cacheKey]
-    if (cachedCategoryContext) {
-      setCategoryUsageCard(cachedCategoryContext)
-      setIsCategoryCardLoading(false)
-      return
-    }
 
     const loadWeeklyCategoryContext = async () => {
       setIsCategoryCardLoading(true)
@@ -1158,7 +1007,6 @@ function WelcomeHero() {
 
       if (result.ok && Array.isArray(result.categories)) {
         const visualCategories = mapCategoryResultToCard(result)
-        weekCategoryContextCacheRef.current[cacheKey] = visualCategories
         setCategoryUsageCard(visualCategories)
       } else {
         setCategoryDefinitions(getCategoryDefinitions())
@@ -1216,10 +1064,6 @@ function WelcomeHero() {
   const selectedWeekRange = useMemo(
     () => getWeekRangeFromStartDay(selectedWeekStartDay),
     [selectedWeekStartDay]
-  )
-  const selectedMonthRange = useMemo(
-    () => getMonthRangeFromStartDay(selectedMonthStartDay),
-    [selectedMonthStartDay]
   )
   const selectedDateLabel = useMemo(() => {
     if (selectedRangeMode === RANGE_MODE_WEEK) {
@@ -1434,73 +1278,6 @@ function WelcomeHero() {
     }
     setSelectedWeekDay(null)
   }, [selectedWeekDay])
-
-  useEffect(() => {
-    if (tabsOrderLoggedRef.current) {
-      return
-    }
-    const visibleTabsOrder = dashboardOverview.timeRanges.map((range) =>
-      range.id === 'week' ? 'Semana' : range.id === 'today' ? 'Dia' : 'Mes'
-    )
-    console.group('[RANGE-TABS-ORDER-VERIFY] Tabs order and initial mode')
-    console.log('visible tabs order:', visibleTabsOrder.join(' | '))
-    console.log('initial selected mode:', selectedRangeMode === RANGE_MODE_WEEK ? 'Semana' : selectedRangeMode)
-    console.log('Day mode still available:', dashboardOverview.timeRanges.some((range) => range.id === 'today'))
-    console.log('Month mode available:', dashboardOverview.timeRanges.some((range) => range.id === 'month'))
-    console.log(
-      'validation:',
-      visibleTabsOrder.join('|') === 'Semana|Dia|Mes' && selectedRangeMode === RANGE_MODE_WEEK ? 'OK' : 'MISMATCH'
-    )
-    console.groupEnd()
-    tabsOrderLoggedRef.current = true
-  }, [selectedRangeMode])
-
-  useEffect(() => {
-    let reference = selectedDay
-    let minAllowed = shiftIsoDay(currentActivityWatchDay, -MAX_DAY_HISTORY)
-    let maxAllowed = currentActivityWatchDay
-    let leftDisabled = isPreviousDayDisabled
-    let rightDisabled = isNextDayDisabled
-
-    if (selectedRangeMode === RANGE_MODE_WEEK) {
-      reference = `${selectedWeekRange.startDay} -> ${selectedWeekRange.endDay}`
-      const currentWeekStart = getWeekStartDay(currentActivityWatchDay)
-      minAllowed = `${shiftIsoDay(currentWeekStart, -MAX_WEEK_HISTORY * 7)} -> ${shiftIsoDay(currentWeekStart, -MAX_WEEK_HISTORY * 7 + 6)}`
-      maxAllowed = `${currentWeekStart} -> ${shiftIsoDay(currentWeekStart, 6)}`
-      leftDisabled = isPreviousWeekDisabled
-      rightDisabled = isNextDayDisabled
-    } else if (selectedRangeMode === RANGE_MODE_MONTH) {
-      const currentMonthStart = getMonthStartDay(currentActivityWatchDay)
-      reference = `${selectedMonthRange.startDay} -> ${selectedMonthRange.endDay}`
-      minAllowed = `${shiftIsoMonth(currentMonthStart, -MAX_MONTH_HISTORY)} -> ${getMonthRangeFromStartDay(shiftIsoMonth(currentMonthStart, -MAX_MONTH_HISTORY)).endDay}`
-      maxAllowed = `${currentMonthStart} -> ${getMonthRangeFromStartDay(currentMonthStart).endDay}`
-      leftDisabled = isPreviousMonthDisabled
-      rightDisabled = isNextDayDisabled
-    }
-
-    console.group('[RANGE-NAV-LIMITS-VERIFY] Navigation history limits')
-    console.log('mode:', selectedRangeMode === RANGE_MODE_TODAY ? 'Dia' : selectedRangeMode === RANGE_MODE_WEEK ? 'Semana' : 'Mes')
-    console.log('current reference date/range:', reference)
-    console.log('min allowed date/range:', minAllowed)
-    console.log('max allowed date/range:', maxAllowed)
-    console.log('left disabled at limit:', leftDisabled)
-    console.log('right disabled at current:', rightDisabled)
-    console.log('action blocked beyond limit:', leftDisabled || rightDisabled)
-    console.log('validation:', 'OK')
-    console.groupEnd()
-  }, [
-    currentActivityWatchDay,
-    isNextDayDisabled,
-    isPreviousDayDisabled,
-    isPreviousMonthDisabled,
-    isPreviousWeekDisabled,
-    selectedDay,
-    selectedMonthRange.endDay,
-    selectedMonthRange.startDay,
-    selectedRangeMode,
-    selectedWeekRange.endDay,
-    selectedWeekRange.startDay,
-  ])
 
   return (
     <section className="relative flex w-full max-w-[1180px] justify-center">

@@ -505,7 +505,7 @@
 - al cambiar categoria se limpia inmediatamente el contenido anterior
 - se activa estado de carga visible en el modal
 - no se mantiene contenido obsoleto mientras llega la nueva respuesta
-- Se anadio cache en memoria por categoria para reducir esperas en reaperturas sucesivas dentro de la misma sesion.
+- En el estado estable actual ya no se conserva cache en memoria por categoria; el detalle se vuelve a cargar al abrirse.
 - Flujo de Configuracion ajustado:
 - clic en categoria dentro del panel abre modal de edicion (no detalle analitico).
 - Modal de edicion funcional:
@@ -787,11 +787,6 @@
 
 ## RANGE-WEEK-UX-FIX-02
 
-- Se optimizo la alternancia `Dia` <-> `Semana` con cache en memoria de sesion:
-- cache diaria por `day`
-- cache semanal por `weekStart`
-- cache de contexto de categorias semanal/diario seleccionado dentro de Semana
-- Resultado: cuando hay `cache hit`, se restaura KPI/grafico/categorias sin recarga completa visible.
 - Se elimino el tooltip/hover del grafico semanal:
 - retirado estado de hover
 - retirado bloque `[RANGE-WEEK-HOVER-VERIFY] Weekly bar tooltip`
@@ -854,8 +849,40 @@
 - Eje vertical en horas.
 - Tarjeta de categorias agregadas del mes.
 - En `Mes`, categorias sin detalle por clic (desactivado por ahora para mantener alcance simple).
-- Se reutiliza cache en memoria de sesion para dia/semana/mes y evitar recargas innecesarias al alternar modos.
-- Verificacion temporal activa:
-- `[RANGE-TABS-ORDER-VERIFY] Tabs order and initial mode`
-- `[RANGE-NAV-LIMITS-VERIFY] Navigation history limits`
-- `[RANGE-MONTH-01-VERIFY] Monthly summary consistency`
+- En el estado estable actual no se reutiliza cache de sesion para `Dia`, `Semana` o `Mes`; se prioriza comportamiento simple y predecible.
+- Verificacion temporal retirada: eliminados `[RANGE-TABS-ORDER-VERIFY]`, `[RANGE-NAV-LIMITS-VERIFY]` y `[RANGE-MONTH-01-VERIFY]`.
+
+## SYNC-ROLLBACK-STATE-01
+
+- Se sincronizo el proyecto con el rollback manual al estado estable posterior a `RANGE-NAV-AND-MONTH-PLAN-01`.
+- Se confirmo en codigo que no quedan restos de prefetch de dias o semanas, ni carga en segundo plano orientada a precalentar vistas.
+- Se retiraron restos evidentes que no pertenecian a ese estado estable:
+- caches de sesion en `WelcomeHero.jsx` para `Dia`, `Semana`, `Mes`, contexto semanal y detalle de categoria
+- logs temporales `[RANGE-TABS-ORDER-VERIFY]`, `[RANGE-NAV-LIMITS-VERIFY]` y `[RANGE-MONTH-01-VERIFY]`
+- Se mantiene intacto el comportamiento funcional objetivo:
+- vista inicial `Semana`
+- tabs `Semana | Dia | Mes`
+- limites `Dia 15`, `Semana 5`, `Mes 3`
+- modo `Mes` simple
+- categorias dinamicas con creacion y edicion local
+- Las lineas de trabajo `PERFORMANCE-PREFETCH-01` y `PERFORMANCE-CRITICAL-FIX-01` quedan descartadas por ahora y no forman parte del estado actual aprobado.
+
+## QA-FUNCTIONAL-01
+
+- Se creo `QA_CHECKLIST.md` como checklist manual guiada para validar el estado estable actual con ActivityWatch real.
+- La checklist cubre:
+- vista `Semana`
+- vista `Dia`
+- vista `Mes`
+- navegacion con limites
+- categorias y detalles
+- Configuracion
+- estados de carga/error
+- consola limpia
+- Cada bloque incluye:
+- pasos manuales concretos
+- resultado esperado
+- espacio para marcar `OK / FAIL`
+- notas para capturas y logs si algo falla
+- Esta tarea no introduce funcionalidad nueva ni modifica UI.
+- El siguiente paso aprobado del proyecto es ejecutar esta validacion manual completa antes de decidir si el estado actual esta listo para pulido visual.

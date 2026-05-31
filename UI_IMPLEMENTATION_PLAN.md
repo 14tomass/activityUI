@@ -155,9 +155,10 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - **RANGE-WEEK-01 (implementada)**: el tab `Ultima semana` ya resume 7 dias reales (KPI, grafico por dias, categorias y detalle por categoria), con navegacion por bloques semanales y bloqueo en semana actual.
 - **RANGE-WEEK-01-FIX (implementada)**: `Semana` se ajusta a semana natural lunes-domingo, con dias futuros de semana actual a `0`, eje semanal en horas y clic en barra para seleccionar/deseleccionar dia dentro de Semana (sin navegar a `Dia`) y filtrar categorias de ese dia.
 - **RANGE-WEEK-01-FIX (iteracion UX)**: en seleccion de dia semanal se mantiene siempre visible el resumen semanal (KPI + grafico), tooltip hover por barra y media diaria semanal junto al KPI.
-- **RANGE-WEEK-UX-FIX-02 (iteracion UX)**: retirada la experiencia de hover tooltip semanal; la seleccion por clic conserva KPI/grafico, muestra resumen intermedio del dia y filtra solo categorias. Se anade cache de sesion para alternancia rapida entre `Dia` y `Semana`.
+- **RANGE-WEEK-UX-FIX-02 (iteracion UX)**: retirada la experiencia de hover tooltip semanal; la seleccion por clic conserva KPI/grafico, muestra resumen intermedio del dia y filtra solo categorias.
 - **RANGE-WEEK-SWITCH-01 (iteracion UX)**: la tarjeta `Uso por dias` incorpora switch `Semana | Dia`; `Dia` solo se activa con barra seleccionada y `Semana` limpia la seleccion para volver al agregado semanal de categorias.
 - **RANGE-NAV-AND-MONTH-PLAN-01 (implementada)**: la vista inicial pasa a `Semana`, el orden de tabs queda `Semana | Dia | Mes`, se limitan historicos (`15 dias`, `5 semanas`, `3 meses`) y `Mes` se implementa como resumen simple (KPI + media diaria + barras por semanas + categorias agregadas, sin detalle interactivo).
+- **SYNC-ROLLBACK-STATE-01 (documentacion)**: el roadmap vigente se congela en este estado estable; no se sigue con prefetch, cache agresiva ni optimizaciones experimentales hasta nueva aprobacion.
 
 ## Aclaracion de flujo (post DATA-08)
 
