@@ -939,3 +939,21 @@
 - motor de clasificacion
 - Se anadio log temporal de verificacion:
 - `[QA-FIX-CATEGORY-MODAL-SCROLL-VERIFY]`
+
+## QA-FIX-CATEGORY-MODAL-ACTIONS-01
+
+- Se ajusto el cierre del modal de creacion de categorias:
+- si el nombre es valido y la categoria se guarda correctamente, el modal se cierra inmediatamente
+- si el nombre esta vacio o duplicado, el modal permanece abierto y muestra el error existente
+- Se ajusto el cierre del modal de edicion al eliminar categorias custom:
+- tras una eliminacion valida, el modal se cierra antes del refresco asincrono para que el cierre se sienta inmediato
+- no queda abierto mostrando una categoria que ya no existe
+- No se modifico logica funcional de:
+- reglas unicas
+- inferencia `.exe`
+- scroll del modal
+- motor de clasificacion
+- navegacion `Semana | Dia | Mes`
+- Se anadieron logs temporales de verificacion:
+- `[QA-FIX-CREATE-CATEGORY-CLOSE-VERIFY]`
+- `[QA-FIX-DELETE-CATEGORY-CLOSE-VERIFY]`

@@ -163,6 +163,8 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | --- | --- | --- | --- |
 | Pulsar `Crear nueva categoria` | Se abre modal de alta | `[ ] OK [ ] FAIL` | |
 | Introducir nombre valido y guardar | La categoria se crea y aparece en Configuracion | `[ ] OK [ ] FAIL` | |
+| Guardar categoria valida | El modal de creacion se cierra inmediatamente tras el guardado correcto | `[ ] OK [ ] FAIL` | |
+| Introducir nombre vacio o duplicado y guardar | El modal no se cierra y muestra mensaje de error | `[ ] OK [ ] FAIL` | |
 | Cerrar y reabrir panel | La nueva categoria persiste | `[ ] OK [ ] FAIL` | |
 | Volver al dashboard | La nueva categoria existe tambien en el dashboard | `[ ] OK [ ] FAIL` | |
 
@@ -186,6 +188,7 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Volver al dashboard tras editar reglas | Los cambios se reflejan en categorias/detalles si afectan a datos reales del rango visible | `[ ] OK [ ] FAIL` | |
 | Abrir categoria creada por usuario | El modal de edicion muestra accion para eliminar categoria | `[ ] OK [ ] FAIL` | |
 | Eliminar categoria creada por usuario | La categoria desaparece de Configuracion y del dashboard tras confirmar | `[ ] OK [ ] FAIL` | |
+| Eliminar categoria creada por usuario | El modal se cierra inmediatamente y no queda mostrando la categoria borrada | `[ ] OK [ ] FAIL` | |
 | Intentar eliminar categoria base | No debe existir opcion de borrado para `Estudio`, `Entretenimiento`, `Productividad` u `Otros` | `[ ] OK [ ] FAIL` | |
 
 ## E. Estados de carga y error
@@ -207,6 +210,8 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Abrir detalles y Configuracion | No aparecen logs `PERF-*` ni trazas de prefetch | `[ ] OK [ ] FAIL` | |
 | Revisar logs temporales de `QA-FIX-01` | Solo aparecen los bloques `QA-FIX-*` esperados para esta validacion | `[ ] OK [ ] FAIL` | |
 | Abrir modal de edicion de categoria | Aparece el bloque `[QA-FIX-CATEGORY-MODAL-SCROLL-VERIFY]` con `validation: OK` | `[ ] OK [ ] FAIL` | |
+| Guardar una categoria nueva | Aparece el bloque `[QA-FIX-CREATE-CATEGORY-CLOSE-VERIFY]` con el resultado correcto | `[ ] OK [ ] FAIL` | |
+| Eliminar una categoria custom | Aparece el bloque `[QA-FIX-DELETE-CATEGORY-CLOSE-VERIFY]` con `validation: OK` | `[ ] OK [ ] FAIL` | |
 | Provocar una situacion real de error si ocurre | Solo aparecen `warnings`/errores reales relacionados con ActivityWatch o peticiones fallidas | `[ ] OK [ ] FAIL` | |
 
 ## Formato recomendado para reportar resultados

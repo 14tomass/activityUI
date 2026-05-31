@@ -150,3 +150,5 @@
 - QA-FIX-01 completada: anadida eliminacion de categorias creadas por usuario y bloqueado el borrado de categorias base.
 - QA-FIX-CATEGORY-MODAL-SCROLL-01 completada: modal de edicion de categorias reorganizado con scroll interno, cabecera visible y acciones de cierre/guardado accesibles aunque haya varias reglas.
 - QA-FIX-CATEGORY-MODAL-SCROLL-01 pendiente de validacion manual: comprobar categoria con `3+` reglas, scroll interno, `X` accesible, `Guardar cambios` accesible y cierre del modal sin bloqueo visual.
+- QA-FIX-CATEGORY-MODAL-ACTIONS-01 completada: crear categoria valida ahora cierra el modal de alta inmediatamente; si hay error de nombre, el modal permanece abierto.
+- QA-FIX-CATEGORY-MODAL-ACTIONS-01 completada: eliminar categoria custom ahora cierra siempre el modal de edicion de forma inmediata tras el borrado valido.

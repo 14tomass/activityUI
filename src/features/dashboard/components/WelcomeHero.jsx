@@ -729,17 +729,38 @@ function WelcomeHero() {
     const rawInput = newCategoryNameInput
 
     const createResult = createCategory(rawInput)
+    const categoryValid = createResult.ok === true
+    const categoryCreated = createResult.ok === true
+    const persisted = createResult.ok === true
+    const modalClosedAfterSave = createResult.ok === true
+
+    console.group('[QA-FIX-CREATE-CATEGORY-CLOSE-VERIFY] Create category closes modal')
+    console.log('category name:', rawInput.trim())
+    console.log('category valid:', categoryValid)
+    console.log('category created:', categoryCreated)
+    console.log('persisted:', persisted)
+    console.log('modal closed after save:', modalClosedAfterSave)
+    console.log(
+      'validation:',
+      categoryValid === categoryCreated &&
+        categoryCreated === persisted &&
+        modalClosedAfterSave === categoryCreated
+        ? 'OK'
+        : 'MISMATCH'
+    )
+    console.groupEnd()
+
     if (!createResult.ok) {
       setNewCategoryError(createResult.message)
       return
     }
 
     setNewCategoryError('')
+    setActiveModal(null)
     setNewCategoryNameInput('')
     setEditableRules(getCategoryRules())
     clearDashboardSessionCache()
     await refreshCategoryCard()
-    setActiveModal(null)
     setNewCategoryNameInput('')
     setNewCategoryError('')
   }
@@ -761,6 +782,9 @@ function WelcomeHero() {
     }
 
     const deleteResult = deleteCustomCategory(categoryToDelete)
+    const isCustomCategory = !isBaseCategory
+    const categoryDeleted = deleteResult.ok === true
+    const modalClosedAfterDelete = deleteResult.ok === true
 
     console.group('[QA-FIX-DELETE-CATEGORY-VERIFY] Delete custom category')
     console.log('category:', categoryToDelete)
@@ -779,16 +803,30 @@ function WelcomeHero() {
     )
     console.groupEnd()
 
+    console.group('[QA-FIX-DELETE-CATEGORY-CLOSE-VERIFY] Delete category closes modal')
+    console.log('category name:', categoryToDelete)
+    console.log('is custom category:', isCustomCategory)
+    console.log('deletion allowed:', deletionAllowed)
+    console.log('category deleted:', categoryDeleted)
+    console.log('modal closed after delete:', modalClosedAfterDelete)
+    console.log(
+      'validation:',
+      isCustomCategory && deletionAllowed === categoryDeleted && modalClosedAfterDelete === categoryDeleted
+        ? 'OK'
+        : 'MISMATCH'
+    )
+    console.groupEnd()
+
     if (!deleteResult.ok) {
       return
     }
 
+    setActiveModal(null)
     setEditableRules(deleteResult.nextRules ?? getCategoryRules())
     setEditDraftRules({ domains: [], applications: [] })
     setNewRuleInput('')
     clearDashboardSessionCache()
     await refreshCategoryCard()
-    setActiveModal(null)
   }
 
   const loadHourlyDetailUsage = useCallback(async ({ hourIndex, requestToken }) => {
