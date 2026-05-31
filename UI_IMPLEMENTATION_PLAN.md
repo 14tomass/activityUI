@@ -159,6 +159,7 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - **RANGE-WEEK-SWITCH-01 (iteracion UX)**: la tarjeta `Uso por dias` incorpora switch `Semana | Dia`; `Dia` solo se activa con barra seleccionada y `Semana` limpia la seleccion para volver al agregado semanal de categorias.
 - **RANGE-NAV-AND-MONTH-PLAN-01 (implementada)**: la vista inicial pasa a `Semana`, el orden de tabs queda `Semana | Dia | Mes`, se limitan historicos (`15 dias`, `5 semanas`, `3 meses`) y `Mes` se implementa como resumen simple (KPI + media diaria + barras por semanas + categorias agregadas, sin detalle interactivo).
 - **SYNC-ROLLBACK-STATE-01 (documentacion)**: el roadmap vigente se congela en este estado estable; no se sigue con prefetch, cache agresiva ni optimizaciones experimentales hasta nueva aprobacion.
+- **QA-FIX-01 (implementada)**: sobre el estado estable se permiten solo correcciones de QA sin prefetch: cache minima de sesion para rangos ya vistos, KPI diario prioritario, reglas exclusivas entre categorias, borrado de categorias custom y ajuste de la grafica semanal para evitar escala enganosa.
 
 ## Aclaracion de flujo (post DATA-08)
 

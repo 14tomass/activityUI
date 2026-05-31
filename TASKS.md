@@ -143,3 +143,8 @@
 - [ ] Preparar checklist final de entrega
 - QA-FUNCTIONAL-01 completada: creada `QA_CHECKLIST.md` con validacion manual guiada para `Semana`, `Dia`, `Mes`, limites, categorias, detalles, Configuracion, estados de carga/error y consola.
 - QA-FUNCTIONAL-01 pendiente de ejecucion manual: el siguiente paso aprobado es correr la checklist con ActivityWatch real antes de abrir nuevas features o pulido visual.
+- QA-FIX-01 completada: corregida la grafica semanal para no comunicar valores falsos y mantenidas barras proporcionales al uso real sin volver a prefetch agresivo.
+- QA-FIX-01 completada: restaurada cache minima de sesion para `Dia`, `Semana` y `Mes`, solo con datos ya vistos explicitamente por el usuario.
+- QA-FIX-01 completada: priorizado el KPI diario para renderizar antes que grafico/categorias cuando no hay cache.
+- QA-FIX-01 completada: las reglas pasan a ser unicas entre categorias; al reasignar una regla se mueve automaticamente.
+- QA-FIX-01 completada: anadida eliminacion de categorias creadas por usuario y bloqueado el borrado de categorias base.

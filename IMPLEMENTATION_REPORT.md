@@ -886,3 +886,32 @@
 - notas para capturas y logs si algo falla
 - Esta tarea no introduce funcionalidad nueva ni modifica UI.
 - El siguiente paso aprobado del proyecto es ejecutar esta validacion manual completa antes de decidir si el estado actual esta listo para pulido visual.
+
+## QA-FIX-01
+
+- Se corrigio el riesgo principal de la grafica semanal: deja de mostrarse un eje Y que podia sugerir valores falsos; en `Semana` se mantienen barras proporcionales y el valor exacto del dia seleccionado en el bloque intermedio.
+- Se reintrodujo cache minima de sesion sin prefetch:
+- cache diaria por `YYYY-MM-DD`
+- cache semanal por `weekStart`
+- cache mensual por `YYYY-MM`
+- cache de contexto semanal para categorias de un dia ya seleccionado
+- La cache solo se llena despues de que el usuario haya visto explicitamente ese rango; no se precargan dias, semanas ni meses en background.
+- Se priorizo la carga del KPI diario:
+- en `Dia`, el KPI se solicita y se renderiza en cuanto responde
+- grafico horario y categorias pueden completar despues
+- si hay `dayCache`, el KPI reaparece de forma inmediata
+- La reasignacion de reglas pasa a ser exclusiva:
+- una regla de dominio o aplicacion pertenece a una sola categoria
+- al anadirla en otra categoria, se elimina automaticamente de la anterior
+- Se anadio borrado de categorias custom:
+- solo para categorias creadas por usuario
+- las categorias base (`Estudio`, `Entretenimiento`, `Productividad`, `Otros`) no muestran borrado
+- al eliminar una categoria custom se borran sus reglas y se invalida la cache de dashboard
+- Se anadio texto de ayuda en el modal de edicion para explicar `.exe` y dominios.
+- Se mantuvo la resiliencia existente cuando ActivityWatch no esta disponible: sin pantallas infinitas ni hard-crashes, solo estados neutros y warnings controlados.
+- Se anadieron logs temporales controlados para esta validacion:
+- `[QA-FIX-WEEK-CHART-VERIFY]`
+- `[QA-FIX-SESSION-CACHE-VERIFY]`
+- `[QA-FIX-DAY-KPI-VERIFY]`
+- `[QA-FIX-UNIQUE-RULES-VERIFY]`
+- `[QA-FIX-DELETE-CATEGORY-VERIFY]`

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { dashboardOverview } from '../../../mocks/dashboard'
 import {
+  assignCategoryRuleExclusively,
   createCategory,
+  deleteCustomCategory,
   formatUsageFromSeconds,
   getActivityWatchSettings,
   getCategoryDefinitions,
@@ -11,11 +13,11 @@ import {
   getDailyCategoryUsage,
   getHourlyUsageDetail,
   getHourlyActiveUsage,
+  isBaseCategoryName,
   getRangeActiveUsage,
   getRangeCategoryDetailUsage,
   getRangeCategoryUsage,
   getRangeDailyUsageSeries,
-  inferCategoryRuleSourceType,
   saveCategoryRules,
 } from '../../../lib/api/activitywatch'
 
@@ -99,10 +101,6 @@ const RANGE_MODE_MONTH = 'month'
 const MAX_DAY_HISTORY = 15
 const MAX_WEEK_HISTORY = 5
 const MAX_MONTH_HISTORY = 3
-
-function normalizeRuleInput(value) {
-  return typeof value === 'string' ? value.trim().toLowerCase() : ''
-}
 
 function parseStartOfDay(value) {
   if (typeof value !== 'string') {
@@ -291,6 +289,27 @@ function buildNeutralMonthlyBars() {
   }))
 }
 
+function getMonthCacheKey(monthStartDay) {
+  return String(monthStartDay).slice(0, 7)
+}
+
+function buildDayCacheEntry({ kpiUsageLabel, hourlyUsage, categoryUsageCard }) {
+  return {
+    kpiUsageLabel,
+    hourlyUsage,
+    categoryUsageCard,
+  }
+}
+
+function buildRangeCacheEntry({ kpiUsageLabel, totalSeconds, bars, categoryUsageCard }) {
+  return {
+    kpiUsageLabel,
+    totalSeconds,
+    bars,
+    categoryUsageCard,
+  }
+}
+
 function buildLoadingCategories(categoryDefinitions = []) {
   return categoryDefinitions.map((category, index) => ({
     id: `loading-${index}-${category.id}`,
@@ -414,6 +433,31 @@ function WelcomeHero() {
   const [newCategoryNameInput, setNewCategoryNameInput] = useState('')
   const [newCategoryError, setNewCategoryError] = useState('')
   const categoryCardRequestTokenRef = useRef(0)
+  const dayDataCacheRef = useRef({})
+  const weekDataCacheRef = useRef({})
+  const monthDataCacheRef = useRef({})
+  const weekCategoryContextCacheRef = useRef({})
+
+  const clearDashboardSessionCache = useCallback(() => {
+    dayDataCacheRef.current = {}
+    weekDataCacheRef.current = {}
+    monthDataCacheRef.current = {}
+    weekCategoryContextCacheRef.current = {}
+  }, [])
+
+  const logSessionCacheVerify = useCallback(
+    ({ mode, cacheKey, cacheHit, renderedFromExistingLoadedData }) => {
+      console.group('[QA-FIX-SESSION-CACHE-VERIFY] Session cache without prefetch')
+      console.log('mode:', mode)
+      console.log('cache key:', cacheKey)
+      console.log('cache hit:', cacheHit)
+      console.log('rendered from existing loaded data:', renderedFromExistingLoadedData)
+      console.log('background prefetch active:', false)
+      console.log('validation:', !renderedFromExistingLoadedData || cacheHit ? 'OK' : 'MISMATCH')
+      console.groupEnd()
+    },
+    []
+  )
 
   const closeSettings = () => {
     setActiveModal(null)
@@ -470,6 +514,13 @@ function WelcomeHero() {
           endDay: weekRange.endDay,
         })
       }
+      if (selectedRangeMode === RANGE_MODE_MONTH) {
+        const monthRange = getMonthRangeFromStartDay(selectedMonthStartDay)
+        return getRangeCategoryUsage({
+          startDay: monthRange.startDay,
+          endDay: monthRange.endDay,
+        })
+      }
       return getDailyCategoryUsage({ day: selectedDay })
     })()
     const resolvedResult = await result
@@ -496,7 +547,7 @@ function WelcomeHero() {
 
     setCategoryUsageCard(visualCategories)
     return true
-  }, [selectedDay, selectedRangeMode, selectedWeekDay, selectedWeekStartDay])
+  }, [selectedDay, selectedMonthStartDay, selectedRangeMode, selectedWeekDay, selectedWeekStartDay])
 
   const mapCategoryResultToCard = useCallback((result) => {
     const definitions = getCategoryDefinitions()
@@ -596,39 +647,71 @@ function WelcomeHero() {
 
   const saveCategoryRuleChanges = async () => {
     const pendingInput = newRuleInput.trim()
-    const normalizedPendingInput = normalizeRuleInput(pendingInput)
     let nextDraft = {
       domains: [...editDraftRules.domains],
       applications: [...editDraftRules.applications],
     }
-    const inferredType = pendingInput ? inferCategoryRuleSourceType(pendingInput) : null
+    let uniqueRuleLog = null
 
     if (pendingInput) {
-      if (inferredType === 'website') {
-        if (!nextDraft.domains.some((rule) => normalizeRuleInput(rule) === normalizedPendingInput)) {
-          nextDraft.domains.push(pendingInput.trim())
-        }
-      } else if (
-        inferredType === 'application' &&
-        !nextDraft.applications.some((rule) => normalizeRuleInput(rule) === normalizedPendingInput)
-      ) {
-        nextDraft.applications.push(pendingInput.trim())
+      const assignmentResult = assignCategoryRuleExclusively({
+        rules: {
+          ...editableRules,
+          [selectedCategoryLabel]: nextDraft,
+        },
+        category: selectedCategoryLabel,
+        rawRule: pendingInput,
+      })
+
+      if (!assignmentResult.ok || !assignmentResult.nextRules) {
+        return
       }
+
+      const refreshedCategoryRules = assignmentResult.nextRules[selectedCategoryLabel] ?? {
+        domains: [],
+        applications: [],
+      }
+      nextDraft = {
+        domains: [...refreshedCategoryRules.domains],
+        applications: [...refreshedCategoryRules.applications],
+      }
+      uniqueRuleLog = assignmentResult
     }
 
-    const nextRules = {
-      ...editableRules,
-      [selectedCategoryLabel]: nextDraft,
-    }
+    const nextRules =
+      uniqueRuleLog?.nextRules ??
+      {
+        ...editableRules,
+        [selectedCategoryLabel]: nextDraft,
+      }
     const persisted = saveCategoryRules(nextRules)
 
     if (!persisted) {
       return
     }
 
+    if (uniqueRuleLog) {
+      console.group('[QA-FIX-UNIQUE-RULES-VERIFY] Unique category rules')
+      console.log('rule:', uniqueRuleLog.normalizedRule)
+      console.log(
+        'inferred type:',
+        uniqueRuleLog.inferredType === 'website' ? 'domain' : uniqueRuleLog.inferredType
+      )
+      console.log('previous category if existed:', uniqueRuleLog.previousCategory ?? null)
+      console.log('new category:', selectedCategoryLabel)
+      console.log('removed from previous category:', uniqueRuleLog.removedFromPreviousCategory)
+      console.log('appears only once globally:', uniqueRuleLog.appearsOnlyOnceGlobally)
+      console.log(
+        'validation:',
+        uniqueRuleLog.appearsOnlyOnceGlobally ? 'OK' : 'MISMATCH'
+      )
+      console.groupEnd()
+    }
+
     setEditableRules(nextRules)
     setEditDraftRules(nextDraft)
     setNewRuleInput('')
+    clearDashboardSessionCache()
 
     const shouldCloseModal = pendingInput.length === 0
     if (shouldCloseModal) {
@@ -654,10 +737,58 @@ function WelcomeHero() {
     setNewCategoryError('')
     setNewCategoryNameInput('')
     setEditableRules(getCategoryRules())
+    clearDashboardSessionCache()
     await refreshCategoryCard()
     setActiveModal(null)
     setNewCategoryNameInput('')
     setNewCategoryError('')
+  }
+
+  const deleteSelectedCategory = async () => {
+    const categoryToDelete = selectedCategoryLabel
+    const isBaseCategory = isBaseCategoryName(categoryToDelete)
+    const deletionAllowed = !isBaseCategory
+
+    if (!deletionAllowed) {
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Se eliminara la categoria "${categoryToDelete}" y todas sus reglas. Esta accion no se puede deshacer.`
+    )
+    if (!confirmed) {
+      return
+    }
+
+    const deleteResult = deleteCustomCategory(categoryToDelete)
+
+    console.group('[QA-FIX-DELETE-CATEGORY-VERIFY] Delete custom category')
+    console.log('category:', categoryToDelete)
+    console.log('is base category:', isBaseCategory)
+    console.log('deletion allowed:', deletionAllowed)
+    console.log('category removed from localStorage:', deleteResult.categoryRemovedFromLocalStorage ?? false)
+    console.log('rules removed:', deleteResult.rulesRemoved ?? false)
+    console.log('dashboard recalculated or cache invalidated:', deleteResult.ok === true)
+    console.log(
+      'validation:',
+      deleteResult.ok &&
+        deleteResult.categoryRemovedFromLocalStorage &&
+        deleteResult.rulesRemoved
+        ? 'OK'
+        : 'MISMATCH'
+    )
+    console.groupEnd()
+
+    if (!deleteResult.ok) {
+      return
+    }
+
+    setEditableRules(deleteResult.nextRules ?? getCategoryRules())
+    setEditDraftRules({ domains: [], applications: [] })
+    setNewRuleInput('')
+    clearDashboardSessionCache()
+    await refreshCategoryCard()
+    setActiveModal(null)
   }
 
   const loadHourlyDetailUsage = useCallback(async ({ hourIndex, requestToken }) => {
@@ -729,6 +860,101 @@ function WelcomeHero() {
     let cancelled = false
 
     const loadDashboard = async () => {
+      const modeLabel =
+        selectedRangeMode === RANGE_MODE_WEEK
+          ? 'Semana'
+          : selectedRangeMode === RANGE_MODE_MONTH
+            ? 'Mes'
+            : 'Dia'
+      const dayCacheKey = selectedDay
+      const weekCacheKey = selectedWeekStartDay
+      const monthCacheKey = getMonthCacheKey(selectedMonthStartDay)
+
+      if (selectedRangeMode === RANGE_MODE_TODAY) {
+        const cachedDay = dayDataCacheRef.current[dayCacheKey]
+        if (cachedDay) {
+          setKpiUsageLabel(cachedDay.kpiUsageLabel)
+          setIsKpiLoading(false)
+          setHourlyUsage(cachedDay.hourlyUsage)
+          setIsHourlyLoading(false)
+          setCategoryUsageCard(cachedDay.categoryUsageCard)
+          setIsCategoryCardLoading(false)
+          logSessionCacheVerify({
+            mode: modeLabel,
+            cacheKey: dayCacheKey,
+            cacheHit: true,
+            renderedFromExistingLoadedData: true,
+          })
+          console.group('[QA-FIX-DAY-KPI-VERIFY] Daily KPI priority')
+          console.log('selected day:', selectedDay)
+          console.log('day cache hit:', true)
+          console.log('daily KPI load started:', true)
+          console.log('daily KPI rendered before categories complete:', true)
+          console.log('daily KPI rendered before hourly chart complete:', true)
+          console.log('validation:', 'OK')
+          console.groupEnd()
+          return
+        }
+      }
+
+      if (selectedRangeMode === RANGE_MODE_WEEK) {
+        const cachedWeek = weekDataCacheRef.current[weekCacheKey]
+        if (cachedWeek) {
+          setWeeklyTotalSeconds(cachedWeek.totalSeconds)
+          setKpiUsageLabel(cachedWeek.kpiUsageLabel)
+          setIsKpiLoading(false)
+          setHourlyUsage(cachedWeek.bars)
+          setIsHourlyLoading(false)
+
+          const selectedContextKey = selectedWeekDay
+            ? `${weekCacheKey}:${selectedWeekDay}`
+            : `${weekCacheKey}:week`
+          const cachedWeekContext = weekCategoryContextCacheRef.current[selectedContextKey]
+
+          setCategoryUsageCard(cachedWeekContext ?? cachedWeek.categoryUsageCard)
+          setIsCategoryCardLoading(Boolean(selectedWeekDay && !cachedWeekContext))
+          logSessionCacheVerify({
+            mode: modeLabel,
+            cacheKey: weekCacheKey,
+            cacheHit: true,
+            renderedFromExistingLoadedData: true,
+          })
+          return
+        }
+      }
+
+      if (selectedRangeMode === RANGE_MODE_MONTH) {
+        const cachedMonth = monthDataCacheRef.current[monthCacheKey]
+        if (cachedMonth) {
+          setWeeklyTotalSeconds(cachedMonth.totalSeconds)
+          setKpiUsageLabel(cachedMonth.kpiUsageLabel)
+          setIsKpiLoading(false)
+          setHourlyUsage(cachedMonth.bars)
+          setIsHourlyLoading(false)
+          setCategoryUsageCard(cachedMonth.categoryUsageCard)
+          setIsCategoryCardLoading(false)
+          logSessionCacheVerify({
+            mode: modeLabel,
+            cacheKey: monthCacheKey,
+            cacheHit: true,
+            renderedFromExistingLoadedData: true,
+          })
+          return
+        }
+      }
+
+      logSessionCacheVerify({
+        mode: modeLabel,
+        cacheKey:
+          selectedRangeMode === RANGE_MODE_WEEK
+            ? weekCacheKey
+            : selectedRangeMode === RANGE_MODE_MONTH
+              ? monthCacheKey
+              : dayCacheKey,
+        cacheHit: false,
+        renderedFromExistingLoadedData: false,
+      })
+
       setIsKpiLoading(true)
       setKpiUsageLabel('-')
       setIsHourlyLoading(true)
@@ -810,6 +1036,21 @@ function WelcomeHero() {
         if (weeklyCategoryResult.ok && Array.isArray(weeklyCategoryResult.categories)) {
           const visualCategories = mapCategoryResultToCard(weeklyCategoryResult)
           setCategoryUsageCard(visualCategories)
+          weekCategoryContextCacheRef.current[`${weekCacheKey}:week`] = visualCategories
+
+          if (
+            weeklyTotalResult.ok &&
+            typeof weeklyTotalResult.totalSeconds === 'number' &&
+            weeklySeriesResult.ok &&
+            Array.isArray(weeklySeriesResult.dailySeries)
+          ) {
+            weekDataCacheRef.current[weekCacheKey] = buildRangeCacheEntry({
+              kpiUsageLabel: formatUsageFromSeconds(weeklyTotalResult.totalSeconds),
+              totalSeconds: weeklyTotalResult.totalSeconds,
+              bars: weeklyBars,
+              categoryUsageCard: visualCategories,
+            })
+          }
         } else {
           setCategoryDefinitions(getCategoryDefinitions())
           setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
@@ -906,6 +1147,20 @@ function WelcomeHero() {
         if (monthlyCategoryResult.ok && Array.isArray(monthlyCategoryResult.categories)) {
           const visualCategories = mapCategoryResultToCard(monthlyCategoryResult)
           setCategoryUsageCard(visualCategories)
+
+          if (
+            monthlyTotalResult.ok &&
+            typeof monthlyTotalResult.totalSeconds === 'number' &&
+            monthlySeriesResult.ok &&
+            Array.isArray(monthlySeriesResult.dailySeries)
+          ) {
+            monthDataCacheRef.current[monthCacheKey] = buildRangeCacheEntry({
+              kpiUsageLabel: formatUsageFromSeconds(monthlyTotalResult.totalSeconds),
+              totalSeconds: monthlyTotalResult.totalSeconds,
+              bars: monthlyBars,
+              categoryUsageCard: visualCategories,
+            })
+          }
         } else {
           setCategoryDefinitions(getCategoryDefinitions())
           setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
@@ -920,11 +1175,21 @@ function WelcomeHero() {
         return
       }
 
-      const [dailyResult, hourlyResult, categoryResult] = await Promise.all([
-        getDailyActiveUsage({ day: selectedDay }),
-        getHourlyActiveUsage({ day: selectedDay }),
-        getDailyCategoryUsage({ day: selectedDay }),
-      ])
+      let hourlyCompleted = false
+      let categoriesCompleted = false
+      const dailyResultPromise = getDailyActiveUsage({ day: selectedDay })
+      const hourlyResultPromise = (async () => {
+        const result = await getHourlyActiveUsage({ day: selectedDay })
+        hourlyCompleted = true
+        return result
+      })()
+      const categoryResultPromise = (async () => {
+        const result = await getDailyCategoryUsage({ day: selectedDay })
+        categoriesCompleted = true
+        return result
+      })()
+
+      const dailyResult = await dailyResultPromise
 
       if (cancelled) {
         return
@@ -942,6 +1207,27 @@ function WelcomeHero() {
       }
       setIsKpiLoading(false)
 
+      console.group('[QA-FIX-DAY-KPI-VERIFY] Daily KPI priority')
+      console.log('selected day:', selectedDay)
+      console.log('day cache hit:', false)
+      console.log('daily KPI load started:', true)
+      console.log('daily KPI rendered before categories complete:', !categoriesCompleted)
+      console.log('daily KPI rendered before hourly chart complete:', !hourlyCompleted)
+      console.log(
+        'validation:',
+        !categoriesCompleted || !hourlyCompleted ? 'OK' : 'MISMATCH'
+      )
+      console.groupEnd()
+
+      const [hourlyResult, categoryResult] = await Promise.all([
+        hourlyResultPromise,
+        categoryResultPromise,
+      ])
+
+      if (cancelled) {
+        return
+      }
+
       if (hourlyResult.ok && Array.isArray(hourlyResult.hourlyBars)) {
         setHourlyUsage(hourlyResult.hourlyBars)
       } else {
@@ -957,6 +1243,18 @@ function WelcomeHero() {
       if (categoryResult.ok && Array.isArray(categoryResult.categories)) {
         const visualCategories = mapCategoryResultToCard(categoryResult)
         setCategoryUsageCard(visualCategories)
+        if (
+          dailyResult.ok &&
+          typeof dailyResult.seconds === 'number' &&
+          hourlyResult.ok &&
+          Array.isArray(hourlyResult.hourlyBars)
+        ) {
+          dayDataCacheRef.current[dayCacheKey] = buildDayCacheEntry({
+            kpiUsageLabel: formatUsageFromSeconds(dailyResult.seconds),
+            hourlyUsage: hourlyResult.hourlyBars,
+            categoryUsageCard: visualCategories,
+          })
+        }
       } else {
         setCategoryDefinitions(getCategoryDefinitions())
         setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
@@ -976,10 +1274,12 @@ function WelcomeHero() {
     }
   }, [
     currentActivityWatchDay,
+    logSessionCacheVerify,
     mapCategoryResultToCard,
     selectedDay,
     selectedMonthStartDay,
     selectedRangeMode,
+    selectedWeekDay,
     selectedWeekStartDay,
   ])
 
@@ -992,6 +1292,16 @@ function WelcomeHero() {
     categoryCardRequestTokenRef.current += 1
     const requestToken = categoryCardRequestTokenRef.current
     const { startDay, endDay } = getWeekRangeFromStartDay(selectedWeekStartDay)
+    const contextCacheKey = selectedWeekDay
+      ? `${selectedWeekStartDay}:${selectedWeekDay}`
+      : `${selectedWeekStartDay}:week`
+
+    const cachedContext = weekCategoryContextCacheRef.current[contextCacheKey]
+    if (cachedContext) {
+      setCategoryUsageCard(cachedContext)
+      setIsCategoryCardLoading(false)
+      return
+    }
 
     const loadWeeklyCategoryContext = async () => {
       setIsCategoryCardLoading(true)
@@ -1007,6 +1317,7 @@ function WelcomeHero() {
 
       if (result.ok && Array.isArray(result.categories)) {
         const visualCategories = mapCategoryResultToCard(result)
+        weekCategoryContextCacheRef.current[contextCacheKey] = visualCategories
         setCategoryUsageCard(visualCategories)
       } else {
         setCategoryDefinitions(getCategoryDefinitions())
@@ -1060,6 +1371,10 @@ function WelcomeHero() {
   const selectedCategoryColor = useMemo(
     () => categoryDefinitions.find((category) => category.label === selectedCategoryLabel)?.color ?? '#8f949f',
     [categoryDefinitions, selectedCategoryLabel]
+  )
+  const isSelectedCategoryBase = useMemo(
+    () => isBaseCategoryName(selectedCategoryLabel),
+    [selectedCategoryLabel]
   )
   const selectedWeekRange = useMemo(
     () => getWeekRangeFromStartDay(selectedWeekStartDay),
@@ -1123,12 +1438,48 @@ function WelcomeHero() {
     const selectedBar = hourlyUsage.find((bar) => bar.day === selectedWeekDay)
     return formatUsageFromSeconds(selectedBar?.seconds ?? 0)
   }, [hourlyUsage, selectedWeekDay])
+  const isWeeklyYAxisVisible = selectedRangeMode !== RANGE_MODE_WEEK
   const chartAxisLabels = useMemo(() => {
-    if (selectedRangeMode === RANGE_MODE_WEEK || selectedRangeMode === RANGE_MODE_MONTH) {
+    if (selectedRangeMode === RANGE_MODE_WEEK) {
+      return []
+    }
+    if (selectedRangeMode === RANGE_MODE_MONTH) {
       return buildWeeklyAxisLabels(hourlyUsage, isHourlyLoading)
     }
     return buildDailyAxisLabels(hourlyUsage, isHourlyLoading)
   }, [hourlyUsage, isHourlyLoading, selectedRangeMode])
+  const weeklyChartDebug = useMemo(() => {
+    if (selectedRangeMode !== RANGE_MODE_WEEK) {
+      return null
+    }
+
+    const weeklyBars = hourlyUsage.filter((item) => item.day)
+    const maxDaySeconds = Math.max(0, ...weeklyBars.map((item) => item.seconds ?? 0))
+    const selectedBar = selectedWeekDay
+      ? weeklyBars.find((item) => item.day === selectedWeekDay) ?? null
+      : null
+    const barsProportional = weeklyBars.every((item) => {
+      const expectedValue = maxDaySeconds > 0 ? Math.max(0, Math.min(100, ((item.seconds ?? 0) / maxDaySeconds) * 100)) : 0
+      return Math.abs((item.value ?? 0) - expectedValue) < 0.01
+    })
+
+    return {
+      weekRange: `${selectedWeekRange.startDay} -> ${selectedWeekRange.endDay}`,
+      maxDaySeconds,
+      maxDayFormatted: formatUsageFromSeconds(maxDaySeconds),
+      selectedDaySeconds: selectedBar?.seconds ?? null,
+      chartScaleMaxSeconds: maxDaySeconds,
+      yAxisVisible: isWeeklyYAxisVisible,
+      barsProportional,
+    }
+  }, [
+    hourlyUsage,
+    isWeeklyYAxisVisible,
+    selectedRangeMode,
+    selectedWeekDay,
+    selectedWeekRange.endDay,
+    selectedWeekRange.startDay,
+  ])
   const weeklyAverage = useMemo(() => {
     if (selectedRangeMode !== RANGE_MODE_WEEK) {
       return { daysConsidered: 0, averageSeconds: 0, formatted: '-' }
@@ -1165,6 +1516,26 @@ function WelcomeHero() {
       isCurrentMonth,
     }
   }, [currentActivityWatchDay, selectedMonthStartDay, selectedRangeMode, weeklyTotalSeconds])
+
+  useEffect(() => {
+    if (selectedRangeMode !== RANGE_MODE_WEEK || isHourlyLoading || !weeklyChartDebug) {
+      return
+    }
+
+    console.group('[QA-FIX-WEEK-CHART-VERIFY] Weekly chart scale')
+    console.log('week range:', weeklyChartDebug.weekRange)
+    console.log('max day seconds:', weeklyChartDebug.maxDaySeconds)
+    console.log('max day formatted:', weeklyChartDebug.maxDayFormatted)
+    console.log('selected day seconds if selected:', weeklyChartDebug.selectedDaySeconds)
+    console.log('chart scale max seconds:', weeklyChartDebug.chartScaleMaxSeconds)
+    console.log('y axis visible:', weeklyChartDebug.yAxisVisible)
+    console.log('bars proportional to real seconds:', weeklyChartDebug.barsProportional)
+    console.log(
+      'validation:',
+      weeklyChartDebug.barsProportional && weeklyChartDebug.yAxisVisible === false ? 'OK' : 'MISMATCH'
+    )
+    console.groupEnd()
+  }, [isHourlyLoading, selectedRangeMode, weeklyChartDebug])
 
   const navigateDay = useCallback(
     (deltaDays) => {
@@ -1242,17 +1613,11 @@ function WelcomeHero() {
       if (isSettingsOpen) {
         closeSettings()
       }
-      if (nextMode === RANGE_MODE_WEEK) {
-        setSelectedWeekStartDay(getWeekStartDay(currentActivityWatchDay))
+      if (nextMode !== RANGE_MODE_WEEK) {
         setSelectedWeekDay(null)
-      } else if (nextMode === RANGE_MODE_MONTH) {
-        setSelectedMonthStartDay(getMonthStartDay(currentActivityWatchDay))
-        setSelectedWeekDay(null)
-      } else {
-        setSelectedDay(currentActivityWatchDay)
       }
     },
-    [closeAllModals, currentActivityWatchDay, isSettingsOpen, selectedRangeMode]
+    [closeAllModals, isSettingsOpen, selectedRangeMode]
   )
 
   const handleWeeklyDayClick = useCallback(
@@ -1385,12 +1750,14 @@ function WelcomeHero() {
             ) : null}
           </div>
 
-          <div className="mt-6 grid grid-cols-[38px_1fr] gap-4">
-            <div className="flex flex-col justify-between text-[0.8rem] text-slate-400">
-              {chartAxisLabels.map((label, index) => (
-                <span key={`${label}-${index}`}>{label}</span>
-              ))}
-            </div>
+          <div className={`mt-6 grid gap-4 ${isWeeklyYAxisVisible ? 'grid-cols-[38px_1fr]' : 'grid-cols-1'}`}>
+            {isWeeklyYAxisVisible ? (
+              <div className="flex flex-col justify-between text-[0.8rem] text-slate-400">
+                {chartAxisLabels.map((label, index) => (
+                  <span key={`${label}-${index}`}>{label}</span>
+                ))}
+              </div>
+            ) : null}
 
             <div className="flex min-w-0 flex-col overflow-hidden">
               <div
@@ -1840,6 +2207,9 @@ function WelcomeHero() {
             <p className="mb-6 text-[1.12rem] text-slate-500">
               {dashboardOverview.categoryEdit.helperText}
             </p>
+            <p className="mb-6 text-[0.9rem] leading-[1.45] text-slate-400">
+              Consejo: las aplicaciones suelen terminar en `.exe` y deben escribirse con el nombre exacto que aparece en ActivityWatch. Los sitios web deben escribirse como dominio, por ejemplo `youtube.com`.
+            </p>
 
             <div className="space-y-3">
               {editDraftRules.domains.map((domain, index) => (
@@ -1914,6 +2284,18 @@ function WelcomeHero() {
                 Guardar cambios
               </button>
             </div>
+
+            {!isSelectedCategoryBase ? (
+              <div className="mt-5 border-t border-slate-200 pt-5">
+                <button
+                  type="button"
+                  onClick={deleteSelectedCategory}
+                  className="h-12 rounded-[14px] border border-[#d14343]/25 px-4 text-[0.98rem] font-semibold text-[#d14343] transition hover:bg-[#d14343]/5"
+                >
+                  Eliminar categoria
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

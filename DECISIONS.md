@@ -43,6 +43,11 @@
 - Se aplican limites historicos de navegacion en cliente: `Dia` hasta 15 dias atras, `Semana` hasta 5 semanas atras y `Mes` hasta 3 meses atras.
 - El modo `Mes` se define como resumen simple (KPI mensual + media diaria + grafico por semanas + categorias agregadas) sin interacciones de detalle por semana en esta fase.
 - Tras el rollback a estado estable posterior a `RANGE-NAV-AND-MONTH-PLAN-01`, no se usa prefetch ni cache agresiva en cliente por ahora; cada cambio de rango recarga solo los datos del contexto visible.
+- Tras `QA-FIX-01`, se permite una cache minima de sesion solo para datos ya vistos explicitamente por el usuario (`Dia`, `Semana`, `Mes` y contexto semanal seleccionado), sin prefetch ni carga en background.
+- En `Dia`, el KPI diario tiene prioridad de render frente al grafico horario y las categorias cuando no hay cache previa.
+- Las reglas de categorias son exclusivas: una misma regla de dominio o aplicacion pertenece a una sola categoria y se mueve automaticamente si se reasigna.
+- Solo las categorias creadas por usuario se pueden eliminar; las categorias base (`Estudio`, `Entretenimiento`, `Productividad`, `Otros`) son permanentes.
+- En `Semana`, se elimina el eje Y si puede inducir una lectura falsa; la representacion valida se basa en barras proporcionales y el valor exacto del dia seleccionado.
 
 ### Estrategia de implementacion
 

@@ -67,6 +67,7 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Esperar carga inicial | El KPI semanal deja el placeholder y muestra tiempo real | `[ ] OK [ ] FAIL` | |
 | Revisar subtitulo/KPI secundario | Aparece `Media diaria` en contexto semanal | `[ ] OK [ ] FAIL` | |
 | Revisar grafico semanal | Se ven 7 barras/dias y el eje no aparece roto o desbordado | `[ ] OK [ ] FAIL` | |
+| Validar escala semanal | La barra mas alta no comunica un valor falso; el valor seleccionado coincide con la proporcion visual | `[ ] OK [ ] FAIL` | |
 | Revisar dias futuros si es semana actual | Los dias futuros aparecen a `0` y no parecen interactivos | `[ ] OK [ ] FAIL` | |
 
 ### A.3 Categorias y seleccion de dia
@@ -87,6 +88,7 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Intentar superar 5 semanas atras | La navegacion izquierda queda bloqueada en el limite | `[ ] OK [ ] FAIL` | |
 | Volver hacia delante | La flecha derecha avanza hasta la semana actual | `[ ] OK [ ] FAIL` | |
 | Intentar avanzar desde la semana actual | La flecha derecha queda bloqueada | `[ ] OK [ ] FAIL` | |
+| Cambiar a `Dia` o `Mes` y volver a `Semana` | Si esa semana ya se vio en la sesion, reaparece sin recarga completa visible | `[ ] OK [ ] FAIL` | |
 
 ## B. Dia
 
@@ -99,6 +101,7 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Esperar carga del KPI | El KPI diario deja el placeholder y muestra tiempo real | `[ ] OK [ ] FAIL` | |
 | Revisar grafico horario | Se muestran 24 franjas `00-23` sin overflow | `[ ] OK [ ] FAIL` | |
 | Revisar categorias diarias | Las categorias muestran datos diarios reales | `[ ] OK [ ] FAIL` | |
+| Cambiar a `Semana` o `Mes` y volver a `Dia` | Si ese dia ya se vio en la sesion, KPI/grafico/categorias reaparecen inmediatamente | `[ ] OK [ ] FAIL` | |
 
 ### B.2 Detalles
 
@@ -142,6 +145,7 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Volver hacia delante | La flecha derecha avanza hasta el mes actual | `[ ] OK [ ] FAIL` | |
 | Intentar avanzar a futuro | La flecha derecha queda bloqueada | `[ ] OK [ ] FAIL` | |
 | Pulsar categorias o barras mensuales | No deben aparecer interacciones complejas no previstas para `Mes` | `[ ] OK [ ] FAIL` | |
+| Cambiar a `Semana` o `Dia` y volver a `Mes` | Si ese mes ya se vio en la sesion, reaparece sin recalcular todo de forma visible | `[ ] OK [ ] FAIL` | |
 
 ## D. Configuracion
 
@@ -169,10 +173,15 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Pulsar una categoria en Configuracion | Se abre modal de edicion, no de detalle analitico | `[ ] OK [ ] FAIL` | |
 | Anadir una regla de dominio | La regla se acepta y se mantiene en la categoria tras guardar | `[ ] OK [ ] FAIL` | |
 | Anadir una regla de aplicacion `.exe` | La regla se acepta como aplicacion y se mantiene tras guardar | `[ ] OK [ ] FAIL` | |
+| Reutilizar una regla existente en otra categoria | La regla se mueve automaticamente y deja de existir en la categoria anterior | `[ ] OK [ ] FAIL` | |
 | Guardar con input con texto | Se guarda/anade la regla y el modal puede permanecer abierto | `[ ] OK [ ] FAIL` | |
 | Guardar con input vacio | Se guarda y cierra el modal | `[ ] OK [ ] FAIL` | |
 | Reabrir la misma categoria | Las reglas persisten correctamente | `[ ] OK [ ] FAIL` | |
+| Revisar texto de ayuda del modal | Aparece el consejo sobre `.exe` y dominios con estilo secundario | `[ ] OK [ ] FAIL` | |
 | Volver al dashboard tras editar reglas | Los cambios se reflejan en categorias/detalles si afectan a datos reales del rango visible | `[ ] OK [ ] FAIL` | |
+| Abrir categoria creada por usuario | El modal de edicion muestra accion para eliminar categoria | `[ ] OK [ ] FAIL` | |
+| Eliminar categoria creada por usuario | La categoria desaparece de Configuracion y del dashboard tras confirmar | `[ ] OK [ ] FAIL` | |
+| Intentar eliminar categoria base | No debe existir opcion de borrado para `Estudio`, `Entretenimiento`, `Productividad` u `Otros` | `[ ] OK [ ] FAIL` | |
 
 ## E. Estados de carga y error
 
@@ -191,6 +200,7 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Revisar consola al cargar la app | No aparecen logs temporales antiguos | `[ ] OK [ ] FAIL` | |
 | Cambiar entre `Semana`, `Dia` y `Mes` | No aparecen logs de verificacion retirados | `[ ] OK [ ] FAIL` | |
 | Abrir detalles y Configuracion | No aparecen logs `PERF-*` ni trazas de prefetch | `[ ] OK [ ] FAIL` | |
+| Revisar logs temporales de `QA-FIX-01` | Solo aparecen los bloques `QA-FIX-*` esperados para esta validacion | `[ ] OK [ ] FAIL` | |
 | Provocar una situacion real de error si ocurre | Solo aparecen `warnings`/errores reales relacionados con ActivityWatch o peticiones fallidas | `[ ] OK [ ] FAIL` | |
 
 ## Formato recomendado para reportar resultados

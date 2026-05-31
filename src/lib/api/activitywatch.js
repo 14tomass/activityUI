@@ -282,6 +282,10 @@ export function getCategoryRules() {
   return getRulesFromStorage() ?? buildDefaultCategoryRules()
 }
 
+export function isBaseCategoryName(categoryName) {
+  return CATEGORY_KEYS.includes(normalizeCategoryName(categoryName))
+}
+
 export function getCategoryDefinitions() {
   const rules = getCategoryRules()
   const categories = getCategoryNamesFromRules(rules)
@@ -316,6 +320,120 @@ export function saveCategoryRules(rules) {
     return true
   } catch {
     return false
+  }
+}
+
+function cloneCategoryRules(rules) {
+  const source = sanitizeRulesPayload(rules) ?? getCategoryRules()
+  const nextRules = {}
+  const categories = getCategoryNamesFromRules(source)
+
+  for (const category of categories) {
+    const ruleEntry = source?.[category] ?? { domains: [], applications: [] }
+    nextRules[category] = {
+      domains: [...(ruleEntry.domains ?? [])],
+      applications: [...(ruleEntry.applications ?? [])],
+    }
+  }
+
+  nextRules[CATEGORY_META_KEY] = {
+    customOrder: [...(source?.[CATEGORY_META_KEY]?.customOrder ?? [])],
+    colors: { ...(source?.[CATEGORY_META_KEY]?.colors ?? {}) },
+  }
+
+  return nextRules
+}
+
+export function assignCategoryRuleExclusively({ rules, category, rawRule }) {
+  const categoryName = normalizeCategoryName(category)
+  const inferredType = inferCategoryRuleSourceType(rawRule)
+  const normalizedRule =
+    inferredType === 'website'
+      ? normalizeDomainRule(rawRule)
+      : inferredType === 'application'
+        ? normalizeApplicationRule(rawRule)
+        : ''
+
+  if (!categoryName) {
+    return {
+      ok: false,
+      code: 'invalid_category_name',
+      message: 'La categoria de destino no es valida.',
+      inferredType,
+      normalizedRule,
+      nextRules: null,
+    }
+  }
+
+  if (!normalizedRule) {
+    return {
+      ok: false,
+      code: 'invalid_rule_value',
+      message: 'La regla no es valida.',
+      inferredType,
+      normalizedRule,
+      nextRules: null,
+    }
+  }
+
+  const nextRules = cloneCategoryRules(rules)
+  const categoryNames = getCategoryNamesFromRules(nextRules)
+  if (!categoryNames.includes(categoryName)) {
+    return {
+      ok: false,
+      code: 'unknown_target_category',
+      message: 'La categoria de destino no existe.',
+      inferredType,
+      normalizedRule,
+      nextRules: null,
+    }
+  }
+
+  const ruleKey = inferredType === 'website' ? 'domains' : 'applications'
+  let previousCategory = null
+  let removedFromPreviousCategory = false
+
+  for (const currentCategory of categoryNames) {
+    const ruleList = Array.isArray(nextRules[currentCategory]?.[ruleKey])
+      ? nextRules[currentCategory][ruleKey]
+      : []
+    const filteredRules = ruleList.filter((rule) => {
+      const comparable =
+        inferredType === 'website' ? normalizeDomainRule(rule) : normalizeApplicationRule(rule)
+      const shouldRemove = comparable === normalizedRule
+      if (shouldRemove && currentCategory !== categoryName && previousCategory === null) {
+        previousCategory = currentCategory
+        removedFromPreviousCategory = true
+      }
+      return !shouldRemove
+    })
+    nextRules[currentCategory][ruleKey] = filteredRules
+  }
+
+  if (!nextRules[categoryName][ruleKey].includes(normalizedRule)) {
+    nextRules[categoryName][ruleKey].push(normalizedRule)
+  }
+
+  const occurrences = categoryNames.reduce((count, currentCategory) => {
+    const ruleList = Array.isArray(nextRules[currentCategory]?.[ruleKey])
+      ? nextRules[currentCategory][ruleKey]
+      : []
+    const hasRule = ruleList.some((rule) => {
+      const comparable =
+        inferredType === 'website' ? normalizeDomainRule(rule) : normalizeApplicationRule(rule)
+      return comparable === normalizedRule
+    })
+    return count + (hasRule ? 1 : 0)
+  }, 0)
+
+  return {
+    ok: true,
+    inferredType,
+    normalizedRule,
+    previousCategory,
+    removedFromPreviousCategory,
+    appearsOnlyOnceGlobally: occurrences === 1,
+    nextRules,
   }
 }
 
@@ -391,6 +509,65 @@ export function createCategory(rawName) {
     },
     normalizedName,
     duplicateDetected: false,
+  }
+}
+
+export function deleteCustomCategory(rawCategoryName) {
+  const categoryName = normalizeCategoryName(rawCategoryName)
+  const isBaseCategory = isBaseCategoryName(categoryName)
+  const currentRules = getCategoryRules()
+  const categoryNames = getCategoryNamesFromRules(currentRules)
+  const categoryExists = categoryNames.includes(categoryName)
+
+  if (!categoryExists) {
+    return {
+      ok: false,
+      code: 'category_not_found',
+      message: 'La categoria no existe.',
+      category: categoryName,
+      isBaseCategory,
+    }
+  }
+
+  if (isBaseCategory) {
+    return {
+      ok: false,
+      code: 'base_category_delete_forbidden',
+      message: 'Las categorias base no se pueden eliminar.',
+      category: categoryName,
+      isBaseCategory: true,
+    }
+  }
+
+  const nextRules = cloneCategoryRules(currentRules)
+  delete nextRules[categoryName]
+
+  nextRules[CATEGORY_META_KEY] = {
+    customOrder: (nextRules?.[CATEGORY_META_KEY]?.customOrder ?? []).filter(
+      (item) => normalizeCategoryName(item) !== categoryName
+    ),
+    colors: Object.fromEntries(
+      Object.entries(nextRules?.[CATEGORY_META_KEY]?.colors ?? {}).filter(
+        ([key]) => normalizeCategoryName(key) !== categoryName
+      )
+    ),
+  }
+
+  const persisted = saveCategoryRules(nextRules)
+  const finalRules = persisted ? getCategoryRules() : currentRules
+  const categoryStillExists = getCategoryNamesFromRules(finalRules).includes(categoryName)
+  const rulesRemoved = !isObject(finalRules[categoryName])
+
+  return {
+    ok: persisted && !categoryStillExists,
+    category: categoryName,
+    isBaseCategory: false,
+    deletionAllowed: true,
+    categoryRemovedFromLocalStorage: persisted && !categoryStillExists,
+    rulesRemoved,
+    nextRules: persisted ? finalRules : currentRules,
+    code: persisted ? null : 'storage_write_failed',
+    message: persisted ? null : 'No se pudo eliminar la categoria.',
   }
 }
 
