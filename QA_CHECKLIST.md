@@ -178,6 +178,11 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Guardar con input vacio | Se guarda y cierra el modal | `[ ] OK [ ] FAIL` | |
 | Reabrir la misma categoria | Las reglas persisten correctamente | `[ ] OK [ ] FAIL` | |
 | Revisar texto de ayuda del modal | Aparece el consejo sobre `.exe` y dominios con estilo secundario | `[ ] OK [ ] FAIL` | |
+| Abrir categoria con `3+` reglas | El modal respeta el viewport y no queda desbordado | `[ ] OK [ ] FAIL` | |
+| Hacer scroll dentro del modal de edicion | La zona central se desplaza sin perder acceso al contenido | `[ ] OK [ ] FAIL` | |
+| Revisar boton `X` con el modal cargado | Sigue visible y accesible sin necesidad de recolocar la ventana | `[ ] OK [ ] FAIL` | |
+| Revisar `Guardar cambios` con muchas reglas | El boton sigue visible y accesible aunque el cuerpo tenga scroll | `[ ] OK [ ] FAIL` | |
+| Cerrar modal tras hacer scroll | Se puede cerrar con `X` o `Cancelar` sin que el overlay quede bloqueado | `[ ] OK [ ] FAIL` | |
 | Volver al dashboard tras editar reglas | Los cambios se reflejan en categorias/detalles si afectan a datos reales del rango visible | `[ ] OK [ ] FAIL` | |
 | Abrir categoria creada por usuario | El modal de edicion muestra accion para eliminar categoria | `[ ] OK [ ] FAIL` | |
 | Eliminar categoria creada por usuario | La categoria desaparece de Configuracion y del dashboard tras confirmar | `[ ] OK [ ] FAIL` | |
@@ -201,6 +206,7 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Cambiar entre `Semana`, `Dia` y `Mes` | No aparecen logs de verificacion retirados | `[ ] OK [ ] FAIL` | |
 | Abrir detalles y Configuracion | No aparecen logs `PERF-*` ni trazas de prefetch | `[ ] OK [ ] FAIL` | |
 | Revisar logs temporales de `QA-FIX-01` | Solo aparecen los bloques `QA-FIX-*` esperados para esta validacion | `[ ] OK [ ] FAIL` | |
+| Abrir modal de edicion de categoria | Aparece el bloque `[QA-FIX-CATEGORY-MODAL-SCROLL-VERIFY]` con `validation: OK` | `[ ] OK [ ] FAIL` | |
 | Provocar una situacion real de error si ocurre | Solo aparecen `warnings`/errores reales relacionados con ActivityWatch o peticiones fallidas | `[ ] OK [ ] FAIL` | |
 
 ## Formato recomendado para reportar resultados

@@ -148,3 +148,5 @@
 - QA-FIX-01 completada: priorizado el KPI diario para renderizar antes que grafico/categorias cuando no hay cache.
 - QA-FIX-01 completada: las reglas pasan a ser unicas entre categorias; al reasignar una regla se mueve automaticamente.
 - QA-FIX-01 completada: anadida eliminacion de categorias creadas por usuario y bloqueado el borrado de categorias base.
+- QA-FIX-CATEGORY-MODAL-SCROLL-01 completada: modal de edicion de categorias reorganizado con scroll interno, cabecera visible y acciones de cierre/guardado accesibles aunque haya varias reglas.
+- QA-FIX-CATEGORY-MODAL-SCROLL-01 pendiente de validacion manual: comprobar categoria con `3+` reglas, scroll interno, `X` accesible, `Guardar cambios` accesible y cierre del modal sin bloqueo visual.

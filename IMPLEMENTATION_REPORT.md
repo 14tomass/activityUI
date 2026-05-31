@@ -915,3 +915,27 @@
 - `[QA-FIX-DAY-KPI-VERIFY]`
 - `[QA-FIX-UNIQUE-RULES-VERIFY]`
 - `[QA-FIX-DELETE-CATEGORY-VERIFY]`
+
+## QA-FIX-CATEGORY-MODAL-SCROLL-01
+
+- Se corrigio la usabilidad del modal de edicion de categorias cuando una categoria tiene varias reglas.
+- El modal pasa a usar layout en columna con altura maxima relativa al viewport (`85vh`) y `overflow hidden` en el contenedor principal.
+- La cabecera del modal permanece visible y accesible con:
+- punto/color de categoria
+- nombre de categoria
+- boton `X`
+- El cuerpo del modal ahora hace scroll vertical interno y contiene:
+- descripcion
+- texto de ayuda sobre `.exe` y dominios
+- lista de reglas
+- input para anadir regla
+- accion de borrar categoria custom si aplica
+- El footer queda fuera del scroll interno para mantener `Cancelar` y `Guardar cambios` accesibles incluso con listas largas.
+- No se modifico logica funcional de:
+- guardado
+- reglas unicas
+- inferencia `.exe`
+- creacion/eliminacion de categorias
+- motor de clasificacion
+- Se anadio log temporal de verificacion:
+- `[QA-FIX-CATEGORY-MODAL-SCROLL-VERIFY]`
