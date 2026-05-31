@@ -155,6 +155,7 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - **RANGE-WEEK-01 (implementada)**: el tab `Ultima semana` ya resume 7 dias reales (KPI, grafico por dias, categorias y detalle por categoria), con navegacion por bloques semanales y bloqueo en semana actual.
 - **RANGE-WEEK-01-FIX (implementada)**: `Semana` se ajusta a semana natural lunes-domingo, con dias futuros de semana actual a `0`, eje semanal en horas y clic en barra para seleccionar/deseleccionar dia dentro de Semana (sin navegar a `Dia`) y filtrar categorias de ese dia.
 - **RANGE-WEEK-01-FIX (iteracion UX)**: en seleccion de dia semanal se mantiene siempre visible el resumen semanal (KPI + grafico), tooltip hover por barra y media diaria semanal junto al KPI.
+- **RANGE-WEEK-UX-FIX-02 (iteracion UX)**: retirada la experiencia de hover tooltip semanal; la seleccion por clic conserva KPI/grafico, muestra resumen intermedio del dia y filtra solo categorias. Se anade cache de sesion para alternancia rapida entre `Dia` y `Semana`.
 
 ## Aclaracion de flujo (post DATA-08)
 

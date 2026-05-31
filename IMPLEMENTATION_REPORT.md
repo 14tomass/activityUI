@@ -791,3 +791,30 @@
 - `[RANGE-WEEK-DAY-FILTER-VERIFY] Weekly day selection filters categories only`
 - `[RANGE-WEEK-HOVER-VERIFY] Weekly bar tooltip`
 - `[RANGE-WEEK-AVERAGE-VERIFY] Weekly daily average`
+
+## RANGE-WEEK-UX-FIX-02
+
+- Se optimizo la alternancia `Dia` <-> `Semana` con cache en memoria de sesion:
+- cache diaria por `day`
+- cache semanal por `weekStart`
+- cache de contexto de categorias semanal/diario seleccionado dentro de Semana
+- Resultado: cuando hay `cache hit`, se restaura KPI/grafico/categorias sin recarga completa visible.
+- Se elimino el tooltip/hover del grafico semanal:
+- retirado estado de hover
+- retirado bloque `[RANGE-WEEK-HOVER-VERIFY] Weekly bar tooltip`
+- el hover ya no abre ventanita; se mantiene solo clic de seleccion.
+- En seleccion de dia semanal:
+- se mantiene modo `Semana`
+- KPI semanal y grafico semanal permanecen visibles
+- solo recarga la tarjeta de categorias en contexto diario seleccionado
+- se incorpora una seccion intermedia entre grafico y categorias con:
+- fecha del dia seleccionado
+- total de uso de ese dia (`xh ym de uso`)
+- Regla de resaltado azul consolidada:
+- sin dia seleccionado: semana actual marca dia actual; semanas cerradas marcan el dia de mayor uso
+- con dia seleccionado: solo la barra seleccionada queda como resaltado principal
+- Verificacion temporal activa:
+- `[RANGE-WEEK-CACHE-VERIFY] Day/week cache behavior`
+- `[RANGE-WEEK-DAY-SUMMARY-VERIFY] Weekly selected day summary`
+- `[RANGE-WEEK-BAR-HIGHLIGHT-VERIFY] Weekly bar highlight behavior`
+- `[RANGE-WEEK-HOVER-REMOVED-VERIFY] Weekly hover removed`

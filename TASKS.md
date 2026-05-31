@@ -120,7 +120,12 @@
 - RANGE-WEEK-01-FIX implementada: tooltip hover en barras semanales con dia/fecha corta y total diario formateado.
 - RANGE-WEEK-01-FIX implementada: KPI semanal muestra tambien `Media diaria` (semana actual: divide por dias transcurridos; semanas cerradas: divide por 7).
 - RANGE-WEEK-01-FIX en verificacion: logs temporales `[RANGE-WEEK-01-FIX-VERIFY]`, `[RANGE-WEEK-AXIS-VERIFY]` y `[RANGE-WEEK-DAY-SELECT-VERIFY]`.
-- RANGE-WEEK-01-FIX en verificacion: logs temporales `[RANGE-WEEK-DAY-FILTER-VERIFY]`, `[RANGE-WEEK-HOVER-VERIFY]` y `[RANGE-WEEK-AVERAGE-VERIFY]`.
+- RANGE-WEEK-01-FIX en verificacion: logs temporales `[RANGE-WEEK-DAY-FILTER-VERIFY]` y `[RANGE-WEEK-AVERAGE-VERIFY]`.
+- RANGE-WEEK-UX-FIX-02 implementada: cache en memoria por `day` y `weekStart` para alternar `Dia`/`Semana` sin recarga completa cuando hay datos ya cargados en sesion.
+- RANGE-WEEK-UX-FIX-02 implementada: hover tooltip semanal retirado; el grafico mantiene solo interaccion por clic.
+- RANGE-WEEK-UX-FIX-02 implementada: al seleccionar dia en `Semana` se preservan KPI+grafico y solo recarga la tarjeta de categorias; se anade resumen intermedio del dia seleccionado.
+- RANGE-WEEK-UX-FIX-02 implementada: regla de resaltado azul ajustada (sin seleccion: hoy en semana actual / mayor uso en semanas pasadas; con seleccion: barra seleccionada).
+- RANGE-WEEK-UX-FIX-02 en verificacion: logs temporales `[RANGE-WEEK-CACHE-VERIFY]`, `[RANGE-WEEK-DAY-SUMMARY-VERIFY]`, `[RANGE-WEEK-BAR-HIGHLIGHT-VERIFY]` y `[RANGE-WEEK-HOVER-REMOVED-VERIFY]`.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 

@@ -36,8 +36,9 @@
 - En modo `Semana`, al pulsar de nuevo el mismo dia seleccionado se limpia la seleccion y se recupera el agregado semanal de categorias.
 - En modo `Semana`, al seleccionar un dia solo recarga la tarjeta de categorias; KPI semanal y grafico de 7 barras se mantienen visibles y estables.
 - En modo `Semana`, el KPI muestra `Media diaria` calculada con divisor contextual: dias transcurridos en semana actual o `7` en semanas cerradas.
-- En modo `Semana`, el hover de barras muestra tooltip compacto con dia/fecha y total diario.
+- En modo `Semana`, no se usa tooltip hover en barras; la informacion detallada del dia se muestra al seleccionar por clic.
 - En modo `Semana`, la navegacion derecha se bloquea al llegar a la semana actual (lunes-domingo del dia ActivityWatch actual).
+- Se usa cache en memoria de sesion para restaurar rapidamente datos de `Dia` y `Semana` sin recarga completa al alternar tabs cuando ya existe resultado.
 
 ### Estrategia de implementacion
 
