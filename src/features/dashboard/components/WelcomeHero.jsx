@@ -382,8 +382,6 @@ function WelcomeHero() {
   const dayDataCacheRef = useRef({})
   const weekDataCacheRef = useRef({})
   const weekCategoryContextCacheRef = useRef({})
-  const previousModeRef = useRef(RANGE_MODE_TODAY)
-  const hoverRemovedLoggedRef = useRef(false)
 
   const closeSettings = () => {
     setActiveModal(null)
@@ -716,8 +714,6 @@ function WelcomeHero() {
     let cancelled = false
 
     const loadDashboard = async () => {
-      const previousMode = previousModeRef.current
-      const modeChanged = previousMode !== selectedRangeMode
       const dayCacheKey = selectedDay
       const weekCacheKey = selectedWeekStartDay
 
@@ -730,18 +726,6 @@ function WelcomeHero() {
           setIsHourlyLoading(false)
           setCategoryUsageCard(cachedDay.categoryUsageCard)
           setIsCategoryCardLoading(false)
-          if (modeChanged) {
-            console.group('[RANGE-WEEK-CACHE-VERIFY] Day/week cache behavior')
-            console.log('previous mode:', previousMode)
-            console.log('new mode:', selectedRangeMode)
-            console.log('cache hit:', true)
-            console.log('main KPI kept or restored without full reload:', true)
-            console.log('chart kept or restored without full reload:', true)
-            console.log('categories kept or restored without full reload:', true)
-            console.log('validation:', 'OK')
-            console.groupEnd()
-          }
-          previousModeRef.current = selectedRangeMode
           return
         }
       }
@@ -756,18 +740,6 @@ function WelcomeHero() {
           setIsHourlyLoading(false)
           setCategoryUsageCard(cachedWeek.categoryUsageCard)
           setIsCategoryCardLoading(false)
-          if (modeChanged) {
-            console.group('[RANGE-WEEK-CACHE-VERIFY] Day/week cache behavior')
-            console.log('previous mode:', previousMode)
-            console.log('new mode:', selectedRangeMode)
-            console.log('cache hit:', true)
-            console.log('main KPI kept or restored without full reload:', true)
-            console.log('chart kept or restored without full reload:', true)
-            console.log('categories kept or restored without full reload:', true)
-            console.log('validation:', 'OK')
-            console.groupEnd()
-          }
-          previousModeRef.current = selectedRangeMode
           return
         }
       }
@@ -869,79 +841,6 @@ function WelcomeHero() {
         }
         setIsCategoryCardLoading(false)
 
-        const weeklySeconds = weeklyTotalResult.ok ? weeklyTotalResult.totalSeconds ?? 0 : 0
-        const seriesSeconds = weeklyBars.reduce((sum, item) => sum + (item.seconds ?? 0), 0)
-        const categoriesSeconds = weeklyCategoryResult.ok
-          ? (weeklyCategoryResult.categories ?? []).reduce((sum, item) => sum + (item.seconds ?? 0), 0)
-          : 0
-        const seriesDifference = Math.abs(weeklySeconds - seriesSeconds)
-        const categoriesDifference = Math.abs(weeklySeconds - categoriesSeconds)
-        const currentWeek = getWeekRangeFromStartDay(getWeekStartDay(getCurrentActivityWatchDay(activityWatchStartOfDay)))
-        const isRightDisabledAtCurrentWeek = startDay >= currentWeek.startDay
-        const weekDaysSeconds = Object.fromEntries(weeklyBars.map((bar) => [bar.label, bar.seconds ?? 0]))
-        const futureDaysForcedToZero =
-          weeklyBars.filter((bar) => bar.isFutureDay).every((bar) => (bar.seconds ?? 0) === 0)
-
-        console.group('[RANGE-WEEK-01-FIX-VERIFY] Calendar week consistency')
-        console.log('selected weekly range:', `${startDay} -> ${endDay}`)
-        console.log('selected week start:', startDay)
-        console.log('selected week end:', endDay)
-        console.log('weekly total seconds:', weeklySeconds)
-        console.log('monday seconds:', weekDaysSeconds.L ?? 0)
-        console.log('tuesday seconds:', weekDaysSeconds.M ?? 0)
-        console.log('wednesday seconds:', weekDaysSeconds.X ?? 0)
-        console.log('thursday seconds:', weekDaysSeconds.J ?? 0)
-        console.log('friday seconds:', weekDaysSeconds.V ?? 0)
-        console.log('saturday seconds:', weekDaysSeconds.S ?? 0)
-        console.log('sunday seconds:', weekDaysSeconds.D ?? 0)
-        console.log('sum of 7 daily bar seconds:', seriesSeconds)
-        console.log('difference weekly total vs bars:', seriesDifference)
-        console.log('categories total seconds:', categoriesSeconds)
-        console.log('difference weekly total vs categories:', categoriesDifference)
-        console.log('visible range label:', formatWeekRangeLabel(startDay, endDay))
-        console.log('current calendar week:', startDay === currentWeek.startDay)
-        console.log('future days in current week forced/displayed as zero:', futureDaysForcedToZero)
-        console.log('right navigation disabled at current week:', isRightDisabledAtCurrentWeek)
-        console.log(
-          'validation:',
-          seriesDifference <= 2 && categoriesDifference <= 2 && futureDaysForcedToZero ? 'OK' : 'MISMATCH'
-        )
-        console.groupEnd()
-        const isCurrentCalendarWeek = startDay === currentWeek.startDay
-        const daysConsideredForAverage = isCurrentCalendarWeek
-          ? Math.min(Math.max(getIsoDayDifference(startDay, currentActivityWatchDay) + 1, 1), 7)
-          : 7
-        const weeklyAverageSeconds = daysConsideredForAverage > 0 ? weeklySeconds / daysConsideredForAverage : 0
-        console.group('[RANGE-WEEK-AVERAGE-VERIFY] Weekly daily average')
-        console.log('selected week range:', `${startDay} -> ${endDay}`)
-        console.log('current calendar week:', isCurrentCalendarWeek)
-        console.log('weekly total seconds:', weeklySeconds)
-        console.log('days considered for average:', daysConsideredForAverage)
-        console.log('weekly average seconds:', weeklyAverageSeconds)
-        console.log('weekly average formatted:', formatUsageFromSeconds(weeklyAverageSeconds))
-        console.log('average visible next to weekly KPI:', true)
-        console.log('validation:', daysConsideredForAverage >= 1 && daysConsideredForAverage <= 7 ? 'OK' : 'MISMATCH')
-        console.groupEnd()
-        const weeklyAxisLabels = buildWeeklyAxisLabels(weeklyBars, false)
-        console.group('[RANGE-WEEK-AXIS-VERIFY] Weekly chart axis scale')
-        console.log('weekly visible range:', `${startDay} -> ${endDay}`)
-        console.log('max daily seconds in range:', Math.max(0, ...weeklyBars.map((bar) => bar.seconds ?? 0)))
-        console.log(
-          'max daily formatted:',
-          formatUsageFromSeconds(Math.max(0, ...weeklyBars.map((bar) => bar.seconds ?? 0)))
-        )
-        console.log('generated y-axis labels:', weeklyAxisLabels)
-        console.log(
-          'labels use hour units only:',
-          weeklyAxisLabels.every((label) => typeof label === 'string' && label.endsWith('h'))
-        )
-        console.log(
-          'validation:',
-          weeklyAxisLabels.every((label) => typeof label === 'string' && label.endsWith('h'))
-            ? 'OK'
-            : 'MISMATCH'
-        )
-        console.groupEnd()
         return
       }
 
@@ -1002,18 +901,6 @@ function WelcomeHero() {
         )
       }
       setIsCategoryCardLoading(false)
-      if (modeChanged) {
-        console.group('[RANGE-WEEK-CACHE-VERIFY] Day/week cache behavior')
-        console.log('previous mode:', previousMode)
-        console.log('new mode:', selectedRangeMode)
-        console.log('cache hit:', false)
-        console.log('main KPI kept or restored without full reload:', false)
-        console.log('chart kept or restored without full reload:', false)
-        console.log('categories kept or restored without full reload:', false)
-        console.log('validation:', 'OK')
-        console.groupEnd()
-      }
-      previousModeRef.current = selectedRangeMode
     }
 
     loadDashboard()
@@ -1022,25 +909,12 @@ function WelcomeHero() {
       cancelled = true
     }
   }, [
-    activityWatchStartOfDay,
     currentActivityWatchDay,
     mapCategoryResultToCard,
     selectedDay,
     selectedRangeMode,
     selectedWeekStartDay,
   ])
-
-  useEffect(() => {
-    if (selectedRangeMode !== RANGE_MODE_WEEK || hoverRemovedLoggedRef.current) {
-      return
-    }
-    console.group('[RANGE-WEEK-HOVER-REMOVED-VERIFY] Weekly hover removed')
-    console.log('hover state removed or disabled:', true)
-    console.log('tooltip visible on hover:', false)
-    console.log('validation:', 'OK')
-    console.groupEnd()
-    hoverRemovedLoggedRef.current = true
-  }, [selectedRangeMode])
 
   useEffect(() => {
     if (selectedRangeMode !== RANGE_MODE_WEEK) {
@@ -1250,21 +1124,9 @@ function WelcomeHero() {
   )
 
   const handleWeeklyDayClick = useCallback(
-    (barDay, barLabel) => {
+    (barDay) => {
       const wasFutureDay = isIsoDayFuture(barDay, currentActivityWatchDay)
       if (wasFutureDay) {
-        console.group('[RANGE-WEEK-DAY-SELECT-VERIFY] Weekly day selection behavior')
-        console.log('clicked day:', barDay)
-        console.log('clicked day label:', barLabel)
-        console.log('was future day:', true)
-        console.log('stayed in Week mode:', true)
-        console.log('selected day total shown above bar:', false)
-        console.log('weekly KPI preserved:', true)
-        console.log('categories switched to selected day:', false)
-        console.log('categories context label:', 'Categorias de la semana')
-        console.log('future day blocked if applicable:', true)
-        console.log('validation:', 'OK')
-        console.groupEnd()
         return
       }
 
@@ -1274,102 +1136,15 @@ function WelcomeHero() {
       if (isSettingsOpen) {
         closeSettings()
       }
-
-      console.group('[RANGE-WEEK-DAY-SELECT-VERIFY] Weekly day selection behavior')
-      console.log('clicked day:', barDay)
-      console.log('clicked day label:', barLabel)
-      console.log('stayed in Week mode:', true)
-      console.log('selected day total shown above bar:', nextSelected === barDay)
-      console.log('weekly KPI preserved:', true)
-      console.log('categories switched to selected day:', nextSelected === barDay)
-      console.log(
-        'categories context label:',
-        nextSelected ? `Categorias del ${new Date(`${nextSelected}T12:00:00`).toLocaleDateString('es-ES')}` : 'Categorias de la semana'
-      )
-      console.log('future day blocked if applicable:', false)
-      console.log('validation:', 'OK')
-      console.groupEnd()
-      console.group('[RANGE-WEEK-DAY-FILTER-VERIFY] Weekly day selection filters categories only')
-      console.log('clicked day:', barDay)
-      console.log('weekly mode preserved:', true)
-      console.log('weekly KPI kept visible:', true)
-      console.log('weekly chart kept visible:', true)
-      console.log('selected day label shown above bar:', nextSelected === barDay)
-      console.log('category section switched to daily context:', nextSelected !== null)
-      const nextContextLabel =
-        nextSelected !== null
-          ? `Categorias del ${new Date(`${nextSelected}T12:00:00`).toLocaleDateString('es-ES', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'short',
-            })}`
-          : 'Categorias de la semana'
-      console.log(
-        'categories context label:',
-        nextContextLabel
-      )
-      console.log('only category card entered loading:', true)
-      console.log('graph cleared on click:', false)
-      console.log('validation:', 'OK')
-      console.groupEnd()
-
-      console.group('[RANGE-WEEK-SWITCH-VERIFY] Weekly day bar activates day switch')
-      console.log('clicked day:', barDay)
-      console.log('switch moved to day:', nextSelected !== null)
-      console.log('selected day set:', nextSelected === barDay)
-      console.log('week mode preserved:', true)
-      console.log(
-        'categories context:',
-        nextSelected ? `Categorias del ${new Date(`${nextSelected}T12:00:00`).toLocaleDateString('es-ES')}` : 'Categorias de la semana'
-      )
-      console.log('validation:', nextSelected === barDay ? 'OK' : 'MISMATCH')
-      console.groupEnd()
-
-      const clickedBar = hourlyUsage.find((bar) => bar.day === barDay)
-      console.group('[RANGE-WEEK-DAY-SUMMARY-VERIFY] Weekly selected day summary')
-      console.log('selected day:', barDay)
-      console.log('week mode preserved:', true)
-      console.log('weekly KPI preserved:', true)
-      console.log('weekly chart preserved:', true)
-      console.log('selected day summary visible:', nextSelected !== null)
-      console.log(
-        'selected day total formatted:',
-        nextSelected ? formatUsageFromSeconds(clickedBar?.seconds ?? 0) : '-'
-      )
-      console.log('categories context label:', nextContextLabel)
-      console.log('categories are for selected day:', nextSelected !== null)
-      console.log('graph cleared on click:', false)
-      console.log('validation:', 'OK')
-      console.groupEnd()
-
-      const isCurrentWeek = getWeekStartDay(currentActivityWatchDay) === selectedWeekStartDay
-      console.group('[RANGE-WEEK-BAR-HIGHLIGHT-VERIFY] Weekly bar highlight behavior')
-      console.log('current week:', isCurrentWeek)
-      console.log('selected day:', nextSelected ?? 'none')
-      console.log('today highlighted when no selected day:', isCurrentWeek ? nextSelected === null : false)
-      console.log('selected day highlighted:', nextSelected === barDay)
-      console.log('only one primary highlighted bar:', true)
-      console.log('validation:', 'OK')
-      console.groupEnd()
     },
-    [closeAllModals, currentActivityWatchDay, hourlyUsage, isSettingsOpen, selectedWeekDay, selectedWeekStartDay]
+    [closeAllModals, currentActivityWatchDay, isSettingsOpen, selectedWeekDay]
   )
 
   const handleWeeklySwitchToWeek = useCallback(() => {
     if (!selectedWeekDay) {
       return
     }
-    const previousSelectedDay = selectedWeekDay
     setSelectedWeekDay(null)
-
-    console.group('[RANGE-WEEK-SWITCH-RESET-VERIFY] Weekly switch returns to week summary')
-    console.log('previous selected day:', previousSelectedDay)
-    console.log('switch moved to week:', true)
-    console.log('selected day cleared:', true)
-    console.log('categories context: Categorias de la semana')
-    console.log('weekly categories restored:', true)
-    console.log('validation:', 'OK')
-    console.groupEnd()
   }, [selectedWeekDay])
 
   return (

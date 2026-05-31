@@ -754,8 +754,7 @@
 - `getRangeCategoryUsage({ startDay, endDay })`
 - `getRangeCategoryDetailUsage({ startDay, endDay, category })`
 - Se evita duplicar logica de clasificacion/consistencia porque cada agregado semanal reutiliza la capa diaria ya validada.
-- Verificacion temporal activa:
-- `[RANGE-WEEK-01-VERIFY] Weekly range summary consistency`
+- Verificacion temporal retirada: limpiado el bloque `[RANGE-WEEK-01-VERIFY]` tras validar consistencia semanal.
 
 ## RANGE-WEEK-01-FIX
 
@@ -784,13 +783,7 @@
 - Se anadio media diaria junto al KPI semanal:
 - semana actual: total semanal / dias transcurridos hasta hoy (inclusive)
 - semana cerrada: total semanal / 7
-- Verificacion temporal activa:
-- `[RANGE-WEEK-01-FIX-VERIFY] Calendar week consistency`
-- `[RANGE-WEEK-AXIS-VERIFY] Weekly chart axis scale`
-- `[RANGE-WEEK-DAY-SELECT-VERIFY] Weekly day selection behavior`
-- `[RANGE-WEEK-DAY-FILTER-VERIFY] Weekly day selection filters categories only`
-- `[RANGE-WEEK-HOVER-VERIFY] Weekly bar tooltip`
-- `[RANGE-WEEK-AVERAGE-VERIFY] Weekly daily average`
+- Verificacion temporal retirada: limpiados los bloques `[RANGE-WEEK-01-FIX-VERIFY]`, `[RANGE-WEEK-AXIS-VERIFY]`, `[RANGE-WEEK-DAY-SELECT-VERIFY]`, `[RANGE-WEEK-DAY-FILTER-VERIFY]`, `[RANGE-WEEK-HOVER-VERIFY]` y `[RANGE-WEEK-AVERAGE-VERIFY]`.
 
 ## RANGE-WEEK-UX-FIX-02
 
@@ -813,11 +806,7 @@
 - Regla de resaltado azul consolidada:
 - sin dia seleccionado: semana actual marca dia actual; semanas cerradas marcan el dia de mayor uso
 - con dia seleccionado: solo la barra seleccionada queda como resaltado principal
-- Verificacion temporal activa:
-- `[RANGE-WEEK-CACHE-VERIFY] Day/week cache behavior`
-- `[RANGE-WEEK-DAY-SUMMARY-VERIFY] Weekly selected day summary`
-- `[RANGE-WEEK-BAR-HIGHLIGHT-VERIFY] Weekly bar highlight behavior`
-- `[RANGE-WEEK-HOVER-REMOVED-VERIFY] Weekly hover removed`
+- Verificacion temporal retirada: limpiados los bloques `[RANGE-WEEK-CACHE-VERIFY]`, `[RANGE-WEEK-DAY-SUMMARY-VERIFY]`, `[RANGE-WEEK-BAR-HIGHLIGHT-VERIFY]` y `[RANGE-WEEK-HOVER-REMOVED-VERIFY]`.
 
 ## RANGE-WEEK-SWITCH-01
 
@@ -834,6 +823,15 @@
 - no navega al tab global `Dia`
 - KPI semanal y grafico semanal se preservan
 - solo cambia el contexto inferior de categorias
-- Verificacion temporal activa:
-- `[RANGE-WEEK-SWITCH-VERIFY] Weekly day bar activates day switch`
-- `[RANGE-WEEK-SWITCH-RESET-VERIFY] Weekly switch returns to week summary`
+- Verificacion temporal retirada: limpiados los bloques `[RANGE-WEEK-SWITCH-VERIFY]` y `[RANGE-WEEK-SWITCH-RESET-VERIFY]`.
+
+## RANGE-WEEK-CLOSE
+
+- Cierre oficial de Semana completado.
+- Eliminados los logs temporales de depuracion/verificacion semanal, manteniendo intacta la logica funcional validada:
+- semana natural lunes-domingo
+- KPI semanal + media diaria
+- grafico semanal por dias con eje en horas
+- seleccion de dia dentro de Semana y switch `Semana | Dia`
+- categorias semanales o diarias segun contexto de switch
+- En funcionamiento normal quedan solo `console.warn` utiles ante errores reales de carga/ActivityWatch.

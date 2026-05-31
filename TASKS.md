@@ -111,7 +111,6 @@
 - NAV-DATE-01 implementada: selector de fecha diario funcional con estado central `selectedDay`, recarga real de KPI/horas/categorias por dia y bloqueo de navegacion a fechas futuras del dia ActivityWatch.
 - NAV-DATE-01-CLOSE completada: eliminado log temporal `[NAV-DATE-01-VERIFY]` y retirado ruido de debug en navegacion diaria.
 - RANGE-WEEK-01 implementada: tab `Ultima semana` funcional con rango movil de 7 dias, navegacion por bloques semanales y recarga real de KPI, grafico por dias, categorias y detalle por categoria.
-- RANGE-WEEK-01 en verificacion: log temporal `[RANGE-WEEK-01-VERIFY] Weekly range summary consistency` para validar coherencia semanal (total vs barras diarias vs categorias).
 - RANGE-WEEK-01-FIX implementada: modo `Semana` corregido a semana natural lunes-domingo, dias futuros de semana actual mostrados a `0`, y navegacion bloqueada en semana actual.
 - RANGE-WEEK-01-FIX implementada: eje vertical semanal corregido a unidades de horas dinamicas (`1h`, `2h`, ...), sin etiquetas incoherentes de minutos.
 - RANGE-WEEK-01-FIX implementada: clic en barra semanal (dia no futuro) mantiene modo `Semana`, muestra total del dia sobre la barra y filtra la tarjeta de categorias al dia seleccionado.
@@ -119,17 +118,14 @@
 - RANGE-WEEK-01-FIX implementada: seleccion de dia semanal ya no dispara recarga global de Semana; solo recarga la tarjeta de categorias (KPI y grafico permanecen visibles).
 - RANGE-WEEK-01-FIX implementada: tooltip hover en barras semanales con dia/fecha corta y total diario formateado.
 - RANGE-WEEK-01-FIX implementada: KPI semanal muestra tambien `Media diaria` (semana actual: divide por dias transcurridos; semanas cerradas: divide por 7).
-- RANGE-WEEK-01-FIX en verificacion: logs temporales `[RANGE-WEEK-01-FIX-VERIFY]`, `[RANGE-WEEK-AXIS-VERIFY]` y `[RANGE-WEEK-DAY-SELECT-VERIFY]`.
-- RANGE-WEEK-01-FIX en verificacion: logs temporales `[RANGE-WEEK-DAY-FILTER-VERIFY]` y `[RANGE-WEEK-AVERAGE-VERIFY]`.
 - RANGE-WEEK-UX-FIX-02 implementada: cache en memoria por `day` y `weekStart` para alternar `Dia`/`Semana` sin recarga completa cuando hay datos ya cargados en sesion.
 - RANGE-WEEK-UX-FIX-02 implementada: hover tooltip semanal retirado; el grafico mantiene solo interaccion por clic.
 - RANGE-WEEK-UX-FIX-02 implementada: al seleccionar dia en `Semana` se preservan KPI+grafico y solo recarga la tarjeta de categorias; se anade resumen intermedio del dia seleccionado.
 - RANGE-WEEK-UX-FIX-02 implementada: regla de resaltado azul ajustada (sin seleccion: hoy en semana actual / mayor uso en semanas pasadas; con seleccion: barra seleccionada).
-- RANGE-WEEK-UX-FIX-02 en verificacion: logs temporales `[RANGE-WEEK-CACHE-VERIFY]`, `[RANGE-WEEK-DAY-SUMMARY-VERIFY]`, `[RANGE-WEEK-BAR-HIGHLIGHT-VERIFY]` y `[RANGE-WEEK-HOVER-REMOVED-VERIFY]`.
 - RANGE-WEEK-SWITCH-01 implementada: switch `Semana | Dia` anadido junto a `Uso por dias` dentro de la tarjeta semanal.
 - RANGE-WEEK-SWITCH-01 implementada: clic en barra semanal activa automaticamente estado `Dia` del switch (sin salir del tab Semana).
 - RANGE-WEEK-SWITCH-01 implementada: accion `Semana` del switch limpia seleccion y restaura `Categorias de la semana`.
-- RANGE-WEEK-SWITCH-01 en verificacion: logs temporales `[RANGE-WEEK-SWITCH-VERIFY]` y `[RANGE-WEEK-SWITCH-RESET-VERIFY]`.
+- RANGE-WEEK-CLOSE completada: eliminados los logs temporales de verificacion de Semana y mantenida intacta la logica funcional del modo semanal.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 
