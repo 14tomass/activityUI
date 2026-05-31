@@ -520,3 +520,4 @@ Nota de referencia canonica para integracion:
 - semanas cerradas: 7 dias
 - En UX semanal, la seleccion de un dia no invalida el resumen semanal completo: KPI y serie de 7 dias se preservan desde cache; solo cambia la consulta/contexto de categorias.
 - Se usa cache de sesion en memoria para alternancia `Dia`/`Semana` y para contexto de categorias semanal vs dia seleccionado.
+- El switch visual `Semana | Dia` del grafico semanal no cambia la capa de datos: solo refleja/gestiona `selectedWeekDay` para alternar entre categorias agregadas semanales y categorias del dia seleccionado.

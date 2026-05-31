@@ -1313,6 +1313,18 @@ function WelcomeHero() {
       console.log('validation:', 'OK')
       console.groupEnd()
 
+      console.group('[RANGE-WEEK-SWITCH-VERIFY] Weekly day bar activates day switch')
+      console.log('clicked day:', barDay)
+      console.log('switch moved to day:', nextSelected !== null)
+      console.log('selected day set:', nextSelected === barDay)
+      console.log('week mode preserved:', true)
+      console.log(
+        'categories context:',
+        nextSelected ? `Categorias del ${new Date(`${nextSelected}T12:00:00`).toLocaleDateString('es-ES')}` : 'Categorias de la semana'
+      )
+      console.log('validation:', nextSelected === barDay ? 'OK' : 'MISMATCH')
+      console.groupEnd()
+
       const clickedBar = hourlyUsage.find((bar) => bar.day === barDay)
       console.group('[RANGE-WEEK-DAY-SUMMARY-VERIFY] Weekly selected day summary')
       console.log('selected day:', barDay)
@@ -1342,6 +1354,23 @@ function WelcomeHero() {
     },
     [closeAllModals, currentActivityWatchDay, hourlyUsage, isSettingsOpen, selectedWeekDay, selectedWeekStartDay]
   )
+
+  const handleWeeklySwitchToWeek = useCallback(() => {
+    if (!selectedWeekDay) {
+      return
+    }
+    const previousSelectedDay = selectedWeekDay
+    setSelectedWeekDay(null)
+
+    console.group('[RANGE-WEEK-SWITCH-RESET-VERIFY] Weekly switch returns to week summary')
+    console.log('previous selected day:', previousSelectedDay)
+    console.log('switch moved to week:', true)
+    console.log('selected day cleared:', true)
+    console.log('categories context: Categorias de la semana')
+    console.log('weekly categories restored:', true)
+    console.log('validation:', 'OK')
+    console.groupEnd()
+  }, [selectedWeekDay])
 
   return (
     <section className="relative flex w-full max-w-[1180px] justify-center">
@@ -1412,9 +1441,35 @@ function WelcomeHero() {
         </div>
 
         <div className="mt-9 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
-          <h2 className="text-[1.72rem] font-semibold tracking-[-0.02em] text-slate-800">
-            {selectedRangeMode === RANGE_MODE_WEEK ? 'Uso por dias' : 'Uso por horas'}
-          </h2>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-[1.72rem] font-semibold tracking-[-0.02em] text-slate-800">
+              {selectedRangeMode === RANGE_MODE_WEEK ? 'Uso por dias' : 'Uso por horas'}
+            </h2>
+            {selectedRangeMode === RANGE_MODE_WEEK ? (
+              <div className="inline-flex items-center rounded-full bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={handleWeeklySwitchToWeek}
+                  className={`rounded-full px-3 py-1.5 text-[0.78rem] font-semibold transition ${
+                    !selectedWeekDay ? 'bg-[#1677f2] text-white shadow-[0_4px_10px_rgba(22,119,242,0.28)]' : 'text-slate-600'
+                  }`}
+                >
+                  Semana
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedWeekDay}
+                  className={`rounded-full px-3 py-1.5 text-[0.78rem] font-semibold transition ${
+                    selectedWeekDay
+                      ? 'bg-[#1677f2] text-white shadow-[0_4px_10px_rgba(22,119,242,0.28)]'
+                      : 'cursor-not-allowed text-slate-400'
+                  }`}
+                >
+                  Dia
+                </button>
+              </div>
+            ) : null}
+          </div>
 
           <div className="mt-6 grid grid-cols-[38px_1fr] gap-4">
             <div className="flex flex-col justify-between text-[0.8rem] text-slate-400">

@@ -126,6 +126,10 @@
 - RANGE-WEEK-UX-FIX-02 implementada: al seleccionar dia en `Semana` se preservan KPI+grafico y solo recarga la tarjeta de categorias; se anade resumen intermedio del dia seleccionado.
 - RANGE-WEEK-UX-FIX-02 implementada: regla de resaltado azul ajustada (sin seleccion: hoy en semana actual / mayor uso en semanas pasadas; con seleccion: barra seleccionada).
 - RANGE-WEEK-UX-FIX-02 en verificacion: logs temporales `[RANGE-WEEK-CACHE-VERIFY]`, `[RANGE-WEEK-DAY-SUMMARY-VERIFY]`, `[RANGE-WEEK-BAR-HIGHLIGHT-VERIFY]` y `[RANGE-WEEK-HOVER-REMOVED-VERIFY]`.
+- RANGE-WEEK-SWITCH-01 implementada: switch `Semana | Dia` anadido junto a `Uso por dias` dentro de la tarjeta semanal.
+- RANGE-WEEK-SWITCH-01 implementada: clic en barra semanal activa automaticamente estado `Dia` del switch (sin salir del tab Semana).
+- RANGE-WEEK-SWITCH-01 implementada: accion `Semana` del switch limpia seleccion y restaura `Categorias de la semana`.
+- RANGE-WEEK-SWITCH-01 en verificacion: logs temporales `[RANGE-WEEK-SWITCH-VERIFY]` y `[RANGE-WEEK-SWITCH-RESET-VERIFY]`.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 

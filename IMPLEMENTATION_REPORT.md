@@ -818,3 +818,22 @@
 - `[RANGE-WEEK-DAY-SUMMARY-VERIFY] Weekly selected day summary`
 - `[RANGE-WEEK-BAR-HIGHLIGHT-VERIFY] Weekly bar highlight behavior`
 - `[RANGE-WEEK-HOVER-REMOVED-VERIFY] Weekly hover removed`
+
+## RANGE-WEEK-SWITCH-01
+
+- Se anadio un switch visual `Semana | Dia` dentro de la tarjeta `Uso por dias`, junto al titulo.
+- El switch se sincroniza con el estado semanal existente:
+- `Semana` = sin dia seleccionado
+- `Dia` = hay `selectedWeekDay`
+- Interacciones:
+- clic en barra semanal (dia no futuro) selecciona dia y activa automaticamente `Dia` en el switch.
+- clic en `Semana` limpia la seleccion (`selectedWeekDay = null`) y restaura categorias semanales.
+- Decision UX aplicada:
+- `Dia` queda deshabilitado cuando no hay dia seleccionado (no fuerza seleccion automatica).
+- Se mantiene intacto el flujo principal:
+- no navega al tab global `Dia`
+- KPI semanal y grafico semanal se preservan
+- solo cambia el contexto inferior de categorias
+- Verificacion temporal activa:
+- `[RANGE-WEEK-SWITCH-VERIFY] Weekly day bar activates day switch`
+- `[RANGE-WEEK-SWITCH-RESET-VERIFY] Weekly switch returns to week summary`

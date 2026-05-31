@@ -39,6 +39,7 @@
 - En modo `Semana`, no se usa tooltip hover en barras; la informacion detallada del dia se muestra al seleccionar por clic.
 - En modo `Semana`, la navegacion derecha se bloquea al llegar a la semana actual (lunes-domingo del dia ActivityWatch actual).
 - Se usa cache en memoria de sesion para restaurar rapidamente datos de `Dia` y `Semana` sin recarga completa al alternar tabs cuando ya existe resultado.
+- En el switch semanal `Semana | Dia`, el estado `Dia` queda deshabilitado si no hay barra seleccionada; no se fuerza seleccion automatica de dia.
 
 ### Estrategia de implementacion
 
