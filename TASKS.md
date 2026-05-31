@@ -126,6 +126,10 @@
 - RANGE-WEEK-SWITCH-01 implementada: clic en barra semanal activa automaticamente estado `Dia` del switch (sin salir del tab Semana).
 - RANGE-WEEK-SWITCH-01 implementada: accion `Semana` del switch limpia seleccion y restaura `Categorias de la semana`.
 - RANGE-WEEK-CLOSE completada: eliminados los logs temporales de verificacion de Semana y mantenida intacta la logica funcional del modo semanal.
+- RANGE-NAV-AND-MONTH-PLAN-01 implementada: vista inicial y orden de tabs cambiados a `Semana | Dia | Mes`.
+- RANGE-NAV-AND-MONTH-PLAN-01 implementada: limites historicos aplicados (Dia: 15 dias, Semana: 5 semanas, Mes: 3 meses) con bloqueo funcional en navegacion.
+- RANGE-NAV-AND-MONTH-PLAN-01 implementada: modo `Mes` simple con KPI total mensual, media diaria mensual, grafico por semanas (`S1..Sn`) y categorias agregadas del mes.
+- RANGE-NAV-AND-MONTH-PLAN-01 en verificacion: logs temporales `[RANGE-TABS-ORDER-VERIFY]`, `[RANGE-NAV-LIMITS-VERIFY]` y `[RANGE-MONTH-01-VERIFY]`.
 
 ## Fase 5: Calidad, seguridad, estados de error y pulido
 

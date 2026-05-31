@@ -521,3 +521,12 @@ Nota de referencia canonica para integracion:
 - En UX semanal, la seleccion de un dia no invalida el resumen semanal completo: KPI y serie de 7 dias se preservan desde cache; solo cambia la consulta/contexto de categorias.
 - Se usa cache de sesion en memoria para alternancia `Dia`/`Semana` y para contexto de categorias semanal vs dia seleccionado.
 - El switch visual `Semana | Dia` del grafico semanal no cambia la capa de datos: solo refleja/gestiona `selectedWeekDay` para alternar entre categorias agregadas semanales y categorias del dia seleccionado.
+
+## 28) RANGE-MONTH-01 (resumen mensual simple)
+
+- El modo `Mes` usa mes natural (`dia 1` -> `ultimo dia`) y reutiliza consultas de rango ya existentes.
+- KPI mensual: `getRangeActiveUsage({ startDay, endDay })`.
+- Serie mensual para grafico por semanas: `getRangeDailyUsageSeries({ startDay, endDay })` y agregacion frontend en bloques `S1..Sn` por tramos de 7 dias dentro del mes.
+- Categorias mensuales: `getRangeCategoryUsage({ startDay, endDay })`.
+- Si el mes es actual, los dias futuros se consideran `0` para evitar inflar barras/totales.
+- La vista mensual se mantiene intencionalmente simple (sin detalle interactivo por semana/dia en esta fase).

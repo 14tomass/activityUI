@@ -95,6 +95,10 @@ const MAX_HOURLY_DETAIL_ITEMS = 7
 const DEFAULT_START_OF_DAY = '00:00'
 const RANGE_MODE_TODAY = 'today'
 const RANGE_MODE_WEEK = 'week'
+const RANGE_MODE_MONTH = 'month'
+const MAX_DAY_HISTORY = 15
+const MAX_WEEK_HISTORY = 5
+const MAX_MONTH_HISTORY = 3
 
 function normalizeRuleInput(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : ''
@@ -171,6 +175,32 @@ function getWeekRangeFromStartDay(startDay) {
   return { startDay, endDay }
 }
 
+function getMonthStartDay(isoDay) {
+  const [year, month] = isoDay.split('-').map((part) => Number.parseInt(part, 10))
+  return `${year}-${String(month).padStart(2, '0')}-01`
+}
+
+function getMonthRangeFromStartDay(startDay) {
+  const [year, month] = startDay.split('-').map((part) => Number.parseInt(part, 10))
+  const end = new Date(year, month, 0, 12, 0, 0, 0)
+  return {
+    startDay,
+    endDay: toIsoDayLocal(end),
+  }
+}
+
+function shiftIsoMonth(monthStartDay, deltaMonths) {
+  const [year, month] = monthStartDay.split('-').map((part) => Number.parseInt(part, 10))
+  const shifted = new Date(year, month - 1 + deltaMonths, 1, 12, 0, 0, 0)
+  return toIsoDayLocal(shifted)
+}
+
+function formatMonthLabel(monthStartDay) {
+  const [year, month] = monthStartDay.split('-').map((part) => Number.parseInt(part, 10))
+  const date = new Date(year, month - 1, 1, 12, 0, 0, 0)
+  return date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '')
+}
+
 function formatWeekRangeLabel(startDay, endDay) {
   const [startYear, startMonth, startDate] = startDay.split('-').map((part) => Number.parseInt(part, 10))
   const [endYear, endMonth, endDate] = endDay.split('-').map((part) => Number.parseInt(part, 10))
@@ -245,6 +275,16 @@ function buildNeutralWeeklyBars() {
     hour: String(index),
     day: null,
     label: '-',
+    value: 18,
+    highlighted: false,
+    seconds: 0,
+  }))
+}
+
+function buildNeutralMonthlyBars() {
+  return Array.from({ length: 5 }, (_, index) => ({
+    hour: `S${index + 1}`,
+    label: `S${index + 1}`,
     value: 18,
     highlighted: false,
     seconds: 0,
@@ -331,9 +371,12 @@ function WelcomeHero() {
   const [activityWatchStartOfDay, setActivityWatchStartOfDay] = useState(DEFAULT_START_OF_DAY)
   const currentActivityWatchDay = getCurrentActivityWatchDay(activityWatchStartOfDay)
   const [selectedDay, setSelectedDay] = useState(() => getCurrentActivityWatchDay(DEFAULT_START_OF_DAY))
-  const [selectedRangeMode, setSelectedRangeMode] = useState(RANGE_MODE_TODAY)
+  const [selectedRangeMode, setSelectedRangeMode] = useState(RANGE_MODE_WEEK)
   const [selectedWeekStartDay, setSelectedWeekStartDay] = useState(() =>
     getWeekStartDay(getCurrentActivityWatchDay(DEFAULT_START_OF_DAY))
+  )
+  const [selectedMonthStartDay, setSelectedMonthStartDay] = useState(() =>
+    getMonthStartDay(getCurrentActivityWatchDay(DEFAULT_START_OF_DAY))
   )
   const [selectedWeekDay, setSelectedWeekDay] = useState(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -381,7 +424,9 @@ function WelcomeHero() {
   const categoryCardRequestTokenRef = useRef(0)
   const dayDataCacheRef = useRef({})
   const weekDataCacheRef = useRef({})
+  const monthDataCacheRef = useRef({})
   const weekCategoryContextCacheRef = useRef({})
+  const tabsOrderLoggedRef = useRef(false)
 
   const closeSettings = () => {
     setActiveModal(null)
@@ -701,6 +746,7 @@ function WelcomeHero() {
       setActivityWatchStartOfDay(detectedStartOfDay)
       setSelectedDay(currentDay)
       setSelectedWeekStartDay(getWeekStartDay(currentDay))
+      setSelectedMonthStartDay(getMonthStartDay(currentDay))
     }
 
     bootstrapDaySettings()
@@ -716,6 +762,7 @@ function WelcomeHero() {
     const loadDashboard = async () => {
       const dayCacheKey = selectedDay
       const weekCacheKey = selectedWeekStartDay
+      const monthCacheKey = selectedMonthStartDay
 
       if (selectedRangeMode === RANGE_MODE_TODAY) {
         const cachedDay = dayDataCacheRef.current[dayCacheKey]
@@ -744,11 +791,29 @@ function WelcomeHero() {
         }
       }
 
+      if (selectedRangeMode === RANGE_MODE_MONTH) {
+        const cachedMonth = monthDataCacheRef.current[monthCacheKey]
+        if (cachedMonth) {
+          setKpiUsageLabel(cachedMonth.kpiUsageLabel)
+          setWeeklyTotalSeconds(cachedMonth.monthlyTotalSeconds)
+          setIsKpiLoading(false)
+          setHourlyUsage(cachedMonth.hourlyUsage)
+          setIsHourlyLoading(false)
+          setCategoryUsageCard(cachedMonth.categoryUsageCard)
+          setIsCategoryCardLoading(false)
+          return
+        }
+      }
+
       setIsKpiLoading(true)
       setKpiUsageLabel('-')
       setIsHourlyLoading(true)
       setHourlyUsage(
-        selectedRangeMode === RANGE_MODE_WEEK ? buildNeutralWeeklyBars() : buildNeutralHourlyBars()
+        selectedRangeMode === RANGE_MODE_WEEK
+          ? buildNeutralWeeklyBars()
+          : selectedRangeMode === RANGE_MODE_MONTH
+            ? buildNeutralMonthlyBars()
+            : buildNeutralHourlyBars()
       )
       setIsCategoryCardLoading(true)
       setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
@@ -844,6 +909,148 @@ function WelcomeHero() {
         return
       }
 
+      if (selectedRangeMode === RANGE_MODE_MONTH) {
+        const { startDay, endDay } = getMonthRangeFromStartDay(selectedMonthStartDay)
+        const [monthlyTotalResult, monthlySeriesResult, monthlyCategoryResult] = await Promise.all([
+          getRangeActiveUsage({ startDay, endDay }),
+          getRangeDailyUsageSeries({ startDay, endDay }),
+          getRangeCategoryUsage({ startDay, endDay }),
+        ])
+
+        if (cancelled) {
+          return
+        }
+
+        if (monthlyTotalResult.ok && typeof monthlyTotalResult.totalSeconds === 'number') {
+          setWeeklyTotalSeconds(monthlyTotalResult.totalSeconds)
+          setKpiUsageLabel(formatUsageFromSeconds(monthlyTotalResult.totalSeconds))
+        } else {
+          setWeeklyTotalSeconds(0)
+          setKpiUsageLabel('-')
+          console.warn(
+            'No se pudo cargar KPI mensual real de ActivityWatch; se mantiene estado neutro.',
+            monthlyTotalResult.error,
+            monthlyTotalResult.warnings
+          )
+        }
+        setIsKpiLoading(false)
+
+        let monthlyBars = buildNeutralMonthlyBars()
+        if (monthlySeriesResult.ok && Array.isArray(monthlySeriesResult.dailySeries)) {
+          const [year, month] = selectedMonthStartDay.split('-').map((part) => Number.parseInt(part, 10))
+          const daysInMonth = new Date(year, month, 0).getDate()
+          const weekCount = Math.ceil(daysInMonth / 7)
+          const rawWeeks = Array.from({ length: weekCount }, (_, index) => ({
+            index,
+            label: `S${index + 1}`,
+            seconds: 0,
+          }))
+
+          monthlySeriesResult.dailySeries.forEach((dayItem) => {
+            const [itemYear, itemMonth, itemDay] = dayItem.day
+              .split('-')
+              .map((part) => Number.parseInt(part, 10))
+            if (itemYear !== year || itemMonth !== month) {
+              return
+            }
+            const weekIndex = Math.floor((itemDay - 1) / 7)
+            const isFutureDay = isIsoDayFuture(dayItem.day, currentActivityWatchDay)
+            const daySeconds = isFutureDay ? 0 : dayItem.seconds ?? 0
+            if (rawWeeks[weekIndex]) {
+              rawWeeks[weekIndex].seconds += daySeconds
+            }
+          })
+
+          const maxWeekSeconds = Math.max(0, ...rawWeeks.map((week) => week.seconds))
+          const highlightedWeekIndex = rawWeeks.reduce(
+            (best, item) => (item.seconds > best.seconds ? item : best),
+            { index: -1, seconds: -1 }
+          ).index
+
+          monthlyBars = rawWeeks.map((week) => ({
+            hour: week.label,
+            label: week.label,
+            seconds: week.seconds,
+            highlighted: week.index === highlightedWeekIndex && maxWeekSeconds > 0,
+            value: maxWeekSeconds > 0 ? Math.max(0, Math.min(100, (week.seconds / maxWeekSeconds) * 100)) : 0,
+          }))
+          setHourlyUsage(monthlyBars)
+        } else {
+          setHourlyUsage(buildNeutralMonthlyBars())
+          console.warn(
+            'No se pudo cargar uso mensual por semanas de ActivityWatch; se mantiene estado neutro.',
+            monthlySeriesResult.error,
+            monthlySeriesResult.warnings
+          )
+        }
+        setIsHourlyLoading(false)
+
+        if (monthlyCategoryResult.ok && Array.isArray(monthlyCategoryResult.categories)) {
+          const visualCategories = mapCategoryResultToCard(monthlyCategoryResult)
+          setCategoryUsageCard(visualCategories)
+          monthDataCacheRef.current[monthCacheKey] = {
+            kpiUsageLabel:
+              monthlyTotalResult.ok && typeof monthlyTotalResult.totalSeconds === 'number'
+                ? formatUsageFromSeconds(monthlyTotalResult.totalSeconds)
+                : '-',
+            monthlyTotalSeconds:
+              monthlyTotalResult.ok && typeof monthlyTotalResult.totalSeconds === 'number'
+                ? monthlyTotalResult.totalSeconds
+                : 0,
+            hourlyUsage: monthlyBars,
+            categoryUsageCard: visualCategories,
+          }
+        } else {
+          setCategoryDefinitions(getCategoryDefinitions())
+          setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
+          console.warn(
+            'No se pudo cargar categorias mensuales reales de ActivityWatch; se mantiene estado neutro.',
+            monthlyCategoryResult.error,
+            monthlyCategoryResult.warnings
+          )
+        }
+        setIsCategoryCardLoading(false)
+
+        const monthlySeconds =
+          monthlyTotalResult.ok && typeof monthlyTotalResult.totalSeconds === 'number'
+            ? monthlyTotalResult.totalSeconds
+            : 0
+        const barsSeconds = monthlyBars.reduce((sum, item) => sum + (item.seconds ?? 0), 0)
+        const categoriesSeconds =
+          monthlyCategoryResult.ok && Array.isArray(monthlyCategoryResult.categories)
+            ? monthlyCategoryResult.categories.reduce((sum, item) => sum + (item.seconds ?? 0), 0)
+            : 0
+        const [year, month] = selectedMonthStartDay.split('-').map((part) => Number.parseInt(part, 10))
+        const daysInMonth = new Date(year, month, 0).getDate()
+        const isCurrentMonth = selectedMonthStartDay === getMonthStartDay(currentActivityWatchDay)
+        const daysConsidered = isCurrentMonth
+          ? Math.min(Math.max(Number.parseInt(currentActivityWatchDay.split('-')[2], 10), 1), daysInMonth)
+          : daysInMonth
+        const monthlyAverageSeconds = daysConsidered > 0 ? monthlySeconds / daysConsidered : 0
+
+        console.group('[RANGE-MONTH-01-VERIFY] Monthly summary consistency')
+        console.log('selected month:', formatMonthLabel(selectedMonthStartDay))
+        console.log('month start:', startDay)
+        console.log('month end:', endDay)
+        console.log('monthly total seconds:', monthlySeconds)
+        console.log('sum of weekly bars seconds:', barsSeconds)
+        console.log('difference total vs weekly bars:', Math.abs(monthlySeconds - barsSeconds))
+        console.log('categories total seconds:', categoriesSeconds)
+        console.log('difference total vs categories:', Math.abs(monthlySeconds - categoriesSeconds))
+        console.log('days considered for average:', daysConsidered)
+        console.log('monthly average formatted:', formatUsageFromSeconds(monthlyAverageSeconds))
+        console.log('weekly bars count:', monthlyBars.length)
+        console.log(
+          'validation:',
+          Math.abs(monthlySeconds - barsSeconds) <= 2 && Math.abs(monthlySeconds - categoriesSeconds) <= 2
+            ? 'OK'
+            : 'MISMATCH'
+        )
+        console.groupEnd()
+
+        return
+      }
+
       const [dailyResult, hourlyResult, categoryResult] = await Promise.all([
         getDailyActiveUsage({ day: selectedDay }),
         getHourlyActiveUsage({ day: selectedDay }),
@@ -912,6 +1119,7 @@ function WelcomeHero() {
     currentActivityWatchDay,
     mapCategoryResultToCard,
     selectedDay,
+    selectedMonthStartDay,
     selectedRangeMode,
     selectedWeekStartDay,
   ])
@@ -1009,18 +1217,51 @@ function WelcomeHero() {
     () => getWeekRangeFromStartDay(selectedWeekStartDay),
     [selectedWeekStartDay]
   )
+  const selectedMonthRange = useMemo(
+    () => getMonthRangeFromStartDay(selectedMonthStartDay),
+    [selectedMonthStartDay]
+  )
   const selectedDateLabel = useMemo(() => {
     if (selectedRangeMode === RANGE_MODE_WEEK) {
       return formatWeekRangeLabel(selectedWeekRange.startDay, selectedWeekRange.endDay)
     }
+    if (selectedRangeMode === RANGE_MODE_MONTH) {
+      return formatMonthLabel(selectedMonthStartDay)
+    }
     return formatSelectedDayLabel(selectedDay)
-  }, [selectedDay, selectedRangeMode, selectedWeekRange.endDay, selectedWeekRange.startDay])
+  }, [selectedDay, selectedMonthStartDay, selectedRangeMode, selectedWeekRange.endDay, selectedWeekRange.startDay])
+  const isPreviousDayDisabled = useMemo(() => {
+    const minDay = shiftIsoDay(currentActivityWatchDay, -MAX_DAY_HISTORY)
+    return selectedDay <= minDay
+  }, [currentActivityWatchDay, selectedDay])
+  const isPreviousWeekDisabled = useMemo(() => {
+    const currentWeekStart = getWeekStartDay(currentActivityWatchDay)
+    const minWeekStart = shiftIsoDay(currentWeekStart, -MAX_WEEK_HISTORY * 7)
+    return selectedWeekRange.startDay <= minWeekStart
+  }, [currentActivityWatchDay, selectedWeekRange.startDay])
+  const isPreviousMonthDisabled = useMemo(() => {
+    const currentMonthStart = getMonthStartDay(currentActivityWatchDay)
+    const minMonthStart = shiftIsoMonth(currentMonthStart, -MAX_MONTH_HISTORY)
+    return selectedMonthStartDay <= minMonthStart
+  }, [currentActivityWatchDay, selectedMonthStartDay])
+  const isPreviousRangeDisabled = useMemo(() => {
+    if (selectedRangeMode === RANGE_MODE_WEEK) {
+      return isPreviousWeekDisabled
+    }
+    if (selectedRangeMode === RANGE_MODE_MONTH) {
+      return isPreviousMonthDisabled
+    }
+    return isPreviousDayDisabled
+  }, [isPreviousDayDisabled, isPreviousMonthDisabled, isPreviousWeekDisabled, selectedRangeMode])
   const isNextDayDisabled = useMemo(() => {
     if (selectedRangeMode === RANGE_MODE_WEEK) {
       return selectedWeekRange.startDay >= getWeekStartDay(currentActivityWatchDay)
     }
+    if (selectedRangeMode === RANGE_MODE_MONTH) {
+      return selectedMonthStartDay >= getMonthStartDay(currentActivityWatchDay)
+    }
     return selectedDay >= currentActivityWatchDay
-  }, [currentActivityWatchDay, selectedDay, selectedRangeMode, selectedWeekRange.startDay])
+  }, [currentActivityWatchDay, selectedDay, selectedMonthStartDay, selectedRangeMode, selectedWeekRange.startDay])
   const weeklySelectedDayLabel = useMemo(() => {
     if (!selectedWeekDay) {
       return null
@@ -1039,7 +1280,7 @@ function WelcomeHero() {
     return formatUsageFromSeconds(selectedBar?.seconds ?? 0)
   }, [hourlyUsage, selectedWeekDay])
   const chartAxisLabels = useMemo(() => {
-    if (selectedRangeMode === RANGE_MODE_WEEK) {
+    if (selectedRangeMode === RANGE_MODE_WEEK || selectedRangeMode === RANGE_MODE_MONTH) {
       return buildWeeklyAxisLabels(hourlyUsage, isHourlyLoading)
     }
     return buildDailyAxisLabels(hourlyUsage, isHourlyLoading)
@@ -1062,6 +1303,24 @@ function WelcomeHero() {
       isCurrentWeek,
     }
   }, [currentActivityWatchDay, selectedRangeMode, selectedWeekRange.startDay, weeklyTotalSeconds])
+  const monthlyAverage = useMemo(() => {
+    if (selectedRangeMode !== RANGE_MODE_MONTH) {
+      return { daysConsidered: 0, averageSeconds: 0, formatted: '-' }
+    }
+    const [year, month] = selectedMonthStartDay.split('-').map((part) => Number.parseInt(part, 10))
+    const currentMonthStart = getMonthStartDay(currentActivityWatchDay)
+    const isCurrentMonth = selectedMonthStartDay === currentMonthStart
+    const daysInMonth = new Date(year, month, 0).getDate()
+    const currentDayOfMonth = Number.parseInt(currentActivityWatchDay.split('-')[2], 10)
+    const daysConsidered = isCurrentMonth ? Math.min(Math.max(currentDayOfMonth, 1), daysInMonth) : daysInMonth
+    const averageSeconds = daysConsidered > 0 ? weeklyTotalSeconds / daysConsidered : 0
+    return {
+      daysConsidered,
+      averageSeconds,
+      formatted: formatUsageFromSeconds(averageSeconds),
+      isCurrentMonth,
+    }
+  }, [currentActivityWatchDay, selectedMonthStartDay, selectedRangeMode, weeklyTotalSeconds])
 
   const navigateDay = useCallback(
     (deltaDays) => {
@@ -1072,16 +1331,40 @@ function WelcomeHero() {
             return previousStartDay
           }
           const currentWeekStartDay = getWeekStartDay(currentActivityWatchDay)
+          const minWeekStartDay = shiftIsoDay(currentWeekStartDay, -MAX_WEEK_HISTORY * 7)
+          if (deltaDays < 0 && nextStartDay < minWeekStartDay) {
+            return previousStartDay
+          }
           if (deltaDays > 0 && nextStartDay > currentWeekStartDay) {
             return previousStartDay
           }
           return nextStartDay
         })
         setSelectedWeekDay(null)
+      } else if (selectedRangeMode === RANGE_MODE_MONTH) {
+        setSelectedMonthStartDay((previousMonthStartDay) => {
+          const nextMonthStartDay = shiftIsoMonth(previousMonthStartDay, deltaDays)
+          if (!nextMonthStartDay) {
+            return previousMonthStartDay
+          }
+          const currentMonthStartDay = getMonthStartDay(currentActivityWatchDay)
+          const minMonthStartDay = shiftIsoMonth(currentMonthStartDay, -MAX_MONTH_HISTORY)
+          if (deltaDays < 0 && nextMonthStartDay < minMonthStartDay) {
+            return previousMonthStartDay
+          }
+          if (deltaDays > 0 && nextMonthStartDay > currentMonthStartDay) {
+            return previousMonthStartDay
+          }
+          return nextMonthStartDay
+        })
       } else {
         setSelectedDay((previousDay) => {
           const nextDay = shiftIsoDay(previousDay, deltaDays)
           if (!nextDay) {
+            return previousDay
+          }
+          const minDay = shiftIsoDay(currentActivityWatchDay, -MAX_DAY_HISTORY)
+          if (deltaDays < 0 && nextDay < minDay) {
             return previousDay
           }
           if (deltaDays > 0 && nextDay > currentActivityWatchDay) {
@@ -1101,13 +1384,15 @@ function WelcomeHero() {
 
   const handleSelectRangeMode = useCallback(
     (modeId) => {
-      if (modeId === 'month') {
-        return
-      }
       if (modeId === selectedRangeMode) {
         return
       }
-      const nextMode = modeId === 'week' ? RANGE_MODE_WEEK : RANGE_MODE_TODAY
+      const nextMode =
+        modeId === 'week'
+          ? RANGE_MODE_WEEK
+          : modeId === 'month'
+            ? RANGE_MODE_MONTH
+            : RANGE_MODE_TODAY
       setSelectedRangeMode(nextMode)
       closeAllModals()
       if (isSettingsOpen) {
@@ -1115,6 +1400,9 @@ function WelcomeHero() {
       }
       if (nextMode === RANGE_MODE_WEEK) {
         setSelectedWeekStartDay(getWeekStartDay(currentActivityWatchDay))
+        setSelectedWeekDay(null)
+      } else if (nextMode === RANGE_MODE_MONTH) {
+        setSelectedMonthStartDay(getMonthStartDay(currentActivityWatchDay))
         setSelectedWeekDay(null)
       } else {
         setSelectedDay(currentActivityWatchDay)
@@ -1147,6 +1435,73 @@ function WelcomeHero() {
     setSelectedWeekDay(null)
   }, [selectedWeekDay])
 
+  useEffect(() => {
+    if (tabsOrderLoggedRef.current) {
+      return
+    }
+    const visibleTabsOrder = dashboardOverview.timeRanges.map((range) =>
+      range.id === 'week' ? 'Semana' : range.id === 'today' ? 'Dia' : 'Mes'
+    )
+    console.group('[RANGE-TABS-ORDER-VERIFY] Tabs order and initial mode')
+    console.log('visible tabs order:', visibleTabsOrder.join(' | '))
+    console.log('initial selected mode:', selectedRangeMode === RANGE_MODE_WEEK ? 'Semana' : selectedRangeMode)
+    console.log('Day mode still available:', dashboardOverview.timeRanges.some((range) => range.id === 'today'))
+    console.log('Month mode available:', dashboardOverview.timeRanges.some((range) => range.id === 'month'))
+    console.log(
+      'validation:',
+      visibleTabsOrder.join('|') === 'Semana|Dia|Mes' && selectedRangeMode === RANGE_MODE_WEEK ? 'OK' : 'MISMATCH'
+    )
+    console.groupEnd()
+    tabsOrderLoggedRef.current = true
+  }, [selectedRangeMode])
+
+  useEffect(() => {
+    let reference = selectedDay
+    let minAllowed = shiftIsoDay(currentActivityWatchDay, -MAX_DAY_HISTORY)
+    let maxAllowed = currentActivityWatchDay
+    let leftDisabled = isPreviousDayDisabled
+    let rightDisabled = isNextDayDisabled
+
+    if (selectedRangeMode === RANGE_MODE_WEEK) {
+      reference = `${selectedWeekRange.startDay} -> ${selectedWeekRange.endDay}`
+      const currentWeekStart = getWeekStartDay(currentActivityWatchDay)
+      minAllowed = `${shiftIsoDay(currentWeekStart, -MAX_WEEK_HISTORY * 7)} -> ${shiftIsoDay(currentWeekStart, -MAX_WEEK_HISTORY * 7 + 6)}`
+      maxAllowed = `${currentWeekStart} -> ${shiftIsoDay(currentWeekStart, 6)}`
+      leftDisabled = isPreviousWeekDisabled
+      rightDisabled = isNextDayDisabled
+    } else if (selectedRangeMode === RANGE_MODE_MONTH) {
+      const currentMonthStart = getMonthStartDay(currentActivityWatchDay)
+      reference = `${selectedMonthRange.startDay} -> ${selectedMonthRange.endDay}`
+      minAllowed = `${shiftIsoMonth(currentMonthStart, -MAX_MONTH_HISTORY)} -> ${getMonthRangeFromStartDay(shiftIsoMonth(currentMonthStart, -MAX_MONTH_HISTORY)).endDay}`
+      maxAllowed = `${currentMonthStart} -> ${getMonthRangeFromStartDay(currentMonthStart).endDay}`
+      leftDisabled = isPreviousMonthDisabled
+      rightDisabled = isNextDayDisabled
+    }
+
+    console.group('[RANGE-NAV-LIMITS-VERIFY] Navigation history limits')
+    console.log('mode:', selectedRangeMode === RANGE_MODE_TODAY ? 'Dia' : selectedRangeMode === RANGE_MODE_WEEK ? 'Semana' : 'Mes')
+    console.log('current reference date/range:', reference)
+    console.log('min allowed date/range:', minAllowed)
+    console.log('max allowed date/range:', maxAllowed)
+    console.log('left disabled at limit:', leftDisabled)
+    console.log('right disabled at current:', rightDisabled)
+    console.log('action blocked beyond limit:', leftDisabled || rightDisabled)
+    console.log('validation:', 'OK')
+    console.groupEnd()
+  }, [
+    currentActivityWatchDay,
+    isNextDayDisabled,
+    isPreviousDayDisabled,
+    isPreviousMonthDisabled,
+    isPreviousWeekDisabled,
+    selectedDay,
+    selectedMonthRange.endDay,
+    selectedMonthRange.startDay,
+    selectedRangeMode,
+    selectedWeekRange.endDay,
+    selectedWeekRange.startDay,
+  ])
+
   return (
     <section className="relative flex w-full max-w-[1180px] justify-center">
       <div
@@ -1160,12 +1515,12 @@ function WelcomeHero() {
               key={range.id}
               type="button"
               onClick={() => handleSelectRangeMode(range.id)}
-              disabled={range.id === 'month'}
               className={`flex-1 rounded-full px-4 py-2.5 text-[0.88rem] font-semibold transition ${
                 (range.id === 'today' && selectedRangeMode === RANGE_MODE_TODAY) ||
-                (range.id === 'week' && selectedRangeMode === RANGE_MODE_WEEK)
+                (range.id === 'week' && selectedRangeMode === RANGE_MODE_WEEK) ||
+                (range.id === 'month' && selectedRangeMode === RANGE_MODE_MONTH)
                   ? 'bg-[#1877f2] text-white shadow-[0_8px_16px_rgba(24,119,242,0.35)]'
-                  : 'text-slate-700 disabled:cursor-not-allowed disabled:opacity-40'
+                  : 'text-slate-700'
               }`}
             >
               {range.id === 'today' ? 'Dia' : range.id === 'week' ? 'Semana' : 'Mes'}
@@ -1180,7 +1535,8 @@ function WelcomeHero() {
               type="button"
               aria-label="Fecha anterior"
               onClick={() => navigateDay(-1)}
-              className="text-slate-400"
+              disabled={isPreviousRangeDisabled}
+              className="text-slate-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {chevronLeftIcon}
             </button>
@@ -1207,18 +1563,24 @@ function WelcomeHero() {
             <p className="mt-2 text-[0.98rem] font-medium text-slate-500">
               {isKpiLoading ? '-' : `Media diaria: ${weeklyAverage.formatted}`}
             </p>
+          ) : selectedRangeMode === RANGE_MODE_MONTH ? (
+            <p className="mt-2 text-[0.98rem] font-medium text-slate-500">
+              {isKpiLoading ? '-' : `Media diaria: ${monthlyAverage.formatted}`}
+            </p>
           ) : null}
           <p className="mt-4 text-[1.32rem] font-normal tracking-[-0.02em] text-slate-500/80">
             {selectedRangeMode === RANGE_MODE_WEEK
               ? 'Tiempo total de uso en la ultima semana'
-              : 'Tiempo total de uso hoy'}
+              : selectedRangeMode === RANGE_MODE_MONTH
+                ? 'Tiempo total de uso en el mes'
+                : 'Tiempo total de uso hoy'}
           </p>
         </div>
 
         <div className="mt-9 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-[1.72rem] font-semibold tracking-[-0.02em] text-slate-800">
-              {selectedRangeMode === RANGE_MODE_WEEK ? 'Uso por dias' : 'Uso por horas'}
+              {selectedRangeMode === RANGE_MODE_TODAY ? 'Uso por horas' : 'Uso por dias'}
             </h2>
             {selectedRangeMode === RANGE_MODE_WEEK ? (
               <div className="inline-flex items-center rounded-full bg-slate-100 p-1">
@@ -1256,7 +1618,7 @@ function WelcomeHero() {
             <div className="flex min-w-0 flex-col overflow-hidden">
               <div
                 className={`grid h-[162px] items-end gap-1 overflow-hidden ${
-                  selectedRangeMode === RANGE_MODE_WEEK ? 'grid-cols-7' : 'grid-cols-24'
+                  selectedRangeMode === RANGE_MODE_TODAY ? 'grid-cols-24' : 'grid-cols-7'
                 }`}
               >
                 {hourlyUsage.map((item, index) => (
@@ -1309,6 +1671,8 @@ function WelcomeHero() {
               <div className="mt-3 flex justify-between text-[0.78rem] text-slate-400">
                 {(selectedRangeMode === RANGE_MODE_WEEK
                   ? hourlyUsage.map((item) => item.label ?? '-')
+                  : selectedRangeMode === RANGE_MODE_MONTH
+                    ? hourlyUsage.map((item) => item.label ?? '-')
                   : ['00', '03', '06', '09', '12', '15', '18', '21', '23']
                 ).map((label, index) => (
                   <span key={`${label}-${index}`}>{label}</span>
@@ -1333,15 +1697,22 @@ function WelcomeHero() {
               ? selectedWeekDay && weeklySelectedDayLabel
                 ? `Categorias del ${weeklySelectedDayLabel}`
                 : 'Categorias de la semana'
-              : 'Categorias del dia'}
+              : selectedRangeMode === RANGE_MODE_MONTH
+                ? 'Categorias del mes'
+                : 'Categorias del dia'}
           </p>
           <div className="space-y-4">
             {categoryUsageCard.map((category) => (
               <button
                 key={category.id}
                 type="button"
-                disabled={isCategoryCardLoading}
-                onClick={() => openCategoryDetail(category.label)}
+                disabled={isCategoryCardLoading || selectedRangeMode === RANGE_MODE_MONTH}
+                onClick={() => {
+                  if (selectedRangeMode === RANGE_MODE_MONTH) {
+                    return
+                  }
+                  openCategoryDetail(category.label)
+                }}
                 className="w-full text-left disabled:cursor-not-allowed"
               >
                 <div className="mb-1.5 flex items-center justify-between text-[1.24rem] font-semibold tracking-[-0.02em] text-slate-800">

@@ -835,3 +835,27 @@
 - seleccion de dia dentro de Semana y switch `Semana | Dia`
 - categorias semanales o diarias segun contexto de switch
 - En funcionamiento normal quedan solo `console.warn` utiles ante errores reales de carga/ActivityWatch.
+
+## RANGE-NAV-AND-MONTH-PLAN-01
+
+- Se cambio la prioridad de vistas y la app abre por defecto en `Semana`.
+- Orden visual de tabs actualizado a `Semana | Dia | Mes`.
+- Se aplicaron limites historicos con bloqueo funcional de navegacion:
+- `Dia`: maximo 15 dias atras desde el dia ActivityWatch actual.
+- `Semana`: maximo 5 semanas atras desde la semana actual.
+- `Mes`: maximo 3 meses atras desde el mes actual.
+- La flecha derecha se mantiene bloqueada en el rango actual (dia/semana/mes).
+- Se implemento modo `Mes` como resumen simple (sin interacciones complejas):
+- KPI mensual real (mes natural).
+- Media diaria mensual:
+- mes actual: divide por dias transcurridos hasta hoy inclusive.
+- mes pasado: divide por todos los dias del mes.
+- Grafico por semanas del mes (`S1..Sn`), contando solo dias que pertenecen al mes.
+- Eje vertical en horas.
+- Tarjeta de categorias agregadas del mes.
+- En `Mes`, categorias sin detalle por clic (desactivado por ahora para mantener alcance simple).
+- Se reutiliza cache en memoria de sesion para dia/semana/mes y evitar recargas innecesarias al alternar modos.
+- Verificacion temporal activa:
+- `[RANGE-TABS-ORDER-VERIFY] Tabs order and initial mode`
+- `[RANGE-NAV-LIMITS-VERIFY] Navigation history limits`
+- `[RANGE-MONTH-01-VERIFY] Monthly summary consistency`

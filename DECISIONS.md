@@ -40,6 +40,9 @@
 - En modo `Semana`, la navegacion derecha se bloquea al llegar a la semana actual (lunes-domingo del dia ActivityWatch actual).
 - Se usa cache en memoria de sesion para restaurar rapidamente datos de `Dia` y `Semana` sin recarga completa al alternar tabs cuando ya existe resultado.
 - En el switch semanal `Semana | Dia`, el estado `Dia` queda deshabilitado si no hay barra seleccionada; no se fuerza seleccion automatica de dia.
+- La vista inicial del dashboard pasa a `Semana` y el orden estable de tabs queda `Semana | Dia | Mes`.
+- Se aplican limites historicos de navegacion en cliente: `Dia` hasta 15 dias atras, `Semana` hasta 5 semanas atras y `Mes` hasta 3 meses atras.
+- El modo `Mes` se define como resumen simple (KPI mensual + media diaria + grafico por semanas + categorias agregadas) sin interacciones de detalle por semana en esta fase.
 
 ### Estrategia de implementacion
 
