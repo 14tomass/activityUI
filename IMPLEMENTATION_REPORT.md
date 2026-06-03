@@ -909,12 +909,7 @@
 - al eliminar una categoria custom se borran sus reglas y se invalida la cache de dashboard
 - Se anadio texto de ayuda en el modal de edicion para explicar `.exe` y dominios.
 - Se mantuvo la resiliencia existente cuando ActivityWatch no esta disponible: sin pantallas infinitas ni hard-crashes, solo estados neutros y warnings controlados.
-- Se anadieron logs temporales controlados para esta validacion:
-- `[QA-FIX-WEEK-CHART-VERIFY]`
-- `[QA-FIX-SESSION-CACHE-VERIFY]`
-- `[QA-FIX-DAY-KPI-VERIFY]`
-- `[QA-FIX-UNIQUE-RULES-VERIFY]`
-- `[QA-FIX-DELETE-CATEGORY-VERIFY]`
+- Los logs temporales de verificacion de esta fase ya fueron retirados tras validar la correccion en QA-FIX-CLOSE-01.
 
 ## QA-FIX-CATEGORY-MODAL-SCROLL-01
 
@@ -937,8 +932,7 @@
 - inferencia `.exe`
 - creacion/eliminacion de categorias
 - motor de clasificacion
-- Se anadio log temporal de verificacion:
-- `[QA-FIX-CATEGORY-MODAL-SCROLL-VERIFY]`
+- El log temporal de verificacion de este ajuste ya fue retirado tras su validacion.
 
 ## QA-FIX-CATEGORY-MODAL-ACTIONS-01
 
@@ -954,6 +948,86 @@
 - scroll del modal
 - motor de clasificacion
 - navegacion `Semana | Dia | Mes`
-- Se anadieron logs temporales de verificacion:
+- Los logs temporales de verificacion de este ajuste ya fueron retirados tras su validacion.
+
+## QA-FIX-CLOSE-01
+
+- Se verifico el cierre definitivo de los logs temporales de verificacion anadidos durante las correcciones QA recientes.
+- En la revision final ya no quedaban presentes en codigo los bloques:
+- `[QA-FIX-WEEK-CHART-VERIFY]`
+- `[QA-FIX-SESSION-CACHE-VERIFY]`
+- `[QA-FIX-DAY-KPI-VERIFY]`
+- `[QA-FIX-UNIQUE-RULES-VERIFY]`
+- `[QA-FIX-DELETE-CATEGORY-VERIFY]`
+- `[QA-FIX-CATEGORY-MODAL-SCROLL-VERIFY]`
 - `[QA-FIX-CREATE-CATEGORY-CLOSE-VERIFY]`
 - `[QA-FIX-DELETE-CATEGORY-CLOSE-VERIFY]`
+- Se mantuvo intacta la logica funcional del dashboard, categorias, modales y navegacion.
+- Se sincronizo la documentacion para reflejar que la fase QA-FIX queda cerrada y sin ruido temporal en consola.
+
+## UX-POLISH-01
+
+- Se pulieron textos principales del dashboard para que dependan mejor del contexto visible:
+- `Dia`: `Tiempo total de uso hoy` o `Tiempo total de uso del dia`
+- `Semana`: `Tiempo total de uso de la semana`
+- `Mes`: `Tiempo total de uso del mes`
+- Se mejoro la claridad visual de estados de carga y estados vacios sin introducir datos falsos:
+- placeholders neutros mantenidos en KPI, grafico y categorias
+- mensajes explicitos cuando no hay actividad en el dia, semana o mes visibles
+- mensajes mas claros cuando una categoria aun no tiene uso registrado
+- Se anadio un aviso discreto cuando falla la conexion con ActivityWatch:
+- no bloquea toda la app
+- mantiene la interfaz usable
+- indica que ActivityWatch debe estar disponible en `localhost:5600`
+- Se pulio Configuracion:
+- copy mas natural en el panel
+- contador de reglas mas legible (`Sin reglas todavia`, `1 regla`, `n reglas`)
+- modal de creacion con texto de ayuda corto
+- modal de edicion con estado vacio cuando la categoria aun no tiene reglas
+- Se reforzo accesibilidad basica y consistencia visual:
+- `focus-visible` en tabs, flechas, boton de Configuracion, cierres de modal y acciones principales
+- mejor feedback visual en botones deshabilitados
+- espaciados ligeramente ajustados entre KPI, aviso y tarjetas
+- Se mantuvo intacta la logica funcional principal:
+- calculos de ActivityWatch
+- queries
+- categorizacion
+- reglas
+- limites historicos
+- cache minima de sesion
+
+## UX-POLISH-01-CLOSE
+
+- Se verifico el cierre definitivo de `UX-POLISH-01` sin cambios funcionales adicionales.
+- No se detectaron logs temporales propios de `UX-POLISH-01`.
+- No quedan `console.log`, `console.group` ni `console.groupEnd` de debug en `src`; se mantienen solo `console.warn` controlados para fallos reales de ActivityWatch o de la API local.
+- La validacion final confirma que:
+- `Semana`, `Dia` y `Mes` funcionan correctamente
+- `Configuracion` funciona correctamente
+- los estados de carga, vacios y error son estables
+- ActivityWatch cerrado no rompe la app
+- Los errores de consola observados inicialmente se confirmaron como externos al navegador al desaparecer en modo incognito; no pertenecen a la app.
+- El proyecto queda en estado MVP local estable y listo para continuar con la siguiente fase.
+
+## QA-FIX-WEEK-SELECTED-DAY-CATEGORY-DETAIL-01
+
+- Se corrigio el contexto del modal de detalle de categoria cuando el usuario esta en `Semana` con un dia seleccionado.
+- Antes del fix:
+- la tarjeta inferior mostraba categorias del dia seleccionado
+- pero el modal seguia consultando el detalle de toda la semana
+- Ahora el modal y la tarjeta quedan sincronizados:
+- `Semana` sin dia seleccionado -> detalle semanal (`getRangeCategoryDetailUsage`)
+- `Semana` con dia seleccionado -> detalle diario de ese dia (`getDailyCategoryDetailUsage`)
+- `Dia` -> se mantiene detalle diario como hasta ahora
+- `Mes` -> no se introduce nueva logica de detalle
+- Tambien se anadio un contexto visual discreto dentro del modal (`dia` o rango semanal visible) para evitar ambiguedad al leer el detalle.
+
+## QA-FIX-WEEK-SELECTED-DAY-CATEGORY-DETAIL-CLOSE
+
+- Se elimino el log temporal `[QA-FIX-WEEK-CATEGORY-DETAIL-CONTEXT-VERIFY] Week selected day category detail context`.
+- No se modifico la logica funcional validada:
+- `Semana` sin dia seleccionado -> detalle semanal
+- `Semana` con dia seleccionado -> detalle diario de ese dia
+- `Dia` -> detalle diario
+- `Mes` -> sin cambios
+- La correccion queda cerrada y la consola vuelve a quedar limpia en funcionamiento normal, salvo warnings/errores reales.

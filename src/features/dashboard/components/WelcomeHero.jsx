@@ -5,6 +5,7 @@ import {
   createCategory,
   deleteCustomCategory,
   formatUsageFromSeconds,
+  getActivityWatchApiBaseUrl,
   getActivityWatchSettings,
   getCategoryDefinitions,
   getCategoryRules,
@@ -101,6 +102,7 @@ const RANGE_MODE_MONTH = 'month'
 const MAX_DAY_HISTORY = 15
 const MAX_WEEK_HISTORY = 5
 const MAX_MONTH_HISTORY = 3
+const ACTIVITYWATCH_LOCAL_URL = getActivityWatchApiBaseUrl().replace('/api/0', '')
 
 function parseStartOfDay(value) {
   if (typeof value !== 'string') {
@@ -320,6 +322,69 @@ function buildLoadingCategories(categoryDefinitions = []) {
   }))
 }
 
+function buildActivityWatchNotice(error) {
+  const message = typeof error?.message === 'string' ? error.message : ''
+  if (!message) {
+    return null
+  }
+
+  if (message.includes('localhost:5600') || message.includes('ActivityWatch')) {
+    return `No se pudo conectar con ActivityWatch. Asegurate de que ActivityWatch esta abierto y disponible en ${ACTIVITYWATCH_LOCAL_URL}.`
+  }
+
+  return 'No se pudieron actualizar algunos datos de ActivityWatch. Se muestran estados neutros mientras se recupera la conexion.'
+}
+
+function getUsageSummaryText(rangeMode, selectedDay, currentDay) {
+  if (rangeMode === RANGE_MODE_WEEK) {
+    return 'Tiempo total de uso de la semana'
+  }
+  if (rangeMode === RANGE_MODE_MONTH) {
+    return 'Tiempo total de uso del mes'
+  }
+  return selectedDay === currentDay ? 'Tiempo total de uso hoy' : 'Tiempo total de uso del dia'
+}
+
+function getChartEmptyMessage(rangeMode) {
+  if (rangeMode === RANGE_MODE_WEEK) {
+    return 'No hay actividad registrada en esta semana.'
+  }
+  if (rangeMode === RANGE_MODE_MONTH) {
+    return 'No hay actividad registrada en este mes.'
+  }
+  return 'No hay actividad registrada en este dia.'
+}
+
+function getCategoryEmptyMessage(rangeMode, selectedWeekDay) {
+  if (rangeMode === RANGE_MODE_WEEK && selectedWeekDay) {
+    return 'No hay actividad categorizada en el dia seleccionado.'
+  }
+  if (rangeMode === RANGE_MODE_WEEK) {
+    return 'No hay actividad categorizada en esta semana.'
+  }
+  if (rangeMode === RANGE_MODE_MONTH) {
+    return 'No hay actividad categorizada en este mes.'
+  }
+  return 'No hay actividad categorizada en este dia.'
+}
+
+function getCategoryDetailEmptyMessage(rangeMode, selectedWeekDay) {
+  if (rangeMode === RANGE_MODE_WEEK && !selectedWeekDay) {
+    return 'Esta categoria aun no tiene uso registrado en esta semana.'
+  }
+  return 'Esta categoria aun no tiene uso registrado en este periodo.'
+}
+
+function getCategoryRuleCountLabel(appCount) {
+  if (appCount <= 0) {
+    return 'Sin reglas todavia'
+  }
+  if (appCount === 1) {
+    return '1 regla'
+  }
+  return `${appCount} reglas`
+}
+
 function aggregateCategoryDetailItems(detailUsage, categoryLabel) {
   const items = [...detailUsage.items]
   if (items.length <= MAX_DETAIL_ITEMS) {
@@ -432,6 +497,7 @@ function WelcomeHero() {
   const [newRuleInput, setNewRuleInput] = useState('')
   const [newCategoryNameInput, setNewCategoryNameInput] = useState('')
   const [newCategoryError, setNewCategoryError] = useState('')
+  const [activityWatchNotice, setActivityWatchNotice] = useState(null)
   const categoryCardRequestTokenRef = useRef(0)
   const dayDataCacheRef = useRef({})
   const weekDataCacheRef = useRef({})
@@ -445,19 +511,12 @@ function WelcomeHero() {
     weekCategoryContextCacheRef.current = {}
   }, [])
 
-  const logSessionCacheVerify = useCallback(
-    ({ mode, cacheKey, cacheHit, renderedFromExistingLoadedData }) => {
-      console.group('[QA-FIX-SESSION-CACHE-VERIFY] Session cache without prefetch')
-      console.log('mode:', mode)
-      console.log('cache key:', cacheKey)
-      console.log('cache hit:', cacheHit)
-      console.log('rendered from existing loaded data:', renderedFromExistingLoadedData)
-      console.log('background prefetch active:', false)
-      console.log('validation:', !renderedFromExistingLoadedData || cacheHit ? 'OK' : 'MISMATCH')
-      console.groupEnd()
-    },
-    []
-  )
+  const reportActivityWatchIssue = useCallback((error) => {
+    const nextNotice = buildActivityWatchNotice(error)
+    if (nextNotice) {
+      setActivityWatchNotice(nextNotice)
+    }
+  }, [])
 
   const closeSettings = () => {
     setActiveModal(null)
@@ -525,6 +584,7 @@ function WelcomeHero() {
     })()
     const resolvedResult = await result
     if (!resolvedResult.ok || !Array.isArray(resolvedResult.categories)) {
+      reportActivityWatchIssue(resolvedResult.error)
       console.warn(
         'No se pudo cargar uso por categorias real de ActivityWatch; se mantiene estado neutro.',
         resolvedResult.error,
@@ -547,7 +607,7 @@ function WelcomeHero() {
 
     setCategoryUsageCard(visualCategories)
     return true
-  }, [selectedDay, selectedMonthStartDay, selectedRangeMode, selectedWeekDay, selectedWeekStartDay])
+  }, [reportActivityWatchIssue, selectedDay, selectedMonthStartDay, selectedRangeMode, selectedWeekDay, selectedWeekStartDay])
 
   const mapCategoryResultToCard = useCallback((result) => {
     const definitions = getCategoryDefinitions()
@@ -566,11 +626,15 @@ function WelcomeHero() {
   }, [])
 
   const loadCategoryDetailUsage = useCallback(async ({ category, requestId }) => {
-    const detailResult =
-      selectedRangeMode === RANGE_MODE_WEEK
+    const isWeeklyMode = selectedRangeMode === RANGE_MODE_WEEK
+    const usesSelectedWeekDay = isWeeklyMode && Boolean(selectedWeekDay)
+    const requestedRange = getWeekRangeFromStartDay(selectedWeekStartDay)
+    const detailResult = usesSelectedWeekDay
+      ? await getDailyCategoryDetailUsage({ day: selectedWeekDay, category })
+      : isWeeklyMode
         ? await getRangeCategoryDetailUsage({
-            startDay: getWeekRangeFromStartDay(selectedWeekStartDay).startDay,
-            endDay: getWeekRangeFromStartDay(selectedWeekStartDay).endDay,
+            startDay: requestedRange.startDay,
+            endDay: requestedRange.endDay,
             category,
           })
         : await getDailyCategoryDetailUsage({ day: selectedDay, category })
@@ -605,7 +669,7 @@ function WelcomeHero() {
       detailResult.error,
       detailResult.warnings
     )
-  }, [selectedDay, selectedRangeMode, selectedWeekStartDay])
+  }, [selectedDay, selectedRangeMode, selectedWeekDay, selectedWeekStartDay])
 
   const openCategoryDetail = (label) => {
     setSelectedCategoryLabel(label)
@@ -690,24 +754,6 @@ function WelcomeHero() {
       return
     }
 
-    if (uniqueRuleLog) {
-      console.group('[QA-FIX-UNIQUE-RULES-VERIFY] Unique category rules')
-      console.log('rule:', uniqueRuleLog.normalizedRule)
-      console.log(
-        'inferred type:',
-        uniqueRuleLog.inferredType === 'website' ? 'domain' : uniqueRuleLog.inferredType
-      )
-      console.log('previous category if existed:', uniqueRuleLog.previousCategory ?? null)
-      console.log('new category:', selectedCategoryLabel)
-      console.log('removed from previous category:', uniqueRuleLog.removedFromPreviousCategory)
-      console.log('appears only once globally:', uniqueRuleLog.appearsOnlyOnceGlobally)
-      console.log(
-        'validation:',
-        uniqueRuleLog.appearsOnlyOnceGlobally ? 'OK' : 'MISMATCH'
-      )
-      console.groupEnd()
-    }
-
     setEditableRules(nextRules)
     setEditDraftRules(nextDraft)
     setNewRuleInput('')
@@ -729,27 +775,6 @@ function WelcomeHero() {
     const rawInput = newCategoryNameInput
 
     const createResult = createCategory(rawInput)
-    const categoryValid = createResult.ok === true
-    const categoryCreated = createResult.ok === true
-    const persisted = createResult.ok === true
-    const modalClosedAfterSave = createResult.ok === true
-
-    console.group('[QA-FIX-CREATE-CATEGORY-CLOSE-VERIFY] Create category closes modal')
-    console.log('category name:', rawInput.trim())
-    console.log('category valid:', categoryValid)
-    console.log('category created:', categoryCreated)
-    console.log('persisted:', persisted)
-    console.log('modal closed after save:', modalClosedAfterSave)
-    console.log(
-      'validation:',
-      categoryValid === categoryCreated &&
-        categoryCreated === persisted &&
-        modalClosedAfterSave === categoryCreated
-        ? 'OK'
-        : 'MISMATCH'
-    )
-    console.groupEnd()
-
     if (!createResult.ok) {
       setNewCategoryError(createResult.message)
       return
@@ -782,40 +807,6 @@ function WelcomeHero() {
     }
 
     const deleteResult = deleteCustomCategory(categoryToDelete)
-    const isCustomCategory = !isBaseCategory
-    const categoryDeleted = deleteResult.ok === true
-    const modalClosedAfterDelete = deleteResult.ok === true
-
-    console.group('[QA-FIX-DELETE-CATEGORY-VERIFY] Delete custom category')
-    console.log('category:', categoryToDelete)
-    console.log('is base category:', isBaseCategory)
-    console.log('deletion allowed:', deletionAllowed)
-    console.log('category removed from localStorage:', deleteResult.categoryRemovedFromLocalStorage ?? false)
-    console.log('rules removed:', deleteResult.rulesRemoved ?? false)
-    console.log('dashboard recalculated or cache invalidated:', deleteResult.ok === true)
-    console.log(
-      'validation:',
-      deleteResult.ok &&
-        deleteResult.categoryRemovedFromLocalStorage &&
-        deleteResult.rulesRemoved
-        ? 'OK'
-        : 'MISMATCH'
-    )
-    console.groupEnd()
-
-    console.group('[QA-FIX-DELETE-CATEGORY-CLOSE-VERIFY] Delete category closes modal')
-    console.log('category name:', categoryToDelete)
-    console.log('is custom category:', isCustomCategory)
-    console.log('deletion allowed:', deletionAllowed)
-    console.log('category deleted:', categoryDeleted)
-    console.log('modal closed after delete:', modalClosedAfterDelete)
-    console.log(
-      'validation:',
-      isCustomCategory && deletionAllowed === categoryDeleted && modalClosedAfterDelete === categoryDeleted
-        ? 'OK'
-        : 'MISMATCH'
-    )
-    console.groupEnd()
 
     if (!deleteResult.ok) {
       return
@@ -898,12 +889,7 @@ function WelcomeHero() {
     let cancelled = false
 
     const loadDashboard = async () => {
-      const modeLabel =
-        selectedRangeMode === RANGE_MODE_WEEK
-          ? 'Semana'
-          : selectedRangeMode === RANGE_MODE_MONTH
-            ? 'Mes'
-            : 'Dia'
+      setActivityWatchNotice(null)
       const dayCacheKey = selectedDay
       const weekCacheKey = selectedWeekStartDay
       const monthCacheKey = getMonthCacheKey(selectedMonthStartDay)
@@ -917,20 +903,6 @@ function WelcomeHero() {
           setIsHourlyLoading(false)
           setCategoryUsageCard(cachedDay.categoryUsageCard)
           setIsCategoryCardLoading(false)
-          logSessionCacheVerify({
-            mode: modeLabel,
-            cacheKey: dayCacheKey,
-            cacheHit: true,
-            renderedFromExistingLoadedData: true,
-          })
-          console.group('[QA-FIX-DAY-KPI-VERIFY] Daily KPI priority')
-          console.log('selected day:', selectedDay)
-          console.log('day cache hit:', true)
-          console.log('daily KPI load started:', true)
-          console.log('daily KPI rendered before categories complete:', true)
-          console.log('daily KPI rendered before hourly chart complete:', true)
-          console.log('validation:', 'OK')
-          console.groupEnd()
           return
         }
       }
@@ -951,12 +923,6 @@ function WelcomeHero() {
 
           setCategoryUsageCard(cachedWeekContext ?? cachedWeek.categoryUsageCard)
           setIsCategoryCardLoading(Boolean(selectedWeekDay && !cachedWeekContext))
-          logSessionCacheVerify({
-            mode: modeLabel,
-            cacheKey: weekCacheKey,
-            cacheHit: true,
-            renderedFromExistingLoadedData: true,
-          })
           return
         }
       }
@@ -971,27 +937,9 @@ function WelcomeHero() {
           setIsHourlyLoading(false)
           setCategoryUsageCard(cachedMonth.categoryUsageCard)
           setIsCategoryCardLoading(false)
-          logSessionCacheVerify({
-            mode: modeLabel,
-            cacheKey: monthCacheKey,
-            cacheHit: true,
-            renderedFromExistingLoadedData: true,
-          })
           return
         }
       }
-
-      logSessionCacheVerify({
-        mode: modeLabel,
-        cacheKey:
-          selectedRangeMode === RANGE_MODE_WEEK
-            ? weekCacheKey
-            : selectedRangeMode === RANGE_MODE_MONTH
-              ? monthCacheKey
-              : dayCacheKey,
-        cacheHit: false,
-        renderedFromExistingLoadedData: false,
-      })
 
       setIsKpiLoading(true)
       setKpiUsageLabel('-')
@@ -1024,6 +972,7 @@ function WelcomeHero() {
         } else {
           setWeeklyTotalSeconds(0)
           setKpiUsageLabel('-')
+          reportActivityWatchIssue(weeklyTotalResult.error)
           console.warn(
             'No se pudo cargar KPI semanal real de ActivityWatch; se mantiene estado neutro.',
             weeklyTotalResult.error,
@@ -1063,6 +1012,7 @@ function WelcomeHero() {
             : buildNeutralWeeklyBars()
         setHourlyUsage(weeklyBars)
         if (!weeklySeriesResult.ok || !Array.isArray(weeklySeriesResult.dailySeries)) {
+          reportActivityWatchIssue(weeklySeriesResult.error)
           console.warn(
             'No se pudo cargar uso semanal por dias de ActivityWatch; se mantiene estado neutro.',
             weeklySeriesResult.error,
@@ -1092,6 +1042,7 @@ function WelcomeHero() {
         } else {
           setCategoryDefinitions(getCategoryDefinitions())
           setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
+          reportActivityWatchIssue(weeklyCategoryResult.error)
           console.warn(
             'No se pudo cargar categorias semanales reales de ActivityWatch; se mantiene estado neutro.',
             weeklyCategoryResult.error,
@@ -1121,6 +1072,7 @@ function WelcomeHero() {
         } else {
           setWeeklyTotalSeconds(0)
           setKpiUsageLabel('-')
+          reportActivityWatchIssue(monthlyTotalResult.error)
           console.warn(
             'No se pudo cargar KPI mensual real de ActivityWatch; se mantiene estado neutro.',
             monthlyTotalResult.error,
@@ -1174,6 +1126,7 @@ function WelcomeHero() {
             : buildNeutralMonthlyBars()
         setHourlyUsage(monthlyBars)
         if (!monthlySeriesResult.ok || !Array.isArray(monthlySeriesResult.dailySeries)) {
+          reportActivityWatchIssue(monthlySeriesResult.error)
           console.warn(
             'No se pudo cargar uso mensual por semanas de ActivityWatch; se mantiene estado neutro.',
             monthlySeriesResult.error,
@@ -1202,6 +1155,7 @@ function WelcomeHero() {
         } else {
           setCategoryDefinitions(getCategoryDefinitions())
           setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
+          reportActivityWatchIssue(monthlyCategoryResult.error)
           console.warn(
             'No se pudo cargar categorias mensuales reales de ActivityWatch; se mantiene estado neutro.',
             monthlyCategoryResult.error,
@@ -1213,18 +1167,12 @@ function WelcomeHero() {
         return
       }
 
-      let hourlyCompleted = false
-      let categoriesCompleted = false
       const dailyResultPromise = getDailyActiveUsage({ day: selectedDay })
       const hourlyResultPromise = (async () => {
-        const result = await getHourlyActiveUsage({ day: selectedDay })
-        hourlyCompleted = true
-        return result
+        return getHourlyActiveUsage({ day: selectedDay })
       })()
       const categoryResultPromise = (async () => {
-        const result = await getDailyCategoryUsage({ day: selectedDay })
-        categoriesCompleted = true
-        return result
+        return getDailyCategoryUsage({ day: selectedDay })
       })()
 
       const dailyResult = await dailyResultPromise
@@ -1237,6 +1185,7 @@ function WelcomeHero() {
         setKpiUsageLabel(formatUsageFromSeconds(dailyResult.seconds))
       } else {
         setKpiUsageLabel('-')
+        reportActivityWatchIssue(dailyResult.error)
         console.warn(
           'No se pudo cargar KPI real de ActivityWatch; se mantiene estado neutro.',
           dailyResult.error,
@@ -1244,18 +1193,6 @@ function WelcomeHero() {
         )
       }
       setIsKpiLoading(false)
-
-      console.group('[QA-FIX-DAY-KPI-VERIFY] Daily KPI priority')
-      console.log('selected day:', selectedDay)
-      console.log('day cache hit:', false)
-      console.log('daily KPI load started:', true)
-      console.log('daily KPI rendered before categories complete:', !categoriesCompleted)
-      console.log('daily KPI rendered before hourly chart complete:', !hourlyCompleted)
-      console.log(
-        'validation:',
-        !categoriesCompleted || !hourlyCompleted ? 'OK' : 'MISMATCH'
-      )
-      console.groupEnd()
 
       const [hourlyResult, categoryResult] = await Promise.all([
         hourlyResultPromise,
@@ -1270,6 +1207,7 @@ function WelcomeHero() {
         setHourlyUsage(hourlyResult.hourlyBars)
       } else {
         setHourlyUsage(buildNeutralHourlyBars())
+        reportActivityWatchIssue(hourlyResult.error)
         console.warn(
           'No se pudo cargar uso por horas real de ActivityWatch; se mantiene estado neutro.',
           hourlyResult.error,
@@ -1296,6 +1234,7 @@ function WelcomeHero() {
       } else {
         setCategoryDefinitions(getCategoryDefinitions())
         setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
+        reportActivityWatchIssue(categoryResult.error)
         console.warn(
           'No se pudo cargar uso por categorias real de ActivityWatch; se mantiene estado neutro.',
           categoryResult.error,
@@ -1312,8 +1251,8 @@ function WelcomeHero() {
     }
   }, [
     currentActivityWatchDay,
-    logSessionCacheVerify,
     mapCategoryResultToCard,
+    reportActivityWatchIssue,
     selectedDay,
     selectedMonthStartDay,
     selectedRangeMode,
@@ -1360,6 +1299,7 @@ function WelcomeHero() {
       } else {
         setCategoryDefinitions(getCategoryDefinitions())
         setCategoryUsageCard(buildLoadingCategories(getCategoryDefinitions()))
+        reportActivityWatchIssue(result.error)
         console.warn(
           'No se pudo cargar categorias del contexto semanal seleccionado; se mantiene estado neutro.',
           result.error,
@@ -1374,7 +1314,7 @@ function WelcomeHero() {
     return () => {
       cancelled = true
     }
-  }, [mapCategoryResultToCard, selectedRangeMode, selectedWeekDay, selectedWeekStartDay])
+  }, [mapCategoryResultToCard, reportActivityWatchIssue, selectedRangeMode, selectedWeekDay, selectedWeekStartDay])
 
   useEffect(() => {
     if (!isCategoryDetailLoading) {
@@ -1478,6 +1418,25 @@ function WelcomeHero() {
     const selectedBar = hourlyUsage.find((bar) => bar.day === selectedWeekDay)
     return formatUsageFromSeconds(selectedBar?.seconds ?? 0)
   }, [hourlyUsage, selectedWeekDay])
+  const categoryDetailContextLabel = useMemo(() => {
+    if (selectedRangeMode === RANGE_MODE_WEEK) {
+      if (selectedWeekDay) {
+        return weeklySelectedDayLabel
+      }
+      return formatWeekRangeLabel(selectedWeekRange.startDay, selectedWeekRange.endDay)
+    }
+    if (selectedRangeMode === RANGE_MODE_TODAY) {
+      return formatSelectedDayLabel(selectedDay)
+    }
+    return ''
+  }, [
+    selectedDay,
+    selectedRangeMode,
+    selectedWeekDay,
+    selectedWeekRange.endDay,
+    selectedWeekRange.startDay,
+    weeklySelectedDayLabel,
+  ])
   const isWeeklyYAxisVisible = selectedRangeMode !== RANGE_MODE_WEEK
   const chartAxisLabels = useMemo(() => {
     if (selectedRangeMode === RANGE_MODE_WEEK) {
@@ -1488,38 +1447,6 @@ function WelcomeHero() {
     }
     return buildDailyAxisLabels(hourlyUsage, isHourlyLoading)
   }, [hourlyUsage, isHourlyLoading, selectedRangeMode])
-  const weeklyChartDebug = useMemo(() => {
-    if (selectedRangeMode !== RANGE_MODE_WEEK) {
-      return null
-    }
-
-    const weeklyBars = hourlyUsage.filter((item) => item.day)
-    const maxDaySeconds = Math.max(0, ...weeklyBars.map((item) => item.seconds ?? 0))
-    const selectedBar = selectedWeekDay
-      ? weeklyBars.find((item) => item.day === selectedWeekDay) ?? null
-      : null
-    const barsProportional = weeklyBars.every((item) => {
-      const expectedValue = maxDaySeconds > 0 ? Math.max(0, Math.min(100, ((item.seconds ?? 0) / maxDaySeconds) * 100)) : 0
-      return Math.abs((item.value ?? 0) - expectedValue) < 0.01
-    })
-
-    return {
-      weekRange: `${selectedWeekRange.startDay} -> ${selectedWeekRange.endDay}`,
-      maxDaySeconds,
-      maxDayFormatted: formatUsageFromSeconds(maxDaySeconds),
-      selectedDaySeconds: selectedBar?.seconds ?? null,
-      chartScaleMaxSeconds: maxDaySeconds,
-      yAxisVisible: isWeeklyYAxisVisible,
-      barsProportional,
-    }
-  }, [
-    hourlyUsage,
-    isWeeklyYAxisVisible,
-    selectedRangeMode,
-    selectedWeekDay,
-    selectedWeekRange.endDay,
-    selectedWeekRange.startDay,
-  ])
   const weeklyAverage = useMemo(() => {
     if (selectedRangeMode !== RANGE_MODE_WEEK) {
       return { daysConsidered: 0, averageSeconds: 0, formatted: '-' }
@@ -1556,42 +1483,48 @@ function WelcomeHero() {
       isCurrentMonth,
     }
   }, [currentActivityWatchDay, selectedMonthStartDay, selectedRangeMode, weeklyTotalSeconds])
-
-  useEffect(() => {
-    if (selectedRangeMode !== RANGE_MODE_WEEK || isHourlyLoading || !weeklyChartDebug) {
-      return
+  const usageSummaryText = useMemo(
+    () => getUsageSummaryText(selectedRangeMode, selectedDay, currentActivityWatchDay),
+    [currentActivityWatchDay, selectedDay, selectedRangeMode]
+  )
+  const chartSectionTitle = useMemo(() => {
+    if (selectedRangeMode === RANGE_MODE_MONTH) {
+      return 'Uso por semanas'
     }
-
-    console.group('[QA-FIX-WEEK-CHART-VERIFY] Weekly chart scale')
-    console.log('week range:', weeklyChartDebug.weekRange)
-    console.log('max day seconds:', weeklyChartDebug.maxDaySeconds)
-    console.log('max day formatted:', weeklyChartDebug.maxDayFormatted)
-    console.log('selected day seconds if selected:', weeklyChartDebug.selectedDaySeconds)
-    console.log('chart scale max seconds:', weeklyChartDebug.chartScaleMaxSeconds)
-    console.log('y axis visible:', weeklyChartDebug.yAxisVisible)
-    console.log('bars proportional to real seconds:', weeklyChartDebug.barsProportional)
-    console.log(
-      'validation:',
-      weeklyChartDebug.barsProportional && weeklyChartDebug.yAxisVisible === false ? 'OK' : 'MISMATCH'
-    )
-    console.groupEnd()
-  }, [isHourlyLoading, selectedRangeMode, weeklyChartDebug])
-
-  useEffect(() => {
-    if (activeModal !== 'edit') {
-      return
+    return selectedRangeMode === RANGE_MODE_TODAY ? 'Uso por horas' : 'Uso por dias'
+  }, [selectedRangeMode])
+  const categorySectionTitle = useMemo(() => {
+    if (selectedRangeMode === RANGE_MODE_WEEK) {
+      return selectedWeekDay && weeklySelectedDayLabel
+        ? `Categorias del ${weeklySelectedDayLabel}`
+        : 'Categorias de la semana'
     }
-
-    console.group('[QA-FIX-CATEGORY-MODAL-SCROLL-VERIFY] Category edit modal scroll')
-    console.log('category name:', selectedCategoryLabel)
-    console.log('rules count:', selectedCategoryRuleCount)
-    console.log('modal max height applied:', true)
-    console.log('body scroll enabled:', true)
-    console.log('close button accessible:', true)
-    console.log('save button accessible:', true)
-    console.log('validation:', 'OK')
-    console.groupEnd()
-  }, [activeModal, selectedCategoryLabel, selectedCategoryRuleCount])
+    if (selectedRangeMode === RANGE_MODE_MONTH) {
+      return 'Categorias del mes'
+    }
+    return selectedDay === currentActivityWatchDay ? 'Categorias de hoy' : 'Categorias del dia'
+  }, [currentActivityWatchDay, selectedDay, selectedRangeMode, selectedWeekDay, weeklySelectedDayLabel])
+  const hasChartActivity = useMemo(
+    () => hourlyUsage.some((item) => (item.seconds ?? 0) > 0),
+    [hourlyUsage]
+  )
+  const hasCategoryUsage = useMemo(
+    () => categoryUsageCard.some((category) => (category.progress ?? 0) > 0),
+    [categoryUsageCard]
+  )
+  const chartEmptyMessage = useMemo(
+    () => getChartEmptyMessage(selectedRangeMode),
+    [selectedRangeMode]
+  )
+  const categoryEmptyMessage = useMemo(
+    () => getCategoryEmptyMessage(selectedRangeMode, selectedWeekDay),
+    [selectedRangeMode, selectedWeekDay]
+  )
+  const categoryDetailEmptyMessage = useMemo(
+    () => getCategoryDetailEmptyMessage(selectedRangeMode, selectedWeekDay),
+    [selectedRangeMode, selectedWeekDay]
+  )
+  const editModalHasRules = selectedCategoryRuleCount > 0
 
   const navigateDay = useCallback(
     (deltaDays) => {
@@ -1713,7 +1646,7 @@ function WelcomeHero() {
               key={range.id}
               type="button"
               onClick={() => handleSelectRangeMode(range.id)}
-              className={`flex-1 rounded-full px-4 py-2.5 text-[0.88rem] font-semibold transition ${
+              className={`flex-1 rounded-full px-4 py-2.5 text-[0.88rem] font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] ${
                 (range.id === 'today' && selectedRangeMode === RANGE_MODE_TODAY) ||
                 (range.id === 'week' && selectedRangeMode === RANGE_MODE_WEEK) ||
                 (range.id === 'month' && selectedRangeMode === RANGE_MODE_MONTH)
@@ -1734,7 +1667,7 @@ function WelcomeHero() {
               aria-label="Fecha anterior"
               onClick={() => navigateDay(-1)}
               disabled={isPreviousRangeDisabled}
-              className="text-slate-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="text-slate-400 transition hover:text-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-slate-400"
             >
               {chevronLeftIcon}
             </button>
@@ -1746,12 +1679,22 @@ function WelcomeHero() {
               aria-label="Fecha siguiente"
               onClick={() => navigateDay(1)}
               disabled={isNextDayDisabled}
-              className="text-slate-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="text-slate-400 transition hover:text-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-slate-400"
             >
               {chevronRightIcon}
             </button>
           </div>
         </div>
+
+        {activityWatchNotice ? (
+          <div
+            aria-live="polite"
+            className="mt-5 rounded-[18px] border border-amber-200 bg-amber-50 px-5 py-4 text-left shadow-[0_10px_24px_rgba(120,53,15,0.08)]"
+          >
+            <p className="text-[0.95rem] font-semibold text-amber-900">ActivityWatch no disponible</p>
+            <p className="mt-1 text-[0.95rem] leading-[1.45] text-amber-800">{activityWatchNotice}</p>
+          </div>
+        ) : null}
 
         <div className="mt-7">
           <h1 className="text-[3.75rem] font-semibold leading-none tracking-[-0.07em] text-slate-900 sm:text-[4.9rem]">
@@ -1767,25 +1710,19 @@ function WelcomeHero() {
             </p>
           ) : null}
           <p className="mt-4 text-[1.32rem] font-normal tracking-[-0.02em] text-slate-500/80">
-            {selectedRangeMode === RANGE_MODE_WEEK
-              ? 'Tiempo total de uso en la ultima semana'
-              : selectedRangeMode === RANGE_MODE_MONTH
-                ? 'Tiempo total de uso en el mes'
-                : 'Tiempo total de uso hoy'}
+            {usageSummaryText}
           </p>
         </div>
 
-        <div className="mt-9 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+        <div className="mt-8 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-[1.72rem] font-semibold tracking-[-0.02em] text-slate-800">
-              {selectedRangeMode === RANGE_MODE_TODAY ? 'Uso por horas' : 'Uso por dias'}
-            </h2>
+            <h2 className="text-[1.72rem] font-semibold tracking-[-0.02em] text-slate-800">{chartSectionTitle}</h2>
             {selectedRangeMode === RANGE_MODE_WEEK ? (
               <div className="inline-flex items-center rounded-full bg-slate-100 p-1">
                 <button
                   type="button"
                   onClick={handleWeeklySwitchToWeek}
-                  className={`rounded-full px-3 py-1.5 text-[0.78rem] font-semibold transition ${
+                  className={`rounded-full px-3 py-1.5 text-[0.78rem] font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] ${
                     !selectedWeekDay ? 'bg-[#1677f2] text-white shadow-[0_4px_10px_rgba(22,119,242,0.28)]' : 'text-slate-600'
                   }`}
                 >
@@ -1794,7 +1731,8 @@ function WelcomeHero() {
                 <button
                   type="button"
                   disabled={!selectedWeekDay}
-                  className={`rounded-full px-3 py-1.5 text-[0.78rem] font-semibold transition ${
+                  aria-label="Ver contexto del dia seleccionado en Semana"
+                  className={`rounded-full px-3 py-1.5 text-[0.78rem] font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] ${
                     selectedWeekDay
                       ? 'bg-[#1677f2] text-white shadow-[0_4px_10px_rgba(22,119,242,0.28)]'
                       : 'cursor-not-allowed text-slate-400'
@@ -1860,7 +1798,7 @@ function WelcomeHero() {
                           ? item.isFutureDay
                             ? 'cursor-not-allowed opacity-60'
                             : 'cursor-pointer'
-                          : ''
+                          : 'cursor-pointer'
                       }`}
                       style={{ height: `${Math.max(item.value, 7)}%` }}
                     />
@@ -1878,6 +1816,10 @@ function WelcomeHero() {
                   <span key={`${label}-${index}`}>{label}</span>
                 ))}
               </div>
+
+              {!isHourlyLoading && !hasChartActivity ? (
+                <p className="mt-4 text-[0.96rem] font-medium text-slate-500">{chartEmptyMessage}</p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -1892,15 +1834,10 @@ function WelcomeHero() {
         ) : null}
 
         <div className="mt-6 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
-          <p className="mb-3 text-[0.9rem] font-medium text-slate-500">
-            {selectedRangeMode === RANGE_MODE_WEEK
-              ? selectedWeekDay && weeklySelectedDayLabel
-                ? `Categorias del ${weeklySelectedDayLabel}`
-                : 'Categorias de la semana'
-              : selectedRangeMode === RANGE_MODE_MONTH
-                ? 'Categorias del mes'
-                : 'Categorias del dia'}
-          </p>
+          <p className="mb-3 text-[0.9rem] font-medium text-slate-500">{categorySectionTitle}</p>
+          {!isCategoryCardLoading && !hasCategoryUsage ? (
+            <p className="mb-4 text-[0.96rem] font-medium text-slate-500">{categoryEmptyMessage}</p>
+          ) : null}
           <div className="space-y-4">
             {categoryUsageCard.map((category) => (
               <button
@@ -1913,7 +1850,7 @@ function WelcomeHero() {
                   }
                   openCategoryDetail(category.label)
                 }}
-                className="w-full text-left disabled:cursor-not-allowed"
+                className="w-full text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] disabled:cursor-not-allowed"
               >
                 <div className="mb-1.5 flex items-center justify-between text-[1.24rem] font-semibold tracking-[-0.02em] text-slate-800">
                   <span>{category.label}</span>
@@ -1940,7 +1877,7 @@ function WelcomeHero() {
         type="button"
         aria-label="Abrir configuracion"
         onClick={() => setIsSettingsOpen(true)}
-        className="fixed right-6 top-6 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 sm:right-8 sm:top-8"
+        className="fixed right-6 top-6 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] sm:right-8 sm:top-8"
       >
         {menuIcon}
       </button>
@@ -1964,7 +1901,7 @@ function WelcomeHero() {
                   type="button"
                   aria-label="Cerrar configuracion"
                   onClick={closeSettings}
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
                 >
                   {closeIcon}
                 </button>
@@ -1975,8 +1912,7 @@ function WelcomeHero() {
                   Modificar categorias
                 </h3>
                 <p className="mt-4 text-[1.16rem] leading-[1.45] text-slate-500">
-                  Gestiona que aplicaciones y sitios web pertenecen a cada
-                  categoria
+                  Gestiona las reglas que asignan aplicaciones y sitios web a cada categoria.
                 </p>
 
                 <div className="mt-8 space-y-3">
@@ -1985,7 +1921,7 @@ function WelcomeHero() {
                       key={category.id}
                       type="button"
                       onClick={() => openCategoryEdit(category.label)}
-                      className="flex w-full items-center justify-between rounded-[20px] bg-slate-200/70 px-6 py-4 text-left transition hover:bg-slate-200"
+                      className="flex w-full items-center justify-between rounded-[20px] bg-slate-200/70 px-6 py-4 text-left transition hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
                     >
                       <div className="flex items-center gap-4">
                         <span
@@ -1997,7 +1933,7 @@ function WelcomeHero() {
                             {category.label}
                           </p>
                           <p className="text-[0.98rem] font-medium text-slate-500">
-                            {category.appCount} reglas
+                            {getCategoryRuleCountLabel(category.appCount)}
                           </p>
                         </div>
                       </div>
@@ -2009,7 +1945,7 @@ function WelcomeHero() {
                 <button
                   type="button"
                   onClick={openCategoryCreate}
-                  className="mt-6 flex w-full items-center justify-center gap-3 rounded-[20px] border-2 border-dashed border-slate-300 bg-transparent px-6 py-5 text-[1.02rem] font-semibold text-[#1677f2] transition hover:border-[#8fbaf7]"
+                  className="mt-6 flex w-full items-center justify-center gap-3 rounded-[20px] border-2 border-dashed border-slate-300 bg-transparent px-6 py-5 text-[1.02rem] font-semibold text-[#1677f2] transition hover:border-[#8fbaf7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
                 >
                   <span className="text-[1.7rem] leading-none">+</span>
                   <span>Crear nueva categoria</span>
@@ -2040,12 +1976,17 @@ function WelcomeHero() {
                 <p className="mt-1 text-[1.22rem] text-slate-500">
                   {isCategoryDetailLoading ? '- total' : `${categoryDetailUsage.total} total`}
                 </p>
+                {categoryDetailContextLabel ? (
+                  <p className="mt-1 text-[0.96rem] font-medium text-slate-400">
+                    {categoryDetailContextLabel}
+                  </p>
+                ) : null}
               </div>
               <button
                 type="button"
                 aria-label="Cerrar detalle de categoria"
                 onClick={() => setActiveModal(null)}
-                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
+                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 {closeIcon}
               </button>
@@ -2054,7 +1995,7 @@ function WelcomeHero() {
             <div className="flex-1 overflow-y-auto px-8 pb-8">
               <div className="space-y-6">
                 {isCategoryDetailLoading ? (
-                  <p className="text-[1.02rem] font-medium text-slate-500">Cargando detalle real...</p>
+                  <p className="text-[1.02rem] font-medium text-slate-500">Cargando detalle...</p>
                 ) : null}
                 {!isCategoryDetailLoading && categoryDetailError ? (
                   <p className="text-[1.02rem] font-medium text-slate-500">
@@ -2063,7 +2004,7 @@ function WelcomeHero() {
                 ) : null}
                 {!isCategoryDetailLoading && !categoryDetailError && visibleDetailItems.length === 0 ? (
                   <p className="text-[1.02rem] font-medium text-slate-500">
-                    No hay datos para esta categoria en el dia seleccionado.
+                    {categoryDetailEmptyMessage}
                   </p>
                 ) : null}
                 {!isCategoryDetailLoading &&
@@ -2116,7 +2057,7 @@ function WelcomeHero() {
                 type="button"
                 aria-label="Cerrar detalle por franja"
                 onClick={() => setActiveModal(null)}
-                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
+                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 {closeIcon}
               </button>
@@ -2125,7 +2066,7 @@ function WelcomeHero() {
             <div className="flex-1 overflow-y-auto px-8 pb-8">
               <div className="space-y-6">
                 {isHourlyDetailLoading ? (
-                  <p className="text-[1.02rem] font-medium text-slate-500">Cargando detalle real...</p>
+                  <p className="text-[1.02rem] font-medium text-slate-500">Cargando detalle...</p>
                 ) : null}
                 {!isHourlyDetailLoading && hourlyDetailError ? (
                   <p className="text-[1.02rem] font-medium text-slate-500">
@@ -2188,7 +2129,7 @@ function WelcomeHero() {
                   setNewCategoryNameInput('')
                   setNewCategoryError('')
                 }}
-                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
+                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 {closeIcon}
               </button>
@@ -2196,6 +2137,9 @@ function WelcomeHero() {
 
             <p className="mb-4 text-[1.02rem] text-slate-500">
               Escribe un nombre para la nueva categoria.
+            </p>
+            <p className="mb-4 text-[0.92rem] leading-[1.45] text-slate-400">
+              Podras anadir reglas y ajustar su clasificacion justo despues, desde Configuracion.
             </p>
             <input
               type="text"
@@ -2221,14 +2165,14 @@ function WelcomeHero() {
                   setNewCategoryNameInput('')
                   setNewCategoryError('')
                 }}
-                className="h-14 rounded-[16px] bg-slate-200/80 text-[1.1rem] font-semibold text-slate-700 transition hover:bg-slate-200"
+                className="h-14 rounded-[16px] bg-slate-200/80 text-[1.1rem] font-semibold text-slate-700 transition hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={saveNewCategory}
-                className="h-14 rounded-[16px] bg-[#1677f2] text-[1.1rem] font-semibold text-white shadow-[0_10px_22px_rgba(22,119,242,0.32)] transition hover:bg-[#136de0]"
+                className="h-14 rounded-[16px] bg-[#1677f2] text-[1.1rem] font-semibold text-white shadow-[0_10px_22px_rgba(22,119,242,0.32)] transition hover:bg-[#136de0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 Guardar
               </button>
@@ -2254,7 +2198,7 @@ function WelcomeHero() {
                 type="button"
                 aria-label="Cerrar edicion de categoria"
                 onClick={() => setActiveModal(null)}
-                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700"
+                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 {closeIcon}
               </button>
@@ -2268,6 +2212,14 @@ function WelcomeHero() {
                 Consejo: las aplicaciones suelen terminar en `.exe` y deben escribirse con el nombre exacto que aparece en ActivityWatch. Los sitios web deben escribirse como dominio, por ejemplo `youtube.com`.
               </p>
 
+              {!editModalHasRules ? (
+                <div className="mb-6 rounded-[16px] border border-dashed border-slate-300 bg-white/70 px-4 py-4">
+                  <p className="text-[0.95rem] font-medium text-slate-500">
+                    No hay reglas anadidas todavia. Puedes guardar con el campo vacio o escribir una nueva regla.
+                  </p>
+                </div>
+              ) : null}
+
               <div className="space-y-3">
                 {editDraftRules.domains.map((domain, index) => (
                   <div
@@ -2275,13 +2227,13 @@ function WelcomeHero() {
                     className="flex items-center justify-between gap-3 rounded-[16px] bg-slate-200/70 px-5 py-4"
                   >
                     <span className="text-[1.1rem] font-semibold text-slate-800">{domain}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeDraftRule('website', index)}
-                      className="text-[0.85rem] font-semibold text-slate-500 hover:text-slate-700"
-                    >
-                      Eliminar
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => removeDraftRule('website', index)}
+                    className="text-[0.85rem] font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                  >
+                    Eliminar
+                  </button>
                   </div>
                 ))}
                 {editDraftRules.applications.map((application, index) => (
@@ -2290,13 +2242,13 @@ function WelcomeHero() {
                     className="flex items-center justify-between gap-3 rounded-[16px] bg-slate-200/70 px-5 py-4"
                   >
                     <span className="text-[1.1rem] font-semibold text-slate-800">{application}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeDraftRule('application', index)}
-                      className="text-[0.85rem] font-semibold text-slate-500 hover:text-slate-700"
-                    >
-                      Eliminar
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => removeDraftRule('application', index)}
+                    className="text-[0.85rem] font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                  >
+                    Eliminar
+                  </button>
                   </div>
                 ))}
               </div>
@@ -2321,7 +2273,7 @@ function WelcomeHero() {
                   <button
                     type="button"
                     onClick={deleteSelectedCategory}
-                    className="h-12 rounded-[14px] border border-[#d14343]/25 px-4 text-[0.98rem] font-semibold text-[#d14343] transition hover:bg-[#d14343]/5"
+                    className="h-12 rounded-[14px] border border-[#d14343]/25 px-4 text-[0.98rem] font-semibold text-[#d14343] transition hover:bg-[#d14343]/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d14343]"
                   >
                     Eliminar categoria
                   </button>
@@ -2342,14 +2294,14 @@ function WelcomeHero() {
                   setNewRuleInput('')
                   setActiveModal(null)
                 }}
-                className="h-14 rounded-[16px] bg-slate-200/80 text-[1.1rem] font-semibold text-slate-700 transition hover:bg-slate-200"
+                className="h-14 rounded-[16px] bg-slate-200/80 text-[1.1rem] font-semibold text-slate-700 transition hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={saveCategoryRuleChanges}
-                className="h-14 rounded-[16px] bg-[#1677f2] text-[1.1rem] font-semibold text-white shadow-[0_10px_22px_rgba(22,119,242,0.32)] transition hover:bg-[#136de0]"
+                className="h-14 rounded-[16px] bg-[#1677f2] text-[1.1rem] font-semibold text-white shadow-[0_10px_22px_rgba(22,119,242,0.32)] transition hover:bg-[#136de0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 Guardar cambios
               </button>

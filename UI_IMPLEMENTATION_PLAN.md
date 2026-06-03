@@ -175,6 +175,7 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - La grafica de horas debe mostrar 24 franjas (00-23) dentro del contenedor, sin overflow horizontal.
 - El boton flotante de Configuracion debe quedar anclado al viewport en esquina superior derecha (no depender del contenedor centrado).
 - El panel lateral de Configuracion debe soportar scroll interno y mantener cabecera visible para evitar contenido inferior inaccesible.
+- En el estado posterior a QA, el pulido UX debe centrarse en copy contextual, estados vacios, aviso discreto de ActivityWatch no disponible, espaciados y accesibilidad basica, sin reabrir cambios de datos o rendimiento.
 
 ## Primera tarea recomendada
 

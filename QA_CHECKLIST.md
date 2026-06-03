@@ -77,8 +77,10 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Esperar carga de categorias | Las categorias semanales muestran duracion y progreso | `[ ] OK [ ] FAIL` | |
 | Pulsar un dia no futuro del grafico semanal | El modo sigue siendo `Semana` y no navega al tab `Dia` | `[ ] OK [ ] FAIL` | |
 | Revisar bloque inferior tras seleccionar dia | Si la funcionalidad sigue activa, las categorias cambian al contexto del dia seleccionado | `[ ] OK [ ] FAIL` | |
+| Pulsar una categoria con dia semanal seleccionado | El modal muestra detalle de esa categoria solo para ese dia, no para toda la semana | `[ ] OK [ ] FAIL` | |
 | Pulsar el mismo dia otra vez | Se limpia la seleccion y vuelven las categorias semanales | `[ ] OK [ ] FAIL` | |
 | Probar switch `Semana | Dia` si aparece | `Dia` refleja contexto de dia seleccionado y `Semana` restaura el agregado semanal | `[ ] OK [ ] FAIL` | |
+| Pulsar una categoria sin dia semanal seleccionado | El modal muestra detalle acumulado de toda la semana visible | `[ ] OK [ ] FAIL` | |
 
 ### A.4 Navegacion semanal
 
@@ -197,9 +199,10 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | --- | --- | --- | --- |
 | Cargar por primera vez la app | KPI, grafico y categorias muestran placeholders neutros antes del dato real | `[ ] OK [ ] FAIL` | |
 | Cambiar entre `Semana`, `Dia` y `Mes` | No aparece contenido viejo como si fuese del nuevo rango durante la carga | `[ ] OK [ ] FAIL` | |
+| Abrir un periodo sin actividad si existe | La vista muestra mensaje vacio claro y no parece un error | `[ ] OK [ ] FAIL` | |
 | Abrir detalle horario | Se muestra loading neutro antes del contenido real | `[ ] OK [ ] FAIL` | |
 | Abrir detalle de categoria | Se muestra loading neutro antes del contenido real | `[ ] OK [ ] FAIL` | |
-| Si ActivityWatch falla temporalmente | La UI no debe romperse; pueden aparecer warnings reales y estados neutros | `[ ] OK [ ] FAIL` | |
+| Si ActivityWatch falla temporalmente | La UI no debe romperse; aparecen estados neutros y un aviso discreto de conexion | `[ ] OK [ ] FAIL` | |
 
 ## F. Consola
 
@@ -208,11 +211,19 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Revisar consola al cargar la app | No aparecen logs temporales antiguos | `[ ] OK [ ] FAIL` | |
 | Cambiar entre `Semana`, `Dia` y `Mes` | No aparecen logs de verificacion retirados | `[ ] OK [ ] FAIL` | |
 | Abrir detalles y Configuracion | No aparecen logs `PERF-*` ni trazas de prefetch | `[ ] OK [ ] FAIL` | |
-| Revisar logs temporales de `QA-FIX-01` | Solo aparecen los bloques `QA-FIX-*` esperados para esta validacion | `[ ] OK [ ] FAIL` | |
-| Abrir modal de edicion de categoria | Aparece el bloque `[QA-FIX-CATEGORY-MODAL-SCROLL-VERIFY]` con `validation: OK` | `[ ] OK [ ] FAIL` | |
-| Guardar una categoria nueva | Aparece el bloque `[QA-FIX-CREATE-CATEGORY-CLOSE-VERIFY]` con el resultado correcto | `[ ] OK [ ] FAIL` | |
-| Eliminar una categoria custom | Aparece el bloque `[QA-FIX-DELETE-CATEGORY-CLOSE-VERIFY]` con `validation: OK` | `[ ] OK [ ] FAIL` | |
+| Revisar logs temporales de QA | No aparecen bloques temporales `QA-FIX-*` ya cerrados | `[ ] OK [ ] FAIL` | |
 | Provocar una situacion real de error si ocurre | Solo aparecen `warnings`/errores reales relacionados con ActivityWatch o peticiones fallidas | `[ ] OK [ ] FAIL` | |
+| Si aparecen errores raros de extensiones | Repetir la comprobacion en modo incognito para descartar ruido externo al navegador | `[ ] OK [ ] FAIL` | |
+
+## G. Pulido UX
+
+| Paso | Resultado esperado | Estado | Notas |
+| --- | --- | --- | --- |
+| Revisar textos principales de `Dia` | Si es hoy, aparece `Tiempo total de uso hoy`; si es pasado, `Tiempo total de uso del dia` | `[ ] OK [ ] FAIL` | |
+| Revisar textos principales de `Semana` y `Mes` | Se muestran `Tiempo total de uso de la semana` y `Tiempo total de uso del mes` | `[ ] OK [ ] FAIL` | |
+| Abrir Configuracion y revisar categorias sin reglas | Se muestra copy claro como `Sin reglas todavia` cuando corresponda | `[ ] OK [ ] FAIL` | |
+| Abrir modal de edicion sin reglas | Se muestra un mensaje vacio claro y el layout sigue estable | `[ ] OK [ ] FAIL` | |
+| Revisar estados de foco basicos | Tabs, flechas, boton de Configuracion y acciones principales muestran foco visible razonable | `[ ] OK [ ] FAIL` | |
 
 ## Formato recomendado para reportar resultados
 

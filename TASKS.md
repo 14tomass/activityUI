@@ -142,13 +142,20 @@
 - [ ] Limpiar codigo, documentacion y estructura final del MVP
 - [ ] Preparar checklist final de entrega
 - QA-FUNCTIONAL-01 completada: creada `QA_CHECKLIST.md` con validacion manual guiada para `Semana`, `Dia`, `Mes`, limites, categorias, detalles, Configuracion, estados de carga/error y consola.
-- QA-FUNCTIONAL-01 pendiente de ejecucion manual: el siguiente paso aprobado es correr la checklist con ActivityWatch real antes de abrir nuevas features o pulido visual.
+- QA-FUNCTIONAL-01 completada y validada manualmente: `Semana`, `Dia`, `Mes` y `Configuracion` quedan funcionalmente correctos tras el rollback.
 - QA-FIX-01 completada: corregida la grafica semanal para no comunicar valores falsos y mantenidas barras proporcionales al uso real sin volver a prefetch agresivo.
 - QA-FIX-01 completada: restaurada cache minima de sesion para `Dia`, `Semana` y `Mes`, solo con datos ya vistos explicitamente por el usuario.
 - QA-FIX-01 completada: priorizado el KPI diario para renderizar antes que grafico/categorias cuando no hay cache.
 - QA-FIX-01 completada: las reglas pasan a ser unicas entre categorias; al reasignar una regla se mueve automaticamente.
 - QA-FIX-01 completada: anadida eliminacion de categorias creadas por usuario y bloqueado el borrado de categorias base.
 - QA-FIX-CATEGORY-MODAL-SCROLL-01 completada: modal de edicion de categorias reorganizado con scroll interno, cabecera visible y acciones de cierre/guardado accesibles aunque haya varias reglas.
-- QA-FIX-CATEGORY-MODAL-SCROLL-01 pendiente de validacion manual: comprobar categoria con `3+` reglas, scroll interno, `X` accesible, `Guardar cambios` accesible y cierre del modal sin bloqueo visual.
+- QA-FIX-CATEGORY-MODAL-SCROLL-01 validada: el modal de edicion mantiene scroll correcto y usabilidad con `3+` reglas.
 - QA-FIX-CATEGORY-MODAL-ACTIONS-01 completada: crear categoria valida ahora cierra el modal de alta inmediatamente; si hay error de nombre, el modal permanece abierto.
 - QA-FIX-CATEGORY-MODAL-ACTIONS-01 completada: eliminar categoria custom ahora cierra siempre el modal de edicion de forma inmediata tras el borrado valido.
+- QA-FIX-CLOSE-01 completada: eliminados los logs temporales `QA-FIX-*` y cerrada la fase de correcciones QA sin cambios funcionales adicionales.
+- QA-FIX-CLOSE-01 verificada: no quedan referencias activas a logs `QA-FIX-*` en el codigo de la app; la consola esperada vuelve a quedar limpia salvo warnings/errores reales.
+- UX-POLISH-01 completada: pulidos copy, estados vacios, aviso discreto de ActivityWatch no disponible, espaciados menores y accesibilidad basica sin tocar calculos ni reglas.
+- UX-POLISH-01 validada: `Semana`, `Dia`, `Mes`, `Configuracion`, ActivityWatch cerrado y consola limpia quedan aprobados.
+- UX-POLISH-01-CLOSE completada: confirmado cierre sin logs temporales ni debug propio; los errores de consola observados se verifican como externos al navegador al desaparecer en modo incognito.
+- QA-FIX-WEEK-SELECTED-DAY-CATEGORY-DETAIL-01 completada: el modal de detalle de categoria en `Semana` ya respeta el mismo contexto que la tarjeta inferior (`dia` si hay `selectedWeekDay`, `semana` si no lo hay).
+- QA-FIX-WEEK-SELECTED-DAY-CATEGORY-DETAIL-CLOSE completada: retirado el log temporal de verificacion del contexto semana/dia y cerrada la correccion sin cambios funcionales adicionales.

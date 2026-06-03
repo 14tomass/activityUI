@@ -98,8 +98,8 @@ export const dashboardOverview = {
   categoryEdit: {
     title: 'Estudio',
     color: '#1677f2',
-    helperText: 'Anade o elimina aplicaciones y sitios web de esta categoria',
-    inputPlaceholder: 'Ej: Chrome - YouTube',
+    helperText: 'Gestiona las reglas de esta categoria',
+    inputPlaceholder: 'Ej: youtube.com o code.exe',
     items: [
       { id: 'vscode', icon: '🖥️', name: 'VS Code' },
       { id: 'notion', icon: '📝', name: 'Notion' },
