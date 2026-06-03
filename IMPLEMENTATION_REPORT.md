@@ -1031,3 +1031,21 @@
 - `Dia` -> detalle diario
 - `Mes` -> sin cambios
 - La correccion queda cerrada y la consola vuelve a quedar limpia en funcionamiento normal, salvo warnings/errores reales.
+
+## MVP-RELEASE-CHECKLIST-01
+
+- Se reviso y actualizo `README.md` para reflejar el estado real del proyecto:
+- UI local para ActivityWatch
+- requisitos de ejecucion
+- comandos principales (`dev`, `lint`, `build`)
+- URL local esperada
+- configuracion CORS
+- que hacer si ActivityWatch no conecta
+- nota clara sobre el problema conocido de `rolldown` en build
+- Se creo `DEMO_LOCAL.md` con una guia paso a paso para ensenar el MVP en local.
+- Se creo `SMOKE_TEST.md` con una checklist corta previa a demo.
+- Se actualizo la documentacion de estado del proyecto para dejar claro que:
+- el MVP local esta estable
+- el proyecto entra en fase de pre-entrega/demo local
+- no se anadiran nuevas features antes del smoke test
+- No se modifico logica funcional de la app.

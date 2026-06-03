@@ -177,6 +177,15 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - El panel lateral de Configuracion debe soportar scroll interno y mantener cabecera visible para evitar contenido inferior inaccesible.
 - En el estado posterior a QA, el pulido UX debe centrarse en copy contextual, estados vacios, aviso discreto de ActivityWatch no disponible, espaciados y accesibilidad basica, sin reabrir cambios de datos o rendimiento.
 
+## Estado actual de pre-entrega
+
+- El proyecto queda en estado MVP local estable para demo.
+- Antes de retomar nuevas features, la prioridad pasa a:
+- documentacion de ejecucion clara
+- smoke test corto reproducible
+- demo local consistente con ActivityWatch abierto
+- No se planifican nuevas features antes de completar esa validacion de pre-entrega.
+
 ## Primera tarea recomendada
 
 Implementar primero la **base visual del dashboard principal con mocks estaticos**, sin drawer ni modales. Es la mejor primera tarea porque fija la direccion visual, define espaciado, tipografia, contenedores y primitives, y reduce mucho el riesgo antes de montar capas interactivas encima.

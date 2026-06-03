@@ -159,3 +159,11 @@
 - UX-POLISH-01-CLOSE completada: confirmado cierre sin logs temporales ni debug propio; los errores de consola observados se verifican como externos al navegador al desaparecer en modo incognito.
 - QA-FIX-WEEK-SELECTED-DAY-CATEGORY-DETAIL-01 completada: el modal de detalle de categoria en `Semana` ya respeta el mismo contexto que la tarjeta inferior (`dia` si hay `selectedWeekDay`, `semana` si no lo hay).
 - QA-FIX-WEEK-SELECTED-DAY-CATEGORY-DETAIL-CLOSE completada: retirado el log temporal de verificacion del contexto semana/dia y cerrada la correccion sin cambios funcionales adicionales.
+- MVP-RELEASE-CHECKLIST-01 completada: README revisado, guia de demo local creada, smoke test corto creado y documentado el estado de pre-entrega sin anadir nuevas funcionalidades.
+
+## Fase 6: Pre-entrega / demo local
+
+- [ ] Ejecutar smoke test completo antes de demo
+- [ ] Verificar demo local completa con ActivityWatch abierto
+- [ ] Resolver el problema de build/rolldown en un entorno limpio antes de cualquier release real
+- [ ] Congelar nuevas features hasta pasar el smoke test de demo local
