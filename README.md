@@ -17,6 +17,7 @@ usuario y presenta:
 - Pensado para uso y demo en local.
 - Sin deploy publico todavia.
 - Sin backend propio.
+- Plan de desktop release documentado en `RELEASE_DESKTOP_PLAN.md`.
 
 ## Stack
 
@@ -33,11 +34,35 @@ usuario y presenta:
 - API local disponible en:
   - `http://localhost:5600/api/0`
 
-## Instalacion
+## Entorno recomendado para instalar y construir
 
-Instalar dependencias:
+Trabaja desde la ruta Linux real del proyecto dentro de WSL:
 
 ```bash
+cd "/home/tomas/USAL LINUX/activityUI"
+```
+
+No uses para instalar o construir:
+
+- PowerShell en Windows
+- `cmd.exe`
+- rutas UNC como `\\wsl.localhost\...`
+
+Antes de ejecutar `npm`, activa el runtime Node Linux local del proyecto:
+
+```bash
+source scripts/use-local-node-wsl.sh
+```
+
+Ese script descarga si hace falta un Node Linux local en `.local-tools/` y lo
+pone primero en `PATH` para la shell actual.
+
+## Instalacion
+
+Instalar dependencias desde WSL:
+
+```bash
+source scripts/use-local-node-wsl.sh
 npm install
 ```
 
@@ -46,6 +71,7 @@ npm install
 Arrancar la app en desarrollo:
 
 ```bash
+source scripts/use-local-node-wsl.sh
 npm run dev
 ```
 
@@ -62,7 +88,35 @@ http://127.0.0.1:5173
 - `npm run lint`
   - valida el codigo y la configuracion actual
 - `npm run build`
-  - intenta generar build de produccion
+  - genera build de produccion
+- `npm run preview`
+  - sirve localmente el build generado para revisar el resultado final
+- `npm run tauri:dev`
+  - arranca la shell minima de Tauri sobre el frontend actual
+- `npm run tauri:build`
+  - prepara el build desktop de Tauri
+- `npm run tauri:info`
+  - muestra diagnostico del entorno Tauri y prerequisitos faltantes
+
+## Shell Tauri MVP
+
+El repositorio ya incluye una integracion minima de Tauri en `src-tauri/`.
+
+Configuracion actual:
+
+- desarrollo Tauri contra Vite en `http://127.0.0.1:1420`
+- build Tauri contra `dist/`
+- sin cambios en la logica funcional del frontend
+- la app sigue intentando conectar con ActivityWatch en
+  `http://localhost:5600/api/0`
+
+Para ejecutar `npm run tauri:dev` hace falta un entorno con prerequisitos
+Tauri completos.
+
+En Linux/WSL eso incluye Rust y dependencias nativas como `webkit2gtk`.
+Para validar ventana real de escritorio en este proyecto, el entorno
+recomendado sigue siendo Windows nativo con la toolchain indicada en
+`RELEASE_DESKTOP_PLAN.md`.
 
 ## ActivityWatch y CORS
 
@@ -99,23 +153,25 @@ Si ActivityWatch no esta disponible:
 - se mantendran estados neutros o mensajes de no disponible
 - pueden aparecer `warnings` controlados en consola
 
-## Problema conocido de build con rolldown
+## Build y rolldown: causa del fallo anterior
 
-El flujo principal validado ahora mismo es:
+El error de build con `rolldown` no venia de la app, sino de un entorno mixto:
 
-- `npm run dev`
-- `npm run lint`
+- el proyecto se ejecutaba desde WSL
+- pero `npm`/`node` venian de Windows
+- `rolldown` acababa buscando el binding `win32` sobre una instalacion
+  preparada para Linux o usando `cmd.exe` sobre una ruta UNC
 
-`npm run build` puede fallar en entornos mezclados Windows/WSL por el binding
-nativo de rolldown, con errores del tipo:
+Flujo validado ahora:
 
-- `Cannot find native binding`
-- `@rolldown/binding-win32-x64-msvc`
-
-Esto no se considera un fallo funcional de la app.
-
-Antes de preparar un release real o un deploy, habra que resolver ese build en
-un entorno limpio y consistente.
+```bash
+cd "/home/tomas/USAL LINUX/activityUI"
+source scripts/use-local-node-wsl.sh
+npm install
+npm run lint
+npm run build
+npm run preview -- --host 127.0.0.1 --port 4173
+```
 
 ## Uso recomendado para demo local
 

@@ -163,7 +163,24 @@
 
 ## Fase 6: Pre-entrega / demo local
 
-- [ ] Ejecutar smoke test completo antes de demo
-- [ ] Verificar demo local completa con ActivityWatch abierto
-- [ ] Resolver el problema de build/rolldown en un entorno limpio antes de cualquier release real
+- [x] Ejecutar smoke test completo antes de demo
+- [x] Verificar demo local completa con ActivityWatch abierto
+- [x] Resolver el problema de build/rolldown en un entorno limpio antes de cualquier release real
 - [ ] Congelar nuevas features hasta pasar el smoke test de demo local
+- RELEASE-BUILD-FIX-01 completada: identificado el origen mixto Windows/WSL del fallo de `rolldown` y validado build correcto desde WSL con Node Linux local activado por `scripts/use-local-node-wsl.sh`.
+- RELEASE-BUILD-FIX-01 completada: `npm install`, `npm run lint`, `npm run build` y `npm run preview` quedan funcionando en el entorno recomendado `/home/tomas/USAL LINUX/activityUI`.
+- SMOKE-TEST validado: el MVP local queda estable para demo con ActivityWatch real.
+
+## Fase 7: Planificacion de desktop release
+
+- [x] Definir estrategia de empaquetado de escritorio
+- [ ] Verificar apertura real de la ventana Tauri en entorno nativo con Rust y GUI
+- [ ] Validar conectividad a ActivityWatch desde Tauri
+- [ ] Generar primer instalador Windows reproducible
+- [ ] Preparar primer GitHub Release descargable
+- [ ] Preparar landing simple de descarga
+- RELEASE-DESKTOP-PLAN-01 completada: creada `RELEASE_DESKTOP_PLAN.md` con comparativa Web/PWA vs Tauri vs Electron vs Microsoft Store.
+- RELEASE-DESKTOP-PLAN-01 completada: se recomienda Tauri como camino principal, GitHub Releases como primer canal y ActivityWatch separado en `v0.1`.
+- RELEASE-DESKTOP-PLAN-01 completada: se fija criterio operativo de entornos: frontend en WSL y bundling de instalador Windows en Windows nativo recomendado.
+- TAURI-MVP-01 implementada en repo: anadida shell minima de Tauri (`src-tauri/`, scripts npm y configuracion base) sin tocar la logica funcional del dashboard.
+- TAURI-MVP-01 verificada parcialmente: `lint`, build web y `tauri info` OK a nivel de integracion; la apertura real de ventana queda pendiente por ausencia de `cargo/rustc`, `webkit2gtk` y salida grafica en la sesion WSL actual.

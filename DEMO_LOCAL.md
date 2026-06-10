@@ -4,6 +4,13 @@ Guia practica para preparar y ensenar el MVP local de `activityUI`.
 
 ## Antes de la demo
 
+0. Abrir una shell en WSL dentro de la ruta Linux real del proyecto:
+
+```bash
+cd "/home/tomas/USAL LINUX/activityUI"
+source scripts/use-local-node-wsl.sh
+```
+
 1. Abrir ActivityWatch.
 2. Verificar que responde:
    - `http://localhost:5600/api/0/info`
@@ -71,6 +78,7 @@ npm run dev
 
 - Usar navegador con consola limpia.
 - Tener ActivityWatch abierto unos minutos antes para asegurar datos recientes.
-- Evitar tocar el build durante la demo: el flujo validado es `npm run dev`.
+- Si necesitas validar build o preview antes de la demo, hacerlo desde WSL con
+  `source scripts/use-local-node-wsl.sh`.
 - Si algo falla con ActivityWatch, ensenar que la app se mantiene estable y no
   se rompe.

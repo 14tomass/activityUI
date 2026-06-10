@@ -186,6 +186,19 @@ El proyecto ya tiene la base tecnica cerrada con React, JavaScript, Vite y Tailw
 - demo local consistente con ActivityWatch abierto
 - No se planifican nuevas features antes de completar esa validacion de pre-entrega.
 
+## Transicion a desktop release
+
+- El MVP de UI queda suficientemente estable para pasar a una fase de shell de
+  escritorio.
+- La siguiente etapa recomendada ya no es de rediseño de interfaz, sino de
+  empaquetado:
+  - Tauri como shell principal
+  - validacion de conectividad a ActivityWatch desde entorno desktop
+  - instalador Windows inicial
+- Durante `TAURI-MVP-01` no se deberian reabrir cambios grandes de UI ni de
+  logica funcional salvo ajustes minimos necesarios para el contenedor desktop.
+- La estrategia detallada queda documentada en `RELEASE_DESKTOP_PLAN.md`.
+
 ## Primera tarea recomendada
 
 Implementar primero la **base visual del dashboard principal con mocks estaticos**, sin drawer ni modales. Es la mejor primera tarea porque fija la direccion visual, define espaciado, tipografia, contenedores y primitives, y reduce mucho el riesgo antes de montar capas interactivas encima.

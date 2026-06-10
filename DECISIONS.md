@@ -48,6 +48,10 @@
 - Las reglas de categorias son exclusivas: una misma regla de dominio o aplicacion pertenece a una sola categoria y se mueve automaticamente si se reasigna.
 - Solo las categorias creadas por usuario se pueden eliminar; las categorias base (`Estudio`, `Entretenimiento`, `Productividad`, `Otros`) son permanentes.
 - En `Semana`, se elimina el eje Y si puede inducir una lectura falsa; la representacion valida se basa en barras proporcionales y el valor exacto del dia seleccionado.
+- Para la primera app de escritorio se elige **Tauri** como camino principal; **Electron** queda solo como alternativa si aparece un bloqueo real.
+- En `v0.1` de escritorio, ActivityUI y ActivityWatch se distribuyen por separado; ActivityUI no instala ni empaqueta ActivityWatch.
+- El primer canal de distribucion recomendado es **GitHub Releases**; **Microsoft Store** queda fuera de la primera version instalable.
+- Se separan entornos recomendados: desarrollo/build web del frontend en WSL y bundling del instalador Windows de Tauri en Windows nativo.
 
 ### Estrategia de implementacion
 

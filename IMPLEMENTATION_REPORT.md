@@ -1049,3 +1049,92 @@
 - el proyecto entra en fase de pre-entrega/demo local
 - no se anadiran nuevas features antes del smoke test
 - No se modifico logica funcional de la app.
+
+## RELEASE-BUILD-FIX-01
+
+- Se diagnostico la causa real del fallo de `npm run build`:
+- el proyecto se ejecutaba desde WSL
+- pero `npm`/`node` resolvian al runtime de Windows
+- `scripts/vite.mjs` usa `process.execPath`, asi que Vite/Rolldown heredaban Node de Windows
+- eso provocaba dos sintomas segun el punto de entrada:
+- busqueda del binding `@rolldown/binding-win32-x64-msvc`
+- o ejecucion de `cmd.exe` sobre ruta UNC `\\wsl.localhost\...`
+- Se confirmo que en WSL no habia `node` nativo instalado y que `npm` entraba desde `/mnt/c/Program Files/nodejs/npm`.
+- Se verifico que la instalacion del proyecto en `node_modules` podia quedar mezclada entre Linux y Windows segun como se ejecutaran los comandos.
+- Solucion aplicada sin tocar la logica de la app:
+- instalacion de un Node Linux local de workspace en `.local-tools/`
+- script `scripts/use-local-node-wsl.sh` para descargar/activar ese runtime en WSL
+- limpieza de `node_modules` y `package-lock.json`
+- reinstalacion completa desde WSL con Node Linux real
+- Se anadio `.local-tools/` a `.gitignore` para no contaminar el repo con el runtime local.
+- Verificacion final en WSL:
+- `npm install` OK
+- `npm run lint` OK
+- `npm run build` OK
+- `npm run preview` OK (respuesta HTTP 200 en `127.0.0.1:4173`)
+- Documentacion actualizada:
+- `README.md`
+- `DEMO_LOCAL.md`
+- `TASKS.md`
+- `IMPLEMENTATION_REPORT.md`
+
+## RELEASE-DESKTOP-PLAN-01
+
+- Se documento la estrategia tecnica de empaquetado en
+  `RELEASE_DESKTOP_PLAN.md`.
+- Se compararon cuatro caminos de release:
+- Web/PWA
+- Tauri
+- Electron
+- Microsoft Store
+- Recomendacion final:
+- usar Tauri como shell principal
+- mantener Electron solo como plan B
+- distribuir primero por GitHub Releases
+- dejar Microsoft Store para una fase posterior
+- mantener ActivityWatch separado en `v0.1`
+- Se dejo explicitado el alcance de la primera version instalable:
+- app de escritorio Windows
+- reutilizando el dashboard actual validado
+- con mensaje claro si ActivityWatch no esta disponible
+- sin auto-updater, sin firma de codigo y sin instalador conjunto
+- Se anadio una distincion operativa importante:
+- frontend y build web del MVP: WSL
+- bundling del instalador Windows de Tauri: Windows nativo recomendado
+- No se modifico logica funcional de la app ni UI.
+
+## TAURI-MVP-01
+
+- Se anadio la integracion minima de Tauri sobre el frontend actual sin tocar
+  la logica funcional de ActivityUI.
+- Cambios de repo realizados:
+- `package.json`
+  - scripts `tauri`, `tauri:frontend-dev`, `tauri:dev`, `tauri:build`,
+    `tauri:info`
+- `src-tauri/`
+  - `Cargo.toml`
+  - `build.rs`
+  - `tauri.conf.json`
+  - `capabilities/default.json`
+  - `src/main.rs`
+  - `src/lib.rs`
+- `.gitignore`
+  - anadido `src-tauri/target`
+- Configuracion MVP aplicada:
+- Tauri usa Vite en desarrollo sobre `127.0.0.1:1420`
+- Tauri usa `dist/` en build
+- la shell no altera la API actual ni la persistencia local
+- el frontend sigue apuntando a `http://localhost:5600/api/0`
+- Verificaciones completadas:
+- `npm run lint` OK
+- `npm run build` OK
+- `npm run tauri:info` OK como diagnostico de integracion
+- Limitacion detectada al intentar `npm run tauri:dev` en esta sesion:
+- falta `cargo`
+- falta `rustc`
+- faltan dependencias Linux de Tauri como `webkit2gtk`
+- la sesion WSL actual no expone `DISPLAY`/GUI
+- Conclusión:
+- la integracion minima de codigo queda lista
+- la apertura real de ventana Tauri queda pendiente de validacion en entorno
+  nativo preparado, preferiblemente Windows con Rust/toolchain completos

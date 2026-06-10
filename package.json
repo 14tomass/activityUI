@@ -9,7 +9,12 @@
     "lint": "eslint .",
     "check:activitywatch-buckets": "node scripts/check-activitywatch-buckets.mjs",
     "check:activitywatch-usage": "node scripts/check-activitywatch-usage.mjs",
-    "preview": "node scripts/vite.mjs preview --host 127.0.0.1"
+    "preview": "node scripts/vite.mjs preview --host 127.0.0.1",
+    "tauri": "tauri",
+    "tauri:frontend-dev": "node scripts/vite.mjs --host 127.0.0.1 --port 1420 --strictPort",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:info": "tauri info"
   },
   "dependencies": {
     "react": "^19.2.6",
@@ -18,6 +23,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.0",
+    "@tauri-apps/cli": "^2.11.2",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
