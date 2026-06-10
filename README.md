@@ -118,6 +118,23 @@ Para validar ventana real de escritorio en este proyecto, el entorno
 recomendado sigue siendo Windows nativo con la toolchain indicada en
 `RELEASE_DESKTOP_PLAN.md`.
 
+## Tauri en Windows
+
+Para Tauri e instalador Windows, usa Windows nativo y una ruta Windows normal,
+no `\\wsl.localhost\...`.
+
+Guia detallada:
+
+- [docs/TAURI_SETUP.md](/C:/Users/tomas/OneDrive/Documentos/activity/activityUI/docs/TAURI_SETUP.md)
+
+Notas practicas validadas:
+
+- `tauri:info` detecta correctamente WebView2 y MSVC en Windows nativo
+- si PowerShell bloquea `npm.ps1`, usa `npm.cmd`
+- Rust/Cargo deben instalarse con `rustup`
+- el repo necesita `src-tauri/icons/icon.ico` para que `tauri:dev` compile en
+  Windows
+
 ## ActivityWatch y CORS
 
 Para que el frontend en `http://127.0.0.1:5173` pueda consultar la API local,

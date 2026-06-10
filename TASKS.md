@@ -184,3 +184,6 @@
 - RELEASE-DESKTOP-PLAN-01 completada: se fija criterio operativo de entornos: frontend en WSL y bundling de instalador Windows en Windows nativo recomendado.
 - TAURI-MVP-01 implementada en repo: anadida shell minima de Tauri (`src-tauri/`, scripts npm y configuracion base) sin tocar la logica funcional del dashboard.
 - TAURI-MVP-01 verificada parcialmente: `lint`, build web y `tauri info` OK a nivel de integracion; la apertura real de ventana queda pendiente por ausencia de `cargo/rustc`, `webkit2gtk` y salida grafica en la sesion WSL actual.
+- TAURI-WINDOWS-ENV-VALIDATION-01 completada a nivel de entorno Windows: `npm install`, `lint`, `build` y `tauri:info` OK en ruta Windows nativa; Rust/MSVC/WebView2 quedan preparados para Tauri.
+- TAURI-WINDOWS-ENV-VALIDATION-01 completada a nivel de arranque: `tauri:dev` ya compila y levanta proceso `activityui` + Vite/WebView2 en Windows tras anadir `src-tauri/icons/icon.ico`.
+- TAURI-WINDOWS-ENV-VALIDATION-01 validada parcialmente para ActivityWatch cerrado: al detener temporalmente ActivityWatch, `activityui` sigue vivo y el frontend no se cae; queda pendiente confirmacion visual manual de placeholders dentro de la ventana nativa.

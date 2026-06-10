@@ -12,7 +12,9 @@ dist
 dist-ssr
 *.local
 .local-tools
+.npm-cache
 src-tauri/target
+src-tauri/gen
 
 # Editor directories and files
 .vscode/*

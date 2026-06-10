@@ -269,6 +269,13 @@ Queda explicitamente fuera de la primera salida.
 - Windows nativo
 - evitar PowerShell/UNC mezclados con `node_modules` de WSL
 - preparar Rust + MSVC + WebView2 antes de intentar bundling
+- si PowerShell bloquea `npm.ps1`, usar `npm.cmd`
+- mantener el repo en ruta Windows normal; una ruta `C:\...` dentro de
+  OneDrive sigue siendo valida mientras no sea UNC
+- asumir que el primer `tauri:dev` descargara crates y puede tardar varios
+  minutos
+- mantener `src-tauri/icons/icon.ico` en el repo para que `tauri-build`
+  genere correctamente el recurso Windows
 
 ### Puntos a validar en `TAURI-MVP-01`
 

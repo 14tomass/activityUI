@@ -1138,3 +1138,58 @@
 - la integracion minima de codigo queda lista
 - la apertura real de ventana Tauri queda pendiente de validacion en entorno
   nativo preparado, preferiblemente Windows con Rust/toolchain completos
+
+## TAURI-WINDOWS-ENV-VALIDATION-01
+
+- Se valido el entorno Windows nativo real para ejecutar la shell Tauri del
+  proyecto.
+- Ruta utilizada:
+  - `C:\Users\tomas\OneDrive\Documentos\activity\activityUI`
+- Comprobaciones de entorno:
+  - `node -v` -> `v24.15.0`
+  - `npm.cmd -v` -> `11.12.1`
+  - WebView2 detectado -> `149.0.4022.52`
+  - MSVC detectado -> `Visual Studio Community 2026`
+- Incidencia inicial detectada:
+  - en PowerShell, `npm -v` fallaba por politica de ejecucion sobre
+    `npm.ps1`
+  - solucion operativa documentada: usar `npm.cmd`
+- Incidencia estructural detectada en Tauri:
+  - `tauri:dev` fallaba porque faltaba `src-tauri/icons/icon.ico`
+  - se anadio un icono minimo en `src-tauri/icons/icon.ico` para permitir la
+    generacion del recurso Windows
+- Preparacion de toolchain:
+  - se instalo Rust con `rustup`
+  - `tauri:info` pasa ya con Rust, Cargo, MSVC y WebView2 detectados
+- Verificaciones ejecutadas en Windows:
+  - `npm.cmd install` -> OK
+  - `npm.cmd run lint` -> OK
+  - `npm.cmd run build` -> OK
+  - `npm.cmd run tauri:info` -> OK
+  - `npm.cmd run tauri:dev` -> OK a nivel de arranque del stack: Vite en
+    `127.0.0.1:1420`, compilacion Rust completada y proceso `activityui`
+    levantado
+- Evidencia tecnica de arranque:
+  - proceso `activityui` vivo
+  - proceso `cargo` watcher vivo durante `tauri:dev`
+  - `127.0.0.1:1420` respondiendo `200`
+  - procesos `msedgewebview2` asociados activos
+- Validacion de ActivityWatch abierto:
+  - `http://localhost:5600/api/0/info` responde con `hostname` y `version`
+    reales
+  - la app Tauri arranca en ese contexto sin caida de proceso
+- Validacion de ActivityWatch cerrado:
+  - se detuvo temporalmente ActivityWatch
+  - `localhost:5600` dejo de responder
+  - `activityui` siguio vivo
+  - el frontend siguio sirviendo en `1420`
+  - ActivityWatch se restauro correctamente despues de la prueba
+- Limitacion de esta validacion:
+  - desde la automatizacion se pudo validar arranque de proceso y entorno
+    nativo, pero no inspeccionar visualmente el contenido exacto de la ventana
+    en el escritorio del usuario
+- Documentacion actualizada:
+  - `README.md`
+  - `RELEASE_DESKTOP_PLAN.md`
+  - `TASKS.md`
+  - `docs/TAURI_SETUP.md`
