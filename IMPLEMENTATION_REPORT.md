@@ -1250,3 +1250,10 @@
   - Configurado con las acciones oficiales de GitHub Pages (`actions/configure-pages@v5`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v4`).
   - Despliegue automatico de la carpeta `landing/` ante cada `push` a la rama `main` y soporte para ejecucion manual via `workflow_dispatch`.
   - Permisos configurados para `pages: write`, `id-token: write` y `contents: read`.
+
+## THEME-DARK-LIGHT-01
+
+- Implementado \ThemeContext\ con deteccion de \prefers-color-scheme\ y persistencia en \localStorage\.
+- Configurado Tailwind CSS v4 para soportar \darkMode: class\ con la directiva \@variant dark (.dark &)\.
+- Añadido botón de alternancia en la cabecera (junto al botón de configuración) con iconos responsivos.
+- Aplicadas clases \dark:bg-...\ y \dark:text-...\ en \AppShell.jsx\ y \WelcomeHero.jsx\ para una transición fluida al modo oscuro.

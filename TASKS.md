@@ -194,4 +194,4 @@
 - GITHUB-ACTIONS-RELEASE-01 completada: workflow `.github/workflows/release-desktop.yml` implementado con `tauri-apps/tauri-action@v0` para construir en `windows-latest` el instalador NSIS y empaquetar la versiÃ³n portable en `.zip` ante push de tag `v*` o ejecuciÃ³n manual.
 
 - TAURI-SYSTEM-TRAY-01 completada: se integró el System Tray nativo con Tauri v2 habilitando la ventana en segundo plano (minimize on close) y el menú contextual ('Abrir Activity UI', 'Comprobar conexión con ActivityWatch', 'Salir').
-- THEME-DARK-LIGHT-01 (Planificado para v0.2.0): Añadir alternador de tema Claro / Oscuro con persistencia en localStorage, detección de prefers-color-scheme de Windows y adaptación de la paleta Tailwind.
+- THEME-DARK-LIGHT-01 completada: Añadido alternador de tema Claro / Oscuro con persistencia en localStorage, detección de prefers-color-scheme y adaptación de la paleta Tailwind.
