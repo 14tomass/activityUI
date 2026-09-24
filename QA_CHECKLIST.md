@@ -49,6 +49,7 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Configuracion | `[ ] OK [ ] FAIL` | |
 | Estados de carga/error | `[ ] OK [ ] FAIL` | |
 | Consola limpia | `[ ] OK [ ] FAIL` | |
+| Desktop Release v0.1.0 | `[ ] OK [ ] FAIL` | |
 
 ## A. Semana
 
@@ -224,6 +225,37 @@ Checklist manual guiada para validar el estado estable posterior a `RANGE-NAV-AN
 | Abrir Configuracion y revisar categorias sin reglas | Se muestra copy claro como `Sin reglas todavia` cuando corresponda | `[ ] OK [ ] FAIL` | |
 | Abrir modal de edicion sin reglas | Se muestra un mensaje vacio claro y el layout sigue estable | `[ ] OK [ ] FAIL` | |
 | Revisar estados de foco basicos | Tabs, flechas, boton de Configuracion y acciones principales muestran foco visible razonable | `[ ] OK [ ] FAIL` | |
+
+## H. Desktop Release v0.1.0 (Windows Setup & Portable)
+
+### H.1 Instalador Asistido (`ActivityUI_v0.1.0_x64-setup.exe`)
+
+| Paso | Resultado esperado | Estado | Notas |
+| --- | --- | --- | --- |
+| Descargar instalador de GitHub Releases | El binario `.exe` se descarga completamente sin errores | `[ ] OK [ ] FAIL` | |
+| Ejecutar instalador como usuario estandar | No solicita elevacion UAC obligatoria de administrador (`currentUser`) | `[ ] OK [ ] FAIL` | |
+| Comprobar ventana de SmartScreen | Si aparece, pulsar `Más información` -> `Ejecutar de todas formas` desbloquea la instalacion | `[ ] OK [ ] FAIL` | |
+| Completar asistente de instalacion | Se instala en `%LOCALAPPDATA%\Programs\ActivityUI` y finaliza sin fallos | `[ ] OK [ ] FAIL` | |
+| Verificar accesos directos | Se crea acceso directo en Menú Inicio y en el Escritorio con icono oficial | `[ ] OK [ ] FAIL` | |
+| Desinstalacion limpia | Al desinstalar desde *Configuracion > Aplicaciones*, se eliminan los archivos del programa | `[ ] OK [ ] FAIL` | |
+
+### H.2 Version Portable (`ActivityUI_v0.1.0_windows_x64_portable.zip`)
+
+| Paso | Resultado esperado | Estado | Notas |
+| --- | --- | --- | --- |
+| Descargar y descomprimir archivo `.zip` | Se extrae la carpeta con `ActivityUI.exe` sin dependencias externas | `[ ] OK [ ] FAIL` | |
+| Ejecutar `ActivityUI.exe` directamente | La ventana de la aplicacion arranca de forma inmediata sin proceso de instalacion | `[ ] OK [ ] FAIL` | |
+| Comprobar aviso de SmartScreen en portable | Se desbloquea con `Más información` -> `Ejecutar de todas formas` | `[ ] OK [ ] FAIL` | |
+| Cerrar aplicacion | El proceso termina limpiamente sin dejar tareas colgadas en segundo plano | `[ ] OK [ ] FAIL` | |
+
+### H.3 Integracion con ActivityWatch y WebView2 en Desktop
+
+| Paso | Resultado esperado | Estado | Notas |
+| --- | --- | --- | --- |
+| Abrir app con ActivityWatch activo (`localhost:5600`) | La aplicacion conecta a la API local sin bloqueos de CSP y muestra metricas reales | `[ ] OK [ ] FAIL` | |
+| Abrir app con ActivityWatch cerrado | La ventana se abre normalmente y muestra placeholders neutros (`-`) sin cerrarse | `[ ] OK [ ] FAIL` | |
+| Iniciar ActivityWatch con la app ya abierta | Al cambiar de vista o fecha, los datos reales se cargan de forma sincronizada | `[ ] OK [ ] FAIL` | |
+| Consumo de recursos | La aplicacion se ejecuta de forma fluida con un consumo de RAM moderado (~30-50 MB) | `[ ] OK [ ] FAIL` | |
 
 ## Formato recomendado para reportar resultados
 
