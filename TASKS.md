@@ -193,7 +193,5 @@
 - TAURI-CONFIG-01 completada: versionado unificado a `v0.1.0` en `package.json`, `tauri.conf.json` y `Cargo.toml`, con script de validaciÃ³n `npm run validate`.
 - GITHUB-ACTIONS-RELEASE-01 completada: workflow `.github/workflows/release-desktop.yml` implementado con `tauri-apps/tauri-action@v0` para construir en `windows-latest` el instalador NSIS y empaquetar la versiÃ³n portable en `.zip` ante push de tag `v*` o ejecuciÃ³n manual.
 
-
- -   T A U R I - S Y S T E M - T R A Y - 0 1   c o m p l e t a d a :   s e   i n t e g r ó   e l   S y s t e m   T r a y   n a t i v o   c o n   T a u r i   v 2   h a b i l i t a n d o   l a   v e n t a n a   e n   s e g u n d o   p l a n o   ( m i n i m i z e   o n   c l o s e )   y   e l   m e n ú   c o n t e x t u a l   ( ' A b r i r   A c t i v i t y   U I ' ,   ' C o m p r o b a r   c o n e x i ó n   c o n   A c t i v i t y W a t c h ' ,   ' S a l i r ' ) . 
-  
- 
+- TAURI-SYSTEM-TRAY-01 completada: se integró el System Tray nativo con Tauri v2 habilitando la ventana en segundo plano (minimize on close) y el menú contextual ('Abrir Activity UI', 'Comprobar conexión con ActivityWatch', 'Salir').
+- THEME-DARK-LIGHT-01 (Planificado para v0.2.0): Añadir alternador de tema Claro / Oscuro con persistencia en localStorage, detección de prefers-color-scheme de Windows y adaptación de la paleta Tailwind.
