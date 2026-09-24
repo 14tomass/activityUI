@@ -29,7 +29,7 @@ Activity UI no recopila datos por sí misma; actúa como un visualizador para el
 
 ## 💾 2. Descarga e Instalación
 
-Dirígete a la página de **[Releases oficiales en GitHub](https://github.com/14tomass/activityUI/releases)** y elige el método que mejor se adapte a tus necesidades:
+Dirígete a la página de **[Releases oficiales en GitHub](https://github.com/TomasCaceresIO/activityUI/releases)** y elige el método que mejor se adapte a tus necesidades:
 
 ```
 ├── Opción A: ActivityUI_v0.1.0_x64-setup.exe         (Instalador recomendado)
@@ -142,7 +142,7 @@ Para personalizar o añadir nuevas categorías:
 
 ## 🔗 Enlaces y Recursos
 
-- 🌐 [Sitio Web del Proyecto](https://14tomass.github.io/activityUI/)
-- 📦 [Descargas en GitHub Releases](https://github.com/14tomass/activityUI/releases)
-- 🐛 [Reportar un problema o sugerencia](https://github.com/14tomass/activityUI/issues)
+- 🌐 [Sitio Web del Proyecto](https://TomasCaceresIO.github.io/activityUI/)
+- 📦 [Descargas en GitHub Releases](https://github.com/TomasCaceresIO/activityUI/releases)
+- 🐛 [Reportar un problema o sugerencia](https://github.com/TomasCaceresIO/activityUI/issues)
 - 📖 [Sitio Oficial de ActivityWatch](https://activitywatch.net/)

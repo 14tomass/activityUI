@@ -2,14 +2,14 @@
 
 <div align="center">
 
-[![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg?style=flat-square)](https://github.com/14tomass/activityUI/releases)
+[![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg?style=flat-square)](https://github.com/TomasCaceresIO/activityUI/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6.svg?style=flat-square&logo=windows&logoColor=white)]()
-[![Web](https://img.shields.io/badge/website-GitHub%20Pages-24292e.svg?style=flat-square&logo=github)](https://14tomass.github.io/activityUI/)
+[![Web](https://img.shields.io/badge/website-GitHub%20Pages-24292e.svg?style=flat-square&logo=github)](https://TomasCaceresIO.github.io/activityUI/)
 
 **Interfaz de escritorio moderna, visual y privada para ActivityWatch.**
 
-[Sitio Web Oficial](https://14tomass.github.io/activityUI/) • [Descargar Releases](https://github.com/14tomass/activityUI/releases) • [Guía de Inicio Rápido](docs/GETTING_STARTED.md) • [Documentación](docs/)
+[Sitio Web Oficial](https://TomasCaceresIO.github.io/activityUI/) • [Descargar Releases](https://github.com/TomasCaceresIO/activityUI/releases) • [Guía de Inicio Rápido](docs/GETTING_STARTED.md) • [Documentación](docs/)
 
 </div>
 
@@ -51,7 +51,7 @@ Si ActivityWatch no está iniciado al abrir Activity UI, la aplicación mostrar�
 
 ## 🚀 Descarga e Instalación (v0.1.0 para Windows)
 
-Las versiones oficiales compiladas para Windows x64 están disponibles en la sección de [Releases de GitHub](https://github.com/14tomass/activityUI/releases).
+Las versiones oficiales compiladas para Windows x64 están disponibles en la sección de [Releases de GitHub](https://github.com/TomasCaceresIO/activityUI/releases).
 
 Dispones de dos modalidades de descarga según tus preferencias:
 
@@ -83,7 +83,7 @@ Dispones de dos modalidades de descarga según tus preferencias:
 ## 🌐 Sitio Web y Demo
 
 Visita la web oficial del proyecto en GitHub Pages para conocer las características visuales y novedades:
-👉 **[https://14tomass.github.io/activityUI/](https://14tomass.github.io/activityUI/)**
+👉 **[https://TomasCaceresIO.github.io/activityUI/](https://TomasCaceresIO.github.io/activityUI/)**
 
 ---
 
@@ -115,7 +115,7 @@ El desarrollo y validación web del frontend se realiza preferentemente desde WS
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/14tomass/activityUI.git
+git clone https://github.com/TomasCaceresIO/activityUI.git
 cd activityUI
 
 # 2. Activar Node local del entorno WSL (si aplica)
