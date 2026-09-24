@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity UI · El dashboard moderno y privado para ActivityWatch</title>
+  
+  <meta name="description" content="Visualiza tus hábitos de productividad y tiempo de uso con una interfaz moderna, elegante y 100% privada. Conexión directa con tu ActivityWatch local sin nube.">
+  <meta name="keywords" content="ActivityWatch, Activity UI, productividad, dashboard, time tracking, privacidad, local-first, open source, tauri, windows">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://14tomass.github.io/activityUI/">
+  <meta property="og:title" content="Activity UI · Tu tiempo y productividad, con privacidad total">
+  <meta property="og:description" content="Dashboard moderno y de escritorio para ActivityWatch. Visualiza métricas locales sin compartir un solo byte en la nube.">
+  <meta property="og:image" content="./app-icon.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Activity UI · Dashboard para ActivityWatch">
+  <meta name="twitter:description" content="Visualiza tus métricas de tiempo de uso con total privacidad. Conexión directa a localhost:5600.">
+  <meta name="twitter:image" content="./app-icon.png">
+
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="alternate icon" type="image/png" href="./app-icon.png">
+
+  <!-- Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f6f1ff',
+              100: '#ede4ff',
+              200: '#dccdff',
+              300: '#bfa2ff',
+              400: '#9e6aff',
+              500: '#863bff',
+              600: '#771fe6',
+              700: '#6413c4',
+              800: '#5312a0',
+              900: '#451181',
+              950: '#2a0557',
+            },
+            accent: {
+              cyan: '#38bdf8',
+              violet: '#a855f7',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+            }
+          },
+          boxShadow: {
+            'glow-purple': '0 0 50px -10px rgba(134, 59, 255, 0.35)',
+            'glow-cyan': '0 0 50px -10px rgba(56, 189, 248, 0.25)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom subtle glass and animation touches */
+    .glass-card {
+      background: rgba(18, 24, 38, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-nav {
+      background: rgba(11, 15, 25, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 20%, #c4b5fd 60%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .badge-shimmer {
+      background: linear-gradient(90deg, rgba(134,59,255,0.1) 0%, rgba(56,189,248,0.2) 50%, rgba(134,59,255,0.1) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 4s infinite linear;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+
+<body class="bg-[#0b0f19] text-slate-100 font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
+
+  <!-- Glow Background Accents -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-brand-600/20 blur-[130px] rounded-full"></div>
+    <div class="absolute top-[35%] -left-32 w-[500px] h-[400px] bg-accent-cyan/10 blur-[140px] rounded-full"></div>
+    <div class="absolute top-[65%] -right-32 w-[600px] h-[500px] bg-brand-500/15 blur-[150px] rounded-full"></div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="sticky top-0 z-50 glass-nav border-b border-white/5 transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Brand Logo -->
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="relative w-9 h-9 rounded-xl overflow-hidden p-0.5 bg-gradient-to-tr from-brand-500 to-accent-cyan shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform duration-200">
+          <img src="./app-icon.png" alt="Activity UI Logo" class="w-full h-full object-cover rounded-[10px]">
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-lg tracking-tight text-white group-hover:text-brand-300 transition-colors">Activity UI</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+            v0.1.0
+          </span>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-300">
+        <a href="#features" class="hover:text-white transition-colors">Características</a>
+        <a href="#mockup" class="hover:text-white transition-colors">Dashboard</a>
+        <a href="#requirements" class="hover:text-white transition-colors">Requisitos</a>
+        <a href="#privacy" class="hover:text-white transition-colors">Privacidad</a>
+        <a href="https://github.com/14tomass/activityUI" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 hover:text-white transition-colors">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-3">
+        <a href="https://github.com/14tomass/activityUI" target="_blank" rel="noopener noreferrer" class="hidden sm:inline-flex items-center justify-center px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
+          ★ Star en GitHub
+        </a>
+        <a href="#download" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-accent-cyan shadow-lg shadow-brand-600/30 hover:shadow-brand-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Descargar
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="relative pt-16 pb-20 md:pt-24 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center z-10">
+    <!-- Announcement Pill -->
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-brand-300 border border-brand-500/30 badge-shimmer mb-8 shadow-sm">
+      <span class="inline-block w-2 h-2 rounded-full bg-accent-cyan animate-pulse"></span>
+      <span>Lanzamiento oficial v0.1.0 para Windows ya disponible</span>
+      <a href="https://github.com/14tomass/activityUI/releases/latest" target="_blank" rel="noopener noreferrer" class="text-white hover:underline flex items-center gap-1 font-semibold ml-1">
+        Ver Release &rarr;
+      </a>
+    </div>
+
+    <!-- Main Headline -->
+    <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight max-w-4xl mx-auto leading-[1.12]">
+      Tu productividad y tiempo, <br class="hidden sm:inline" />
+      <span class="gradient-text">100% privado y en local.</span>
+    </h1>
+
+    <!-- Subtitle -->
+    <p class="mt-6 text-base sm:text-xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
+      Una interfaz moderna, elegante y ultraligera para <strong class="text-slate-200 font-semibold">ActivityWatch</strong>. 
+      Analiza tus hábitos digitales, aplicaciones y navegación web sin que tus datos salgan jamás de tu ordenador.
+    </p>
+
+    <!-- Call to Actions -->
+    <div class="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto sm:max-w-none" id="download">
+      <!-- Direct Download Release CTA -->
+      <a href="https://github.com/14tomass/activityUI/releases/latest" target="_blank" rel="noopener noreferrer" 
+         class="w-full sm:w-auto flex items-center justify-center gap-3 px-7 py-3.5 rounded-xl text-sm sm:text-base font-bold text-white bg-gradient-to-r from-brand-600 via-brand-500 to-accent-cyan hover:opacity-95 shadow-glow-purple hover:scale-[1.02] active:scale-[0.99] transition-all">
+        <!-- Windows Logo -->
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801"/>
+        </svg>
+        <span>Descargar v0.1.0 para Windows</span>
+        <svg class="w-4 h-4 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </a>
+
+      <!-- Secondary GitHub CTA -->
+      <a href="https://github.com/14tomass/activityUI" target="_blank" rel="noopener noreferrer"
+         class="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl text-sm sm:text-base font-semibold text-slate-300 hover:text-white glass-card hover:bg-white/[0.08] hover:border-white/20 transition-all">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        <span>Ver Repositorio</span>
+      </a>
+    </div>
+
+    <!-- Download Options Footnote -->
+    <div class="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-400">
+      <span class="inline-flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-accent-emerald" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        Instalador guiado NSIS (.exe)
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-accent-emerald" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        Versión Portable (.zip) sin instalación
+      </span>
+      <span class="inline-flex items-center gap-1.5 text-slate-400">
+        <svg class="w-3.5 h-3.5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Requiere <span class="font-mono text-slate-300">ActivityWatch</span> en segundo plano
+      </span>
+    </div>
+
+    <!-- Dashboard Visual Mockup -->
+    <div class="mt-14 sm:mt-20 relative max-w-5xl mx-auto" id="mockup">
+      <!-- Glow ambient behind mockup -->
+      <div class="absolute -inset-1.5 bg-gradient-to-r from-brand-600 via-accent-cyan to-brand-500 rounded-3xl blur-2xl opacity-20 transform -rotate-1 group-hover:opacity-30 transition-opacity"></div>
+      
+      <!-- Window Frame Mockup -->
+      <div class="relative rounded-2xl border border-white/15 bg-[#121826] shadow-2xl overflow-hidden text-left">
+        
+        <!-- Window Titlebar -->
+        <div class="px-4 py-3 bg-[#0d131f] border-b border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-rose-500/80"></div>
+            <div class="w-3 h-3 rounded-full bg-amber-500/80"></div>
+            <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+            <span class="ml-2 text-xs font-mono text-slate-400 hidden sm:inline">Activity UI · Desktop v0.1.0</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              localhost:5600 conectado
+            </span>
+          </div>
+        </div>
+
+        <!-- Dashboard App Header Inside Window -->
+        <div class="p-6 md:p-8 bg-[#131929] border-b border-white/5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            
+            <!-- Range Tabs (Semana | Día | Mes) -->
+            <div class="inline-flex p-1 rounded-xl bg-slate-900/80 border border-white/10 text-xs font-semibold">
+              <button class="px-4 py-1.5 rounded-lg bg-brand-600 text-white shadow-sm font-bold">Semana</button>
+              <button class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-white transition-colors">Día</button>
+              <button class="px-4 py-1.5 rounded-lg text-slate-400 hover:text-white transition-colors">Mes</button>
+            </div>
+
+            <!-- Date Selector Display -->
+            <div class="inline-flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-white/10 text-xs font-medium text-slate-300">
+              <button class="hover:text-white transition-colors">&larr;</button>
+              <span class="font-semibold text-white">11 may – 17 may</span>
+              <button class="text-slate-600 cursor-not-allowed">&rarr;</button>
+            </div>
+
+          </div>
+
+          <!-- Central KPI Block -->
+          <div class="mt-8 text-center sm:text-left flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Tiempo total de uso (Semana)</p>
+              <div class="mt-1 flex items-baseline gap-3">
+                <span class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">24h 12m</span>
+                <span class="text-sm font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                  +3h vs sem. anterior
+                </span>
+              </div>
+              <p class="mt-1 text-xs text-slate-400">Media diaria calculada: <strong class="text-slate-200">4h 50m / día</strong></p>
+            </div>
+
+            <div class="text-xs text-slate-400 font-mono flex items-center gap-2 self-start sm:self-auto">
+              <span class="inline-block w-2 h-2 rounded-full bg-brand-400"></span>
+              7 días analizados sin lagunas
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Cards Grid Inside Window -->
+        <div class="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-[#0f1422]">
+          
+          <!-- Card: Uso por días (Weekly Bar Chart) -->
+          <div class="lg:col-span-7 glass-card rounded-2xl p-5 border border-white/10 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-sm font-bold text-white">Uso por días</h3>
+                <p class="text-xs text-slate-400">Distribución horaria lunes a domingo</p>
+              </div>
+              <span class="text-xs font-mono text-brand-300 bg-brand-500/10 px-2 py-1 rounded border border-brand-500/20">Pico: Jueves</span>
+            </div>
+
+            <!-- Bar Chart Representation -->
+            <div class="grid grid-cols-7 gap-2 sm:gap-3 items-end h-40 pt-4 px-2">
+              
+              <!-- Lunes -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full bg-slate-800/80 rounded-t-lg h-24 group-hover:bg-slate-700 transition-all relative flex items-end justify-center">
+                  <span class="opacity-0 group-hover:opacity-100 absolute -top-7 text-[10px] font-mono text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/20 transition-opacity whitespace-nowrap">3h 20m</span>
+                </div>
+                <span class="text-[11px] font-medium text-slate-400">L</span>
+              </div>
+
+              <!-- Martes -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full bg-slate-800/80 rounded-t-lg h-28 group-hover:bg-slate-700 transition-all relative flex items-end justify-center">
+                  <span class="opacity-0 group-hover:opacity-100 absolute -top-7 text-[10px] font-mono text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/20 transition-opacity whitespace-nowrap">4h 05m</span>
+                </div>
+                <span class="text-[11px] font-medium text-slate-400">M</span>
+              </div>
+
+              <!-- Miércoles -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full bg-slate-800/80 rounded-t-lg h-20 group-hover:bg-slate-700 transition-all relative flex items-end justify-center">
+                  <span class="opacity-0 group-hover:opacity-100 absolute -top-7 text-[10px] font-mono text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/20 transition-opacity whitespace-nowrap">2h 45m</span>
+                </div>
+                <span class="text-[11px] font-medium text-slate-400">X</span>
+              </div>
+
+              <!-- Jueves (Peak Day) -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full bg-gradient-to-t from-brand-600 to-accent-cyan rounded-t-lg h-36 shadow-lg shadow-brand-500/25 relative flex items-end justify-center">
+                  <span class="absolute -top-7 text-[10px] font-mono font-bold text-white bg-brand-900/90 px-1.5 py-0.5 rounded border border-brand-400/40 whitespace-nowrap">5h 40m</span>
+                </div>
+                <span class="text-[11px] font-bold text-brand-300">J</span>
+              </div>
+
+              <!-- Viernes -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full bg-slate-800/80 rounded-t-lg h-32 group-hover:bg-slate-700 transition-all relative flex items-end justify-center">
+                  <span class="opacity-0 group-hover:opacity-100 absolute -top-7 text-[10px] font-mono text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/20 transition-opacity whitespace-nowrap">4h 30m</span>
+                </div>
+                <span class="text-[11px] font-medium text-slate-400">V</span>
+              </div>
+
+              <!-- Sábado -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full bg-slate-800/80 rounded-t-lg h-16 group-hover:bg-slate-700 transition-all relative flex items-end justify-center">
+                  <span class="opacity-0 group-hover:opacity-100 absolute -top-7 text-[10px] font-mono text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/20 transition-opacity whitespace-nowrap">2h 10m</span>
+                </div>
+                <span class="text-[11px] font-medium text-slate-400">S</span>
+              </div>
+
+              <!-- Domingo -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-full bg-slate-800/80 rounded-t-lg h-12 group-hover:bg-slate-700 transition-all relative flex items-end justify-center">
+                  <span class="opacity-0 group-hover:opacity-100 absolute -top-7 text-[10px] font-mono text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/20 transition-opacity whitespace-nowrap">1h 42m</span>
+                </div>
+                <span class="text-[11px] font-medium text-slate-400">D</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Card: Resumen por Categorías -->
+          <div class="lg:col-span-5 glass-card rounded-2xl p-5 border border-white/10 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-white">Categorías semanales</h3>
+                <span class="text-xs text-slate-400">Total: 4</span>
+              </div>
+
+              <!-- List of Categories with durations and progress -->
+              <div class="space-y-4">
+                
+                <!-- Estudio -->
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-semibold text-brand-300 flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full bg-brand-500"></span> Estudio
+                    </span>
+                    <span class="font-mono text-slate-300">11h 35m (48%)</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div class="h-full bg-brand-500 rounded-full" style="width: 48%"></div>
+                  </div>
+                </div>
+
+                <!-- Productividad -->
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-semibold text-accent-cyan flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full bg-accent-cyan"></span> Productividad
+                    </span>
+                    <span class="font-mono text-slate-300">6h 15m (26%)</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div class="h-full bg-accent-cyan rounded-full" style="width: 26%"></div>
+                  </div>
+                </div>
+
+                <!-- Entretenimiento -->
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-semibold text-rose-400 flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full bg-rose-500"></span> Entretenimiento
+                    </span>
+                    <span class="font-mono text-slate-300">4h 42m (19%)</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div class="h-full bg-rose-500 rounded-full" style="width: 19%"></div>
+                  </div>
+                </div>
+
+                <!-- Otros -->
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-semibold text-slate-400 flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full bg-slate-500"></span> Otros
+                    </span>
+                    <span class="font-mono text-slate-300">1h 40m (7%)</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div class="h-full bg-slate-600 rounded-full" style="width: 7%"></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+              <span>Clic en cualquier categoría para ver desglose</span>
+              <span class="text-brand-400 font-semibold">Reglas editables &rarr;</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Value Proposition / Features Section -->
+  <section id="features" class="py-20 md:py-28 relative z-10 border-t border-white/5 bg-[#0b0f19]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto">
+        <h2 class="text-xs font-bold tracking-widest text-brand-400 uppercase">¿Por qué Activity UI?</h2>
+        <p class="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          Diseñado para quienes valoran su privacidad y su tiempo.
+        </p>
+        <p class="mt-4 text-base text-slate-400">
+          A diferencia de los rastreadores comerciales que envían tu historial a la nube, Activity UI opera con un principio innegociable: tus datos nunca salen de tu ordenador.
+        </p>
+      </div>
+
+      <!-- Feature Cards Grid -->
+      <div class="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <!-- Pillar 1: 100% Privado -->
+        <div class="glass-card rounded-2xl p-7 border border-white/10 hover:border-brand-500/40 hover:shadow-glow-purple transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">100% Privado y Local</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">
+            Sin cuentas, sin suscripciones y sin analítica en la nube. Toda la información se almacena y consulta en tu máquina local. Privacidad real por defecto.
+          </p>
+        </div>
+
+        <!-- Pillar 2: Conexión con ActivityWatch -->
+        <div class="glass-card rounded-2xl p-7 border border-white/10 hover:border-accent-cyan/40 hover:shadow-glow-cyan transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-accent-cyan/20 text-accent-cyan flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">Potenciado por ActivityWatch</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">
+            Se comunica directamente con el servidor local de ActivityWatch en <code class="text-xs bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded font-mono">localhost:5600</code>. Aprovecha la robustez de sus watchers nativos sin sobrecarga adicional.
+          </p>
+        </div>
+
+        <!-- Pillar 3: Algoritmo Sin Doble Conteo -->
+        <div class="glass-card rounded-2xl p-7 border border-white/10 hover:border-emerald-500/40 transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">Métricas sin Doble Conteo</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">
+            Intersección inteligente entre estado activo/AFK, eventos de ventana y pestañas de navegador. Si estás navegando, prioriza la web activa sin inflar los totales.
+          </p>
+        </div>
+
+        <!-- Pillar 4: Categorías Personalizadas -->
+        <div class="glass-card rounded-2xl p-7 border border-white/10 hover:border-brand-500/40 transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-brand-500/20 text-brand-300 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">Reglas y Categorías Dinámicas</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">
+            Crea categorías a tu medida y clasifica aplicaciones o dominios con reglas exclusivas. Persistencia local en tu equipo para una organización coherente.
+          </p>
+        </div>
+
+        <!-- Pillar 5: Rango Semana, Día y Mes -->
+        <div class="glass-card rounded-2xl p-7 border border-white/10 hover:border-amber-500/40 transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">Vistas Flexibles</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">
+            Explora tu semana de lunes a domingo, profundiza en el uso por horas de cualquier día histórico o revisa el resumen mensual con medias diarias.
+          </p>
+        </div>
+
+        <!-- Pillar 6: Ligero con Tauri v2 -->
+        <div class="glass-card rounded-2xl p-7 border border-white/10 hover:border-accent-cyan/40 transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-accent-cyan/20 text-accent-cyan flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">Rendimiento Nativo con Tauri</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">
+            Construido sobre Rust y WebView2. Consume una fracción minúscula de la memoria RAM requerida por shells tradicionales basadas en Chromium.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Architecture & How It Works -->
+  <section id="how-it-works" class="py-20 md:py-28 relative z-10 border-t border-white/5 bg-[#0e1320]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto">
+        <h2 class="text-xs font-bold tracking-widest text-accent-cyan uppercase">Arquitectura Local-First</h2>
+        <p class="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          Cómo se comunican ActivityWatch y Activity UI
+        </p>
+        <p class="mt-4 text-base text-slate-400">
+          Un modelo desacoplado que respeta la filosofía open source: un motor de recolección en segundo plano y un cliente visual moderno en primer plano.
+        </p>
+      </div>
+
+      <!-- Diagram Flow -->
+      <div class="mt-16 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+        
+        <!-- Step 1 -->
+        <div class="glass-card rounded-2xl p-6 border border-white/10 text-center flex flex-col items-center">
+          <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-200 font-mono font-bold flex items-center justify-center mb-4 border border-white/10">
+            01
+          </div>
+          <h3 class="font-bold text-white mb-2">ActivityWatch Core</h3>
+          <p class="text-xs text-slate-400 leading-relaxed mb-4">
+            Monitorea en segundo plano eventos de teclado/ratón, ventanas activas y extensiones de navegador.
+          </p>
+          <span class="mt-auto inline-block text-[11px] font-mono text-slate-300 bg-slate-900/90 px-3 py-1 rounded border border-white/10">
+            API: http://localhost:5600
+          </span>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="glass-card rounded-2xl p-6 border border-brand-500/30 text-center flex flex-col items-center relative shadow-glow-purple">
+          <div class="w-12 h-12 rounded-full bg-brand-600 text-white font-mono font-bold flex items-center justify-center mb-4 shadow-md shadow-brand-500/50">
+            02
+          </div>
+          <h3 class="font-bold text-white mb-2">Activity UI Client</h3>
+          <p class="text-xs text-slate-400 leading-relaxed mb-4">
+            Consulta la API local con una estricta política CSP. Agrega intervalos, clasifica categorías y renderiza al instante.
+          </p>
+          <span class="mt-auto inline-block text-[11px] font-mono text-brand-300 bg-brand-950/80 px-3 py-1 rounded border border-brand-500/30">
+            Tauri v2 + React
+          </span>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="glass-card rounded-2xl p-6 border border-white/10 text-center flex flex-col items-center">
+          <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-200 font-mono font-bold flex items-center justify-center mb-4 border border-white/10">
+            03
+          </div>
+          <h3 class="font-bold text-white mb-2">Tus Datos Intactos</h3>
+          <p class="text-xs text-slate-400 leading-relaxed mb-4">
+            Tus hábitos se quedan en tu máquina. Ningún dato viaja a servidores ajenos ni se vende a redes publicitarias.
+          </p>
+          <span class="mt-auto inline-block text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded border border-emerald-500/30">
+            100% Offline / Privado
+          </span>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Requirements & Setup Guide -->
+  <section id="requirements" class="py-20 md:py-28 relative z-10 border-t border-white/5 bg-[#0b0f19]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto">
+        <h2 class="text-xs font-bold tracking-widest text-emerald-400 uppercase">Requisitos y Puesta en Marcha</h2>
+        <p class="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          Listo para usar en 2 sencillos pasos
+        </p>
+        <p class="mt-4 text-base text-slate-400">
+          Activity UI es una interfaz de visualización. Para funcionar, necesita que ActivityWatch esté en ejecución recolectando tus datos.
+        </p>
+      </div>
+
+      <div class="mt-14 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- Requirement 1: ActivityWatch -->
+        <div class="glass-card rounded-2xl p-7 border border-white/10 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                1
+              </div>
+              <h3 class="text-lg font-bold text-white">Tener ActivityWatch corriendo</h3>
+            </div>
+            
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">
+              Asegúrate de tener instalado y activo <strong class="text-slate-200">ActivityWatch</strong> en tu equipo. Debe estar ejecutándose en segundo plano (puedes verificarlo en tu bandeja del sistema).
+            </p>
+
+            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-white/10 font-mono text-xs text-slate-300 space-y-1.5">
+              <div class="text-slate-400">// Comprobación en navegador:</div>
+              <div class="text-emerald-400 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                http://localhost:5600
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-white/5">
+            <a href="https://activitywatch.net/downloads/" target="_blank" rel="noopener noreferrer" 
+               class="inline-flex items-center gap-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300">
+              Descargar ActivityWatch oficial &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Requirement 2: Install Activity UI -->
+        <div class="glass-card rounded-2xl p-7 border border-white/10 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-9 h-9 rounded-lg bg-brand-500/20 text-brand-300 flex items-center justify-center font-bold text-sm">
+                2
+              </div>
+              <h3 class="text-lg font-bold text-white">Instalar o Abrir Activity UI</h3>
+            </div>
+            
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">
+              Descarga la versión de escritorio para Windows (instalador o ejecutable portable). Ábrelo y se conectará automáticamente sin necesidad de configurar puertos ni bases de datos.
+            </p>
+
+            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-white/10 font-mono text-xs text-slate-300 space-y-1.5">
+              <div class="text-slate-400">// Opciones disponibles en v0.1.0:</div>
+              <div class="text-slate-200">&bull; ActivityUI_0.1.0_x64-setup.exe (NSIS)</div>
+              <div class="text-slate-200">&bull; ActivityUI_v0.1.0_portable.zip</div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-white/5">
+            <a href="https://github.com/14tomass/activityUI/releases/latest" target="_blank" rel="noopener noreferrer" 
+               class="inline-flex items-center gap-2 text-xs font-semibold text-brand-400 hover:text-brand-300">
+              Ir a las Releases en GitHub &rarr;
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Privacy Comparison Table -->
+  <section id="privacy" class="py-20 md:py-28 relative z-10 border-t border-white/5 bg-[#0e1320]">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto">
+        <h2 class="text-xs font-bold tracking-widest text-brand-400 uppercase">Comparativa de Privacidad</h2>
+        <p class="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          Activity UI frente a rastreadores tradicionales
+        </p>
+      </div>
+
+      <div class="mt-12 overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-white/10 text-xs uppercase tracking-wider text-slate-400">
+              <th class="py-4 px-4 font-semibold">Característica</th>
+              <th class="py-4 px-4 font-bold text-brand-300 bg-brand-500/10 rounded-t-xl">Activity UI</th>
+              <th class="py-4 px-4 font-semibold text-slate-400">Trackers en la Nube (RescueTime, etc.)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5 text-slate-300">
+            <tr>
+              <td class="py-4 px-4 font-medium text-white">Almacenamiento de datos</td>
+              <td class="py-4 px-4 font-bold text-emerald-400 bg-brand-500/5">100% en tu máquina local</td>
+              <td class="py-4 px-4 text-slate-400">Servidores remotos en la nube</td>
+            </tr>
+            <tr>
+              <td class="py-4 px-4 font-medium text-white">Creación de cuenta obligatoria</td>
+              <td class="py-4 px-4 font-bold text-emerald-400 bg-brand-500/5">No (Cero cuentas)</td>
+              <td class="py-4 px-4 text-rose-400">Sí (Email y contraseña)</td>
+            </tr>
+            <tr>
+              <td class="py-4 px-4 font-medium text-white">Modelo de licencia</td>
+              <td class="py-4 px-4 font-bold text-emerald-400 bg-brand-500/5">Código Abierto (Open Source)</td>
+              <td class="py-4 px-4 text-slate-400">Propietario y cerrado</td>
+            </tr>
+            <tr>
+              <td class="py-4 px-4 font-medium text-white">Suscripción mensual</td>
+              <td class="py-4 px-4 font-bold text-emerald-400 bg-brand-500/5">Gratis para siempre</td>
+              <td class="py-4 px-4 text-amber-400">$6 - $15 / mes</td>
+            </tr>
+            <tr>
+              <td class="py-4 px-4 font-medium text-white">Modo sin conexión (Offline)</td>
+              <td class="py-4 px-4 font-bold text-emerald-400 bg-brand-500/5">Totalmente funcional</td>
+              <td class="py-4 px-4 text-rose-400">Degradado o bloqueado</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Final Call to Action -->
+  <section class="py-20 md:py-28 relative z-10 border-t border-white/5 bg-[#0b0f19] text-center overflow-hidden">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      
+      <!-- Subtle glow inside CTA -->
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-600/20 blur-[100px] rounded-full pointer-events-none"></div>
+
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        Comienza a entender tus hábitos hoy mismo.
+      </h2>
+      <p class="mt-4 text-base sm:text-lg text-slate-400 max-w-xl mx-auto">
+        Descarga la versión v0.1.0 para Windows y disfruta del dashboard más limpio y privado para ActivityWatch.
+      </p>
+
+      <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="https://github.com/14tomass/activityUI/releases/latest" target="_blank" rel="noopener noreferrer"
+           class="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-base font-bold text-white bg-gradient-to-r from-brand-600 to-accent-cyan hover:opacity-95 shadow-glow-purple hover:scale-105 active:scale-95 transition-all">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801"/>
+          </svg>
+          Descargar Activity UI v0.1.0
+        </a>
+        <a href="https://github.com/14tomass/activityUI" target="_blank" rel="noopener noreferrer"
+           class="w-full sm:w-auto px-6 py-4 rounded-xl text-base font-semibold text-slate-300 hover:text-white glass-card hover:bg-white/10 transition-all">
+          Explorar en GitHub
+        </a>
+      </div>
+
+      <p class="mt-4 text-xs text-slate-400">
+        Compatible con Windows 10 y Windows 11 (64-bit)
+      </p>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 bg-[#090d16] py-12 relative z-10 text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      
+      <div class="flex items-center gap-3">
+        <img src="./app-icon.png" alt="Activity UI" class="w-6 h-6 rounded-md object-cover">
+        <span class="font-bold text-slate-300 text-sm">Activity UI</span>
+        <span class="text-slate-400">· Dashboard local para ActivityWatch</span>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-center gap-6">
+        <a href="#features" class="hover:text-white transition-colors">Características</a>
+        <a href="#requirements" class="hover:text-white transition-colors">Requisitos</a>
+        <a href="#privacy" class="hover:text-white transition-colors">Privacidad</a>
+        <a href="https://github.com/14tomass/activityUI/releases" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Releases</a>
+        <a href="https://github.com/14tomass/activityUI" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub</a>
+        <a href="https://activitywatch.net" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">ActivityWatch Oficial</a>
+      </div>
+
+      <div class="text-slate-400 text-center md:text-right">
+        Proyecto comunitario Open Source. Licencia MIT.
+      </div>
+
+    </div>
+  </footer>
+
+</body>
+</html>
