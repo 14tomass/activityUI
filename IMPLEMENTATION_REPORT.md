@@ -1217,3 +1217,4 @@
   - `npm run validate` ejecutado en WSL pasando con codigo 0 (lint limpio y build de produccion completado).
   - `npm run tauri:info` ejecutado verificando resolucion correcta de configuracion y CSP.
 
+- Fixed app logo (replaced blue square with user provided image and regenerated Tauri icons)
