@@ -1,0 +1,107 @@
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag (e.g. v0.1.0)'
+        required: false
+        default: 'v0.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: Build & Release Windows Desktop
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Resolve Release Tag
+        id: vars
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            echo "tag=${{ github.event.inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate code (lint & build frontend)
+        run: npm run validate
+
+      - name: Build Tauri installer and publish release
+        uses: tauri-apps/tauri-action@v0
+        id: tauri_build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ steps.vars.outputs.tag }}
+          releaseName: 'ActivityUI ${{ steps.vars.outputs.tag }}'
+          releaseBody: |
+            ### ActivityUI ${{ steps.vars.outputs.tag }}
+
+            Interfaz de escritorio moderna y privada para visualizar actividad local de ActivityWatch.
+
+            #### Archivos descargables para Windows:
+            - **Instalador NSIS**: `ActivityUI_${{ steps.vars.outputs.tag }}_x64-setup.exe` (asistente de instalación estándar para el usuario).
+            - **Portable**: `ActivityUI_${{ steps.vars.outputs.tag }}_windows_x64_portable.zip` (ejecutable directo sin instalación).
+
+            #### Requisitos previos:
+            - **ActivityWatch** debe estar ejecutándose en su equipo (`http://localhost:5600`).
+            - **WebView2 Runtime** (incluido por defecto en Windows 10/11).
+          releaseDraft: false
+          prerelease: false
+
+      - name: Package and upload portable Windows executable
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ steps.vars.outputs.tag }}"
+          EXE_SOURCE="src-tauri/target/release/activityui.exe"
+          if [ -f "$EXE_SOURCE" ]; then
+            mkdir -p portable-dist
+            cp "$EXE_SOURCE" "portable-dist/ActivityUI.exe"
+            ZIP_NAME="ActivityUI_${TAG_NAME}_windows_x64_portable.zip"
+            7z a "$ZIP_NAME" ./portable-dist/*
+            echo "Uploading $ZIP_NAME to release $TAG_NAME..."
+            gh release upload "$TAG_NAME" "$ZIP_NAME" --clobber
+          else
+            echo "Warning: $EXE_SOURCE not found, attempting search in target/release..."
+            ALT_EXE=$(find src-tauri/target/release -maxdepth 2 -name "activityui.exe" | head -n 1)
+            if [ -n "$ALT_EXE" ] && [ -f "$ALT_EXE" ]; then
+              mkdir -p portable-dist
+              cp "$ALT_EXE" "portable-dist/ActivityUI.exe"
+              ZIP_NAME="ActivityUI_${TAG_NAME}_windows_x64_portable.zip"
+              7z a "$ZIP_NAME" ./portable-dist/*
+              gh release upload "$TAG_NAME" "$ZIP_NAME" --clobber
+            else
+              echo "Error: Could not locate activityui.exe" >&2
+              exit 1
+            fi
+          fi

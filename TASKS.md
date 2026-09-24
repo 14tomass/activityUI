@@ -176,8 +176,8 @@
 - [x] Definir estrategia de empaquetado de escritorio
 - [ ] Verificar apertura real de la ventana Tauri en entorno nativo con Rust y GUI
 - [ ] Validar conectividad a ActivityWatch desde Tauri
-- [ ] Generar primer instalador Windows reproducible
-- [ ] Preparar primer GitHub Release descargable
+- [x] Generar primer instalador Windows reproducible (pipeline automatizado con GitHub Actions)
+- [x] Preparar primer GitHub Release descargable (instalador NSIS y portable zip)
 - [ ] Preparar landing simple de descarga
 - RELEASE-DESKTOP-PLAN-01 completada: creada `RELEASE_DESKTOP_PLAN.md` con comparativa Web/PWA vs Tauri vs Electron vs Microsoft Store.
 - RELEASE-DESKTOP-PLAN-01 completada: se recomienda Tauri como camino principal, GitHub Releases como primer canal y ActivityWatch separado en `v0.1`.
@@ -187,3 +187,7 @@
 - TAURI-WINDOWS-ENV-VALIDATION-01 completada a nivel de entorno Windows: `npm install`, `lint`, `build` y `tauri:info` OK en ruta Windows nativa; Rust/MSVC/WebView2 quedan preparados para Tauri.
 - TAURI-WINDOWS-ENV-VALIDATION-01 completada a nivel de arranque: `tauri:dev` ya compila y levanta proceso `activityui` + Vite/WebView2 en Windows tras anadir `src-tauri/icons/icon.ico`.
 - TAURI-WINDOWS-ENV-VALIDATION-01 validada parcialmente para ActivityWatch cerrado: al detener temporalmente ActivityWatch, `activityui` sigue vivo y el frontend no se cae; queda pendiente confirmacion visual manual de placeholders dentro de la ventana nativa.
+- TAURI-CONFIG-01 completada: configurada CSP restrictiva permitiendo conexión local a ActivityWatch (`localhost:5600`), generados iconos multiplataforma (`src-tauri/icons/`) a partir del SVG oficial y configurado target NSIS (`currentUser`) para Windows.
+- TAURI-CONFIG-01 completada: versionado unificado a `v0.1.0` en `package.json`, `tauri.conf.json` y `Cargo.toml`, con script de validación `npm run validate`.
+- GITHUB-ACTIONS-RELEASE-01 completada: workflow `.github/workflows/release-desktop.yml` implementado con `tauri-apps/tauri-action@v0` para construir en `windows-latest` el instalador NSIS y empaquetar la versión portable en `.zip` ante push de tag `v*` o ejecución manual.
+

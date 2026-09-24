@@ -1193,3 +1193,27 @@
   - `RELEASE_DESKTOP_PLAN.md`
   - `TASKS.md`
   - `docs/TAURI_SETUP.md`
+
+## TAURI-CONFIG-01
+
+- Se consolido la configuracion de Tauri v2 en `src-tauri/tauri.conf.json` para distribucion v0.1:
+  - Definida politica CSP estricta que autoriza expresamente la comunicacion local con ActivityWatch (`http://localhost:5600`, `http://127.0.0.1:5600` y WebSockets locales), asegurando que el WebView2 pueda consultar la API sin bloqueos.
+  - Generada la suite completa de iconos oficiales en `src-tauri/icons/` (`icon.ico`, `icon.png`, `32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.icns`) a partir del vector SVG del proyecto (`public/favicon.svg`), asignandolos al bundle de la aplicacion.
+  - Configurado target de empaquetado Windows `nsis` con `installMode: "currentUser"` para una instalacion ligera en el directorio de usuario sin requerir elevacion de privilegios de administrador.
+  - Anadido `#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]` en `src-tauri/src/main.rs` para suprimir la ventana de consola negra de Windows en builds de produccion.
+- Actualizado `package.json`:
+  - Version unificada a `0.1.0` en sincronia con `tauri.conf.json` y `Cargo.toml`.
+  - Anadido script `"validate": "npm run lint && npm run build"`.
+
+## GITHUB-ACTIONS-RELEASE-01
+
+- Se creo el pipeline CI/CD automatizado en `.github/workflows/release-desktop.yml`:
+  - Disparadores: push de tags de version `v*` (ej. `v0.1.0`) y ejecucion manual `workflow_dispatch` con parametro de version.
+  - Runner nativo Windows (`windows-latest`) con Node.js 22, Rust toolchain `stable` (`x86_64-pc-windows-msvc`) y cache de dependencias con `swatinem/rust-cache@v2`.
+  - Paso de validacion previa (`npm run validate`) que garantiza que lint y build web pasan en limpio antes de la compilacion de Tauri.
+  - Empaquetado del instalador NSIS y publicacion directa en GitHub Releases mediante `tauri-apps/tauri-action@v0`.
+  - Paso adicional automatizado para capturar el binario compilado `src-tauri/target/release/activityui.exe`, empaquetarlo en un archivo ZIP portable (`ActivityUI_${TAG}_windows_x64_portable.zip`) y subirlo a la misma GitHub Release mediante GitHub CLI (`gh release upload`).
+- Verificaciones:
+  - `npm run validate` ejecutado en WSL pasando con codigo 0 (lint limpio y build de produccion completado).
+  - `npm run tauri:info` ejecutado verificando resolucion correcta de configuracion y CSP.
+

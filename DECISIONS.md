@@ -52,6 +52,10 @@
 - En `v0.1` de escritorio, ActivityUI y ActivityWatch se distribuyen por separado; ActivityUI no instala ni empaqueta ActivityWatch.
 - El primer canal de distribucion recomendado es **GitHub Releases**; **Microsoft Store** queda fuera de la primera version instalable.
 - Se separan entornos recomendados: desarrollo/build web del frontend en WSL y bundling del instalador Windows de Tauri en Windows nativo.
+- Para Tauri v2, se configura una directiva CSP estricta que autoriza explícitamente `connect-src` a `http://localhost:5600`, `http://127.0.0.1:5600` y sockets locales para la API de ActivityWatch, preservando `'unsafe-inline'` para estilos y assets empaquetados.
+- El bundle de Windows usa NSIS con `installMode: "currentUser"`, permitiendo que el usuario instale ActivityUI sin requerir privilegios de administrador.
+- La distribución en GitHub Releases ofrece dos artefactos para Windows: instalador guiado NSIS (`.exe`) y versión portable comprimida en `.zip`.
+- Se automatiza la compilación y empaquetado de producción en GitHub Actions (`windows-latest`) para garantizar builds reproducibles y evitar bloqueos por rutas UNC en el entorno mixto local.
 
 ### Estrategia de implementacion
 
