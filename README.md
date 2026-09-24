@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg?style=flat-square)](https://github.com/TomasCaceresIO/activityUI/releases)
+[![Release](https://img.shields.io/badge/release-v0.3.0-blue.svg?style=flat-square)](https://github.com/TomasCaceresIO/activityUI/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6.svg?style=flat-square&logo=windows&logoColor=white)]()
 [![Web](https://img.shields.io/badge/website-GitHub%20Pages-24292e.svg?style=flat-square&logo=github)](https://TomasCaceresIO.github.io/activityUI/)
@@ -49,14 +49,14 @@ Si ActivityWatch no está iniciado al abrir Activity UI, la aplicación mostrar�
 
 ---
 
-## 🚀 Descarga e Instalación (v0.1.0 para Windows)
+## 🚀 Descarga e Instalación (v0.3.0 para Windows)
 
 Las versiones oficiales compiladas para Windows x64 están disponibles en la sección de [Releases de GitHub](https://github.com/TomasCaceresIO/activityUI/releases).
 
 Dispones de dos modalidades de descarga según tus preferencias:
 
 ### 1. Instalador Asistido (`Setup .exe`) — Recomendado
-- **Archivo**: `ActivityUI_v0.1.0_x64-setup.exe`
+- **Archivo**: `ActivityUI_v0.3.0_x64-setup.exe`
 - **Características**:
   - Instalador guiado basado en NSIS configurado en modo usuario (`currentUser`).
   - **No requiere permisos de administrador**.
@@ -65,7 +65,7 @@ Dispones de dos modalidades de descarga según tus preferencias:
 - **Uso**: Descarga el archivo, ejecútalo y sigue las instrucciones del asistente en pantalla.
 
 ### 2. Versión Portable (`.zip`)
-- **Archivo**: `ActivityUI_v0.1.0_windows_x64_portable.zip`
+- **Archivo**: `ActivityUI_v0.3.0_windows_x64_portable.zip`
 - **Características**:
   - Sin asistente ni modificaciones en el registro de Windows.
   - Ideal para probar la aplicación rápidamente o llevarla en una unidad USB.
