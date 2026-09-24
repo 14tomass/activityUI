@@ -1655,7 +1655,7 @@ function WelcomeHero() {
           isSettingsOpen ? 'opacity-60 blur-[2.4px]' : 'opacity-100'
         }`}
       >
-        <div className="mx-auto flex w-full max-w-[296px] items-center rounded-full bg-white p-1 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+        <div className="mx-auto flex w-full max-w-[296px] items-center rounded-full bg-white dark:bg-slate-800 p-1 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
           {dashboardOverview.timeRanges.map((range) => (
             <button
               key={range.id}
@@ -1676,7 +1676,7 @@ function WelcomeHero() {
 
         <div className="mt-5 flex items-center justify-center gap-3 text-slate-400">
           <span>{calendarIcon}</span>
-          <div className="flex min-w-[172px] items-center justify-between rounded-full bg-white px-4 py-2.5 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+          <div className="flex min-w-[172px] items-center justify-between rounded-full bg-white dark:bg-slate-800 px-4 py-2.5 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
             <button
               type="button"
               aria-label="Fecha anterior"
@@ -1686,7 +1686,7 @@ function WelcomeHero() {
             >
               {chevronLeftIcon}
             </button>
-            <span className="text-[0.96rem] font-semibold text-slate-800">
+            <span className="text-[0.96rem] font-semibold text-slate-800 dark:text-slate-100">
               {selectedDateLabel}
             </span>
             <button
@@ -1712,26 +1712,26 @@ function WelcomeHero() {
         ) : null}
 
         <div className="mt-7">
-          <h1 className="text-[3.75rem] font-semibold leading-none tracking-[-0.07em] text-slate-900 sm:text-[4.9rem]">
+          <h1 className="text-[3.75rem] font-semibold leading-none tracking-[-0.07em] text-slate-900 dark:text-slate-50 sm:text-[4.9rem]">
             {isKpiLoading ? '-' : kpiUsageLabel}
           </h1>
           {selectedRangeMode === RANGE_MODE_WEEK ? (
-            <p className="mt-2 text-[0.98rem] font-medium text-slate-500">
+            <p className="mt-2 text-[0.98rem] font-medium text-slate-500 dark:text-slate-400">
               {isKpiLoading ? '-' : `Media diaria: ${weeklyAverage.formatted}`}
             </p>
           ) : selectedRangeMode === RANGE_MODE_MONTH ? (
-            <p className="mt-2 text-[0.98rem] font-medium text-slate-500">
+            <p className="mt-2 text-[0.98rem] font-medium text-slate-500 dark:text-slate-400">
               {isKpiLoading ? '-' : `Media diaria: ${monthlyAverage.formatted}`}
             </p>
           ) : null}
-          <p className="mt-4 text-[1.32rem] font-normal tracking-[-0.02em] text-slate-500/80">
+          <p className="mt-4 text-[1.32rem] font-normal tracking-[-0.02em] text-slate-500 dark:text-slate-400/80">
             {usageSummaryText}
           </p>
         </div>
 
-        <div className="mt-8 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+        <div className="mt-8 rounded-[22px] bg-white dark:bg-slate-800 px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-[1.72rem] font-semibold tracking-[-0.02em] text-slate-800">{chartSectionTitle}</h2>
+            <h2 className="text-[1.72rem] font-semibold tracking-[-0.02em] text-slate-800 dark:text-slate-100">{chartSectionTitle}</h2>
             {selectedRangeMode === RANGE_MODE_WEEK ? (
               <div className="inline-flex items-center rounded-full bg-slate-100 p-1">
                 <button
@@ -1833,25 +1833,25 @@ function WelcomeHero() {
               </div>
 
               {!isHourlyLoading && !hasChartActivity ? (
-                <p className="mt-4 text-[0.96rem] font-medium text-slate-500">{chartEmptyMessage}</p>
+                <p className="mt-4 text-[0.96rem] font-medium text-slate-500 dark:text-slate-400">{chartEmptyMessage}</p>
               ) : null}
             </div>
           </div>
         </div>
 
         {selectedRangeMode === RANGE_MODE_WEEK && selectedWeekDay && weeklySelectedDayLabel ? (
-          <div className="mt-5 rounded-[16px] bg-white px-5 py-4 text-left shadow-[0_10px_24px_rgba(15,23,42,0.07)]">
-            <p className="text-[0.95rem] font-medium text-slate-500">{weeklySelectedDayLabel}</p>
-            <p className="mt-1 text-[1.28rem] font-semibold tracking-[-0.02em] text-slate-800">
+          <div className="mt-5 rounded-[16px] bg-white dark:bg-slate-800 px-5 py-4 text-left shadow-[0_10px_24px_rgba(15,23,42,0.07)]">
+            <p className="text-[0.95rem] font-medium text-slate-500 dark:text-slate-400">{weeklySelectedDayLabel}</p>
+            <p className="mt-1 text-[1.28rem] font-semibold tracking-[-0.02em] text-slate-800 dark:text-slate-100">
               {selectedWeekDayTotal} de uso
             </p>
           </div>
         ) : null}
 
-        <div className="mt-6 rounded-[22px] bg-white px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
-          <p className="mb-3 text-[0.9rem] font-medium text-slate-500">{categorySectionTitle}</p>
+        <div className="mt-6 rounded-[22px] bg-white dark:bg-slate-800 px-6 py-6 text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+          <p className="mb-3 text-[0.9rem] font-medium text-slate-500 dark:text-slate-400">{categorySectionTitle}</p>
           {!isCategoryCardLoading && !hasCategoryUsage ? (
-            <p className="mb-4 text-[0.96rem] font-medium text-slate-500">{categoryEmptyMessage}</p>
+            <p className="mb-4 text-[0.96rem] font-medium text-slate-500 dark:text-slate-400">{categoryEmptyMessage}</p>
           ) : null}
           <div className="space-y-4">
             {categoryUsageCard.map((category) => (
@@ -1867,7 +1867,7 @@ function WelcomeHero() {
                 }}
                 className="w-full text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] disabled:cursor-not-allowed"
               >
-                <div className="mb-1.5 flex items-center justify-between text-[1.24rem] font-semibold tracking-[-0.02em] text-slate-800">
+                <div className="mb-1.5 flex items-center justify-between text-[1.24rem] font-semibold tracking-[-0.02em] text-slate-800 dark:text-slate-100">
                   <span>{category.label}</span>
                   <span className="text-[1.12rem] font-semibold text-slate-400">
                     {isCategoryCardLoading ? '-' : category.duration}
@@ -1893,7 +1893,7 @@ function WelcomeHero() {
           type="button"
           aria-label="Alternar tema"
           onClick={toggleTheme}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] dark:bg-gray-800 dark:text-slate-300 dark:hover:text-white"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 dark:text-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] dark:bg-gray-800 dark:text-slate-300 dark:hover:text-white"
         >
           {theme === 'dark' ? moonIcon : sunIcon}
         </button>
@@ -1901,7 +1901,7 @@ function WelcomeHero() {
           type="button"
           aria-label="Abrir configuracion"
           onClick={() => setIsSettingsOpen(true)}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] dark:bg-gray-800 dark:text-slate-300 dark:hover:text-white"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 dark:text-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] dark:bg-gray-800 dark:text-slate-300 dark:hover:text-white"
         >
           {menuIcon}
         </button>
@@ -1916,27 +1916,27 @@ function WelcomeHero() {
             className="fixed inset-0 z-30 bg-slate-900/36 backdrop-blur-[3px]"
           />
 
-          <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-[505px] bg-[#f6f6f7] shadow-[-12px_0_40px_rgba(15,23,42,0.2)]">
+          <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-[505px] bg-[#f6f6f7] dark:bg-gray-900 shadow-[-12px_0_40px_rgba(15,23,42,0.2)]">
             <div className="flex h-screen max-h-screen flex-col overflow-hidden supports-[height:100dvh]:h-[100dvh] supports-[height:100dvh]:max-h-[100dvh]">
-              <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-slate-200 bg-[#f6f6f7] px-9 py-8">
-                <h2 className="text-[2.72rem] font-semibold tracking-[-0.03em] text-slate-800">
+              <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-slate-200 bg-[#f6f6f7] dark:bg-gray-900 px-9 py-8">
+                <h2 className="text-[2.72rem] font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-100">
                   Configuracion
                 </h2>
                 <button
                   type="button"
                   aria-label="Cerrar configuracion"
                   onClick={closeSettings}
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 dark:text-slate-400 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
                 >
                   {closeIcon}
                 </button>
               </header>
 
               <div className="min-h-0 flex-1 overflow-y-auto px-9 py-9">
-                <h3 className="text-[2rem] font-semibold tracking-[-0.02em] text-slate-800">
+                <h3 className="text-[2rem] font-semibold tracking-[-0.02em] text-slate-800 dark:text-slate-100">
                   Modificar categorias
                 </h3>
-                <p className="mt-4 text-[1.16rem] leading-[1.45] text-slate-500">
+                <p className="mt-4 text-[1.16rem] leading-[1.45] text-slate-500 dark:text-slate-400">
                   Gestiona las reglas que asignan aplicaciones y sitios web a cada categoria.
                 </p>
 
@@ -1954,10 +1954,10 @@ function WelcomeHero() {
                           style={{ backgroundColor: category.color }}
                         />
                         <div>
-                          <p className="text-[1.12rem] font-semibold text-slate-800">
+                          <p className="text-[1.12rem] font-semibold text-slate-800 dark:text-slate-100">
                             {category.label}
                           </p>
-                          <p className="text-[0.98rem] font-medium text-slate-500">
+                          <p className="text-[0.98rem] font-medium text-slate-500 dark:text-slate-400">
                             {getCategoryRuleCountLabel(category.appCount)}
                           </p>
                         </div>
@@ -1995,10 +1995,10 @@ function WelcomeHero() {
           <div className="flex max-h-[85vh] w-full max-w-[560px] flex-col overflow-hidden rounded-[30px] bg-[#f5f5f6] shadow-[0_24px_60px_rgba(15,23,42,0.25)]">
             <div className="sticky top-0 z-10 flex items-start justify-between bg-[#f5f5f6] px-8 py-8">
               <div>
-                <h3 className="text-[2.9rem] font-semibold tracking-[-0.03em] text-slate-800">
+                <h3 className="text-[2.9rem] font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-100">
                   {selectedCategoryLabel}
                 </h3>
-                <p className="mt-1 text-[1.22rem] text-slate-500">
+                <p className="mt-1 text-[1.22rem] text-slate-500 dark:text-slate-400">
                   {isCategoryDetailLoading ? '- total' : `${categoryDetailUsage.total} total`}
                 </p>
                 {categoryDetailContextLabel ? (
@@ -2011,7 +2011,7 @@ function WelcomeHero() {
                 type="button"
                 aria-label="Cerrar detalle de categoria"
                 onClick={() => setActiveModal(null)}
-                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 dark:text-slate-400 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 {closeIcon}
               </button>
@@ -2020,15 +2020,15 @@ function WelcomeHero() {
             <div className="flex-1 overflow-y-auto px-8 pb-8">
               <div className="space-y-6">
                 {isCategoryDetailLoading ? (
-                  <p className="text-[1.02rem] font-medium text-slate-500">Cargando detalle...</p>
+                  <p className="text-[1.02rem] font-medium text-slate-500 dark:text-slate-400">Cargando detalle...</p>
                 ) : null}
                 {!isCategoryDetailLoading && categoryDetailError ? (
-                  <p className="text-[1.02rem] font-medium text-slate-500">
+                  <p className="text-[1.02rem] font-medium text-slate-500 dark:text-slate-400">
                     No se pudo cargar el detalle en este momento.
                   </p>
                 ) : null}
                 {!isCategoryDetailLoading && !categoryDetailError && visibleDetailItems.length === 0 ? (
-                  <p className="text-[1.02rem] font-medium text-slate-500">
+                  <p className="text-[1.02rem] font-medium text-slate-500 dark:text-slate-400">
                     {categoryDetailEmptyMessage}
                   </p>
                 ) : null}
@@ -2044,11 +2044,11 @@ function WelcomeHero() {
                                 ? '🖥️'
                                 : '📦'}
                           </span>
-                          <span className="text-[1.05rem] font-semibold text-slate-800">
+                          <span className="text-[1.05rem] font-semibold text-slate-800 dark:text-slate-100">
                             {item.label}
                           </span>
                         </div>
-                        <span className="text-[1.06rem] font-medium text-slate-500">
+                        <span className="text-[1.06rem] font-medium text-slate-500 dark:text-slate-400">
                           {item.duration}
                         </span>
                       </div>
@@ -2071,10 +2071,10 @@ function WelcomeHero() {
           <div className="flex max-h-[85vh] w-full max-w-[560px] flex-col overflow-hidden rounded-[30px] bg-[#f5f5f6] shadow-[0_24px_60px_rgba(15,23,42,0.25)]">
             <div className="sticky top-0 z-10 flex items-start justify-between bg-[#f5f5f6] px-8 py-8">
               <div>
-                <h3 className="text-[2rem] font-semibold tracking-[-0.03em] text-slate-800">
+                <h3 className="text-[2rem] font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-100">
                   {hourlyDetailUsage.intervalLabel}
                 </h3>
-                <p className="mt-1 text-[1.22rem] text-slate-500">
+                <p className="mt-1 text-[1.22rem] text-slate-500 dark:text-slate-400">
                   {isHourlyDetailLoading ? '- total' : `${hourlyDetailUsage.total} total`}
                 </p>
               </div>
@@ -2082,7 +2082,7 @@ function WelcomeHero() {
                 type="button"
                 aria-label="Cerrar detalle por franja"
                 onClick={() => setActiveModal(null)}
-                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 dark:text-slate-400 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 {closeIcon}
               </button>
@@ -2091,17 +2091,17 @@ function WelcomeHero() {
             <div className="flex-1 overflow-y-auto px-8 pb-8">
               <div className="space-y-6">
                 {isHourlyDetailLoading ? (
-                  <p className="text-[1.02rem] font-medium text-slate-500">Cargando detalle...</p>
+                  <p className="text-[1.02rem] font-medium text-slate-500 dark:text-slate-400">Cargando detalle...</p>
                 ) : null}
                 {!isHourlyDetailLoading && hourlyDetailError ? (
-                  <p className="text-[1.02rem] font-medium text-slate-500">
+                  <p className="text-[1.02rem] font-medium text-slate-500 dark:text-slate-400">
                     No se pudo cargar el detalle en este momento.
                   </p>
                 ) : null}
                 {!isHourlyDetailLoading &&
                 !hourlyDetailError &&
                 hourlyDetailPresentation.visibleItems.length === 0 ? (
-                  <p className="text-[1.02rem] font-medium text-slate-500">
+                  <p className="text-[1.02rem] font-medium text-slate-500 dark:text-slate-400">
                     No hay actividad registrada en esta franja.
                   </p>
                 ) : null}
@@ -2117,11 +2117,11 @@ function WelcomeHero() {
                                 ? '🖥️'
                                 : '📦'}
                           </span>
-                          <span className="text-[1.05rem] font-semibold text-slate-800">
+                          <span className="text-[1.05rem] font-semibold text-slate-800 dark:text-slate-100">
                             {item.label}
                           </span>
                         </div>
-                        <span className="text-[1.06rem] font-medium text-slate-500">
+                        <span className="text-[1.06rem] font-medium text-slate-500 dark:text-slate-400">
                           {item.duration}
                         </span>
                       </div>
@@ -2143,7 +2143,7 @@ function WelcomeHero() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-6">
           <div className="w-full max-w-[560px] rounded-[30px] bg-[#f5f5f6] px-8 py-8 shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
             <div className="mb-6 flex items-start justify-between">
-              <h3 className="text-[2.2rem] font-semibold tracking-[-0.03em] text-slate-800">
+              <h3 className="text-[2.2rem] font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-100">
                 Crear nueva categoria
               </h3>
               <button
@@ -2154,13 +2154,13 @@ function WelcomeHero() {
                   setNewCategoryNameInput('')
                   setNewCategoryError('')
                 }}
-                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 dark:text-slate-400 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 {closeIcon}
               </button>
             </div>
 
-            <p className="mb-4 text-[1.02rem] text-slate-500">
+            <p className="mb-4 text-[1.02rem] text-slate-500 dark:text-slate-400">
               Escribe un nombre para la nueva categoria.
             </p>
             <p className="mb-4 text-[0.92rem] leading-[1.45] text-slate-400">
@@ -2215,7 +2215,7 @@ function WelcomeHero() {
                   className="h-6 w-6 rounded-full"
                   style={{ backgroundColor: selectedCategoryColor }}
                 />
-                <h3 className="text-[2.7rem] font-semibold tracking-[-0.03em] text-slate-800">
+                <h3 className="text-[2.7rem] font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-100">
                   {selectedCategoryLabel}
                 </h3>
               </div>
@@ -2223,14 +2223,14 @@ function WelcomeHero() {
                 type="button"
                 aria-label="Cerrar edicion de categoria"
                 onClick={() => setActiveModal(null)}
-                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                className="mt-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-200/70 text-slate-500 dark:text-slate-400 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
               >
                 {closeIcon}
               </button>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              <p className="mb-4 text-[1.12rem] text-slate-500">
+              <p className="mb-4 text-[1.12rem] text-slate-500 dark:text-slate-400">
                 {dashboardOverview.categoryEdit.helperText}
               </p>
               <p className="mb-6 text-[0.86rem] leading-[1.45] text-slate-400">
@@ -2238,8 +2238,8 @@ function WelcomeHero() {
               </p>
 
               {!editModalHasRules ? (
-                <div className="mb-6 rounded-[16px] border border-dashed border-slate-300 bg-white/70 px-4 py-4">
-                  <p className="text-[0.95rem] font-medium text-slate-500">
+                <div className="mb-6 rounded-[16px] border border-dashed border-slate-300 bg-white dark:bg-slate-800/70 px-4 py-4">
+                  <p className="text-[0.95rem] font-medium text-slate-500 dark:text-slate-400">
                     No hay reglas anadidas todavia. Puedes guardar con el campo vacio o escribir una nueva regla.
                   </p>
                 </div>
@@ -2251,11 +2251,11 @@ function WelcomeHero() {
                     key={`domain-${domain}-${index}`}
                     className="flex items-center justify-between gap-3 rounded-[16px] bg-slate-200/70 px-5 py-4"
                   >
-                    <span className="text-[1.1rem] font-semibold text-slate-800">{domain}</span>
+                    <span className="text-[1.1rem] font-semibold text-slate-800 dark:text-slate-100">{domain}</span>
                   <button
                     type="button"
                     onClick={() => removeDraftRule('website', index)}
-                    className="text-[0.85rem] font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                    className="text-[0.85rem] font-semibold text-slate-500 dark:text-slate-400 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
                   >
                     Eliminar
                   </button>
@@ -2266,11 +2266,11 @@ function WelcomeHero() {
                     key={`app-${application}-${index}`}
                     className="flex items-center justify-between gap-3 rounded-[16px] bg-slate-200/70 px-5 py-4"
                   >
-                    <span className="text-[1.1rem] font-semibold text-slate-800">{application}</span>
+                    <span className="text-[1.1rem] font-semibold text-slate-800 dark:text-slate-100">{application}</span>
                   <button
                     type="button"
                     onClick={() => removeDraftRule('application', index)}
-                    className="text-[0.85rem] font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
+                    className="text-[0.85rem] font-semibold text-slate-500 dark:text-slate-400 transition hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2]"
                   >
                     Eliminar
                   </button>
@@ -2279,7 +2279,7 @@ function WelcomeHero() {
               </div>
 
               <div className="mt-8">
-                <p className="mb-3 text-[1.08rem] font-semibold text-slate-800">
+                <p className="mb-3 text-[1.08rem] font-semibold text-slate-800 dark:text-slate-100">
                   Anadir aplicacion o sitio web
                 </p>
                 <div className="flex items-center gap-3">
