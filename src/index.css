@@ -5,6 +5,8 @@
   --font-sans: 'Plus Jakarta Sans', sans-serif;
 }
 
+@variant dark (.dark &);
+
 :root {
   font-synthesis: none;
   text-rendering: optimizeLegibility;
