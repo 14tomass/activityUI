@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTheme } from '../../../context/ThemeContext'
 import { dashboardOverview } from '../../../mocks/dashboard'
 import {
   assignCategoryRuleExclusively,
@@ -56,6 +57,19 @@ const drawerChevronRightIcon = (
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  </svg>
+)
+
+const sunIcon = (
+  <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]">
+    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+const moonIcon = (
+  <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
 
@@ -445,6 +459,7 @@ function aggregateHourlyDetailItems(detailUsage) {
 }
 
 function WelcomeHero() {
+  const { theme, toggleTheme } = useTheme()
   const [activityWatchStartOfDay, setActivityWatchStartOfDay] = useState(DEFAULT_START_OF_DAY)
   const currentActivityWatchDay = getCurrentActivityWatchDay(activityWatchStartOfDay)
   const [selectedDay, setSelectedDay] = useState(() => getCurrentActivityWatchDay(DEFAULT_START_OF_DAY))
@@ -1873,14 +1888,24 @@ function WelcomeHero() {
         </div>
       </div>
 
-      <button
-        type="button"
-        aria-label="Abrir configuracion"
-        onClick={() => setIsSettingsOpen(true)}
-        className="fixed right-6 top-6 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] sm:right-8 sm:top-8"
-      >
-        {menuIcon}
-      </button>
+      <div className="fixed right-6 top-6 z-20 flex gap-3 sm:right-8 sm:top-8">
+        <button
+          type="button"
+          aria-label="Alternar tema"
+          onClick={toggleTheme}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] dark:bg-gray-800 dark:text-slate-300 dark:hover:text-white"
+        >
+          {theme === 'dark' ? moonIcon : sunIcon}
+        </button>
+        <button
+          type="button"
+          aria-label="Abrir configuracion"
+          onClick={() => setIsSettingsOpen(true)}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_14px_30px_rgba(15,23,42,0.1)] transition hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1677f2] dark:bg-gray-800 dark:text-slate-300 dark:hover:text-white"
+        >
+          {menuIcon}
+        </button>
+      </div>
 
       {isSettingsOpen ? (
         <>
