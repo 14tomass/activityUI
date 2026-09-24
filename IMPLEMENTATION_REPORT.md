@@ -1218,3 +1218,21 @@
   - `npm run tauri:info` ejecutado verificando resolucion correcta de configuracion y CSP.
 
 - Fixed app logo (replaced blue square with user provided image and regenerated Tauri icons)
+
+ # #   T A U R I - S Y S T E M - T R A Y - 0 1 
+ 
+ -   S e   h a   c o n f i g u r a d o   e l   S y s t e m   T r a y   n a t i v o   p a r a   W i n d o w s   e n   \ s r c - t a u r i \   u s a n d o   l a   A P I   d e   T a u r i   v 2 . 
+ -   A c t u a l i z a d o   \ C a r g o . t o m l \   p a r a   h a b i l i t a r   l a   f e a t u r e   \ 	 r a y - i c o n \   e n   \ 	 a u r i \ . 
+ -   E n   \ s r c - t a u r i / s r c / l i b . r s \   s e   h a   a ñ a d i d o   \ T r a y I c o n B u i l d e r \   y   \ M e n u B u i l d e r \   c o n f i g u r a n d o   l a s   s i g u i e n t e s   o p c i o n e s   d e l   m e n ú   c o n t e x t u a l : 
+     -   \  
+ A b r i r  
+ A c t i v i t y  
+ U I \ :   R e s t a u r a   y   e n f o c a   l a   v e n t a n a   p r i n c i p a l . 
+     -   \ C o m p r o b a r  
+ c o n e x i ó n  
+ c o n  
+ A c t i v i t y W a t c h \ :   E m i t e   l o g   e n   c o n s o l a   ( p r e p a r a d o   p a r a   f e t c h   e n   v 0 . 2 ) . 
+     -   \ S a l i r \ :   C i e r r a   c o m p l e t a m e n t e   l a   a p l i c a c i ó n . 
+ -   C o n f i g u r a d o   e l   e v e n t o   \ 	 a u r i : : W i n d o w E v e n t : : C l o s e R e q u e s t e d \   p a r a   m i n i m i z a r / o c u l t a r   l a   v e n t a n a   a l   p u l s a r   l a   ' X ' ,   d e l e g a n d o   e l   c i e r r e   d e f i n i t i v o   a l   m e n ú   d e l   S y s t e m   T r a y . 
+ -   V a l i d a d a   c o m p i l a c i ó n   l o c a l   ( \ c a r g o   c h e c k \ )   e x i t o s a m e n t e .  
+ 
