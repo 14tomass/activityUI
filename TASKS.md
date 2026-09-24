@@ -55,7 +55,7 @@
 - DATA-03-FIX-DEBUG-2 completada: comparativa A/B de query canonica con buckets web `aw-watcher-web-chrome` vs `aw-watcher-web-chrome_LenovoTomy`; se confirma impacto fuerte en KPI y se propone ajustar la regla de seleccion de bucket web por hostname.
 - DATA-03-FIX-2 completada: `discoverActivityWatchBuckets()` prioriza bucket web `web.tab.current` con sufijo `_${hostname}` (via `/api/0/info`) y mantiene fallback seguro a la regla previa.
 - DATA-03-CLOSE completada: eliminados logs temporales de depuracion de KPI; DATA-03 queda cerrada con KPI real alineado y sin ruido de consola en funcionamiento normal.
-- DATA-04 completada: tarjeta "Uso por horas" conectada a datos reales canónicos de ActivityWatch para `2026-05-16`, con 24 barras horarias y fallback mock si falla la carga.
+- DATA-04 completada: tarjeta "Uso por horas" conectada a datos reales canÃ³nicos de ActivityWatch para `2026-05-16`, con 24 barras horarias y fallback mock si falla la carga.
 - DATA-04-VERIFY completada: coherencia validada para `2026-05-16` (KPI diario y suma de 24 franjas coinciden, diferencia `0s`).
 - DATA-04-CLOSE completada: eliminados logs temporales de verificacion horaria; DATA-04 queda cerrada sin ruido de debug en consola.
 - DATA-05 implementada: capa de datos reutilizable para desglose diario por aplicaciones y sitios web.
@@ -178,7 +178,9 @@
 - [ ] Validar conectividad a ActivityWatch desde Tauri
 - [x] Generar primer instalador Windows reproducible (pipeline automatizado con GitHub Actions)
 - [x] Preparar primer GitHub Release descargable (instalador NSIS y portable zip)
-- [ ] Preparar landing simple de descarga
+- [x] Preparar landing simple de descarga
+- LANDING-PAGES-01 completada: creada landing page estática en 'landing/index.html' con Hero, mockup del dashboard, propuesta de valor privada/local, requisitos de ActivityWatch y descarga a v0.1.0.
+- LANDING-PAGES-01 completada: configurado workflow de despliegue automatizado en '.github/workflows/deploy-pages.yml' usando 'actions/deploy-pages' hacia GitHub Pages en push a 'main'.
 - RELEASE-DESKTOP-PLAN-01 completada: creada `RELEASE_DESKTOP_PLAN.md` con comparativa Web/PWA vs Tauri vs Electron vs Microsoft Store.
 - RELEASE-DESKTOP-PLAN-01 completada: se recomienda Tauri como camino principal, GitHub Releases como primer canal y ActivityWatch separado en `v0.1`.
 - RELEASE-DESKTOP-PLAN-01 completada: se fija criterio operativo de entornos: frontend en WSL y bundling de instalador Windows en Windows nativo recomendado.
@@ -187,11 +189,11 @@
 - TAURI-WINDOWS-ENV-VALIDATION-01 completada a nivel de entorno Windows: `npm install`, `lint`, `build` y `tauri:info` OK en ruta Windows nativa; Rust/MSVC/WebView2 quedan preparados para Tauri.
 - TAURI-WINDOWS-ENV-VALIDATION-01 completada a nivel de arranque: `tauri:dev` ya compila y levanta proceso `activityui` + Vite/WebView2 en Windows tras anadir `src-tauri/icons/icon.ico`.
 - TAURI-WINDOWS-ENV-VALIDATION-01 validada parcialmente para ActivityWatch cerrado: al detener temporalmente ActivityWatch, `activityui` sigue vivo y el frontend no se cae; queda pendiente confirmacion visual manual de placeholders dentro de la ventana nativa.
-- TAURI-CONFIG-01 completada: configurada CSP restrictiva permitiendo conexión local a ActivityWatch (`localhost:5600`), generados iconos multiplataforma (`src-tauri/icons/`) a partir del SVG oficial y configurado target NSIS (`currentUser`) para Windows.
-- TAURI-CONFIG-01 completada: versionado unificado a `v0.1.0` en `package.json`, `tauri.conf.json` y `Cargo.toml`, con script de validación `npm run validate`.
-- GITHUB-ACTIONS-RELEASE-01 completada: workflow `.github/workflows/release-desktop.yml` implementado con `tauri-apps/tauri-action@v0` para construir en `windows-latest` el instalador NSIS y empaquetar la versión portable en `.zip` ante push de tag `v*` o ejecución manual.
+- TAURI-CONFIG-01 completada: configurada CSP restrictiva permitiendo conexiÃ³n local a ActivityWatch (`localhost:5600`), generados iconos multiplataforma (`src-tauri/icons/`) a partir del SVG oficial y configurado target NSIS (`currentUser`) para Windows.
+- TAURI-CONFIG-01 completada: versionado unificado a `v0.1.0` en `package.json`, `tauri.conf.json` y `Cargo.toml`, con script de validaciÃ³n `npm run validate`.
+- GITHUB-ACTIONS-RELEASE-01 completada: workflow `.github/workflows/release-desktop.yml` implementado con `tauri-apps/tauri-action@v0` para construir en `windows-latest` el instalador NSIS y empaquetar la versiÃ³n portable en `.zip` ante push de tag `v*` o ejecuciÃ³n manual.
 
 
- -   T A U R I - S Y S T E M - T R A Y - 0 1   c o m p l e t a d a :   s e   i n t e g r �   e l   S y s t e m   T r a y   n a t i v o   c o n   T a u r i   v 2   h a b i l i t a n d o   l a   v e n t a n a   e n   s e g u n d o   p l a n o   ( m i n i m i z e   o n   c l o s e )   y   e l   m e n �   c o n t e x t u a l   ( ' A b r i r   A c t i v i t y   U I ' ,   ' C o m p r o b a r   c o n e x i � n   c o n   A c t i v i t y W a t c h ' ,   ' S a l i r ' ) . 
+ -   T A U R I - S Y S T E M - T R A Y - 0 1   c o m p l e t a d a :   s e   i n t e g r ó   e l   S y s t e m   T r a y   n a t i v o   c o n   T a u r i   v 2   h a b i l i t a n d o   l a   v e n t a n a   e n   s e g u n d o   p l a n o   ( m i n i m i z e   o n   c l o s e )   y   e l   m e n ú   c o n t e x t u a l   ( ' A b r i r   A c t i v i t y   U I ' ,   ' C o m p r o b a r   c o n e x i ó n   c o n   A c t i v i t y W a t c h ' ,   ' S a l i r ' ) . 
   
  

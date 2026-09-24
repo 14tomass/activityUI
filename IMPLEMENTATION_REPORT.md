@@ -1236,3 +1236,17 @@
  -   C o n f i g u r a d o   e l   e v e n t o   \ 	 a u r i : : W i n d o w E v e n t : : C l o s e R e q u e s t e d \   p a r a   m i n i m i z a r / o c u l t a r   l a   v e n t a n a   a l   p u l s a r   l a   ' X ' ,   d e l e g a n d o   e l   c i e r r e   d e f i n i t i v o   a l   m e n ú   d e l   S y s t e m   T r a y . 
  -   V a l i d a d a   c o m p i l a c i ó n   l o c a l   ( \ c a r g o   c h e c k \ )   e x i t o s a m e n t e .  
  
+## LANDING-PAGES-01
+
+- Se ha creado una landing page moderna, ligera y estatica en `landing/index.html`:
+  - Hero section visual con propuesta de valor clara: visualizacion de tiempo y productividad 100% privada y local sin almacenamiento en la nube.
+  - Mockup fidedigno del dashboard de Activity UI representando la vista semanal (KPI de tiempo activo, media diaria, distribucion horaria con pico resaltado y desglose porcentual por categorias).
+  - Boton de descarga destacado que apunta a la ultima release (https://github.com/14tomass/activityUI/releases/latest) con soporte para instalador guiado NSIS (.exe) y version portable (.zip) de Windows x64.
+  - Seccion detallada de arquitectura local-first e integracion con ActivityWatch (http://localhost:5600).
+  - Guia de requisitos de puesta en marcha (ActivityWatch en segundo plano + cliente Activity UI).
+  - Tabla comparativa de privacidad entre Activity UI y soluciones de rastreo comerciales en la nube.
+  - Configuracion estetica moderna usando Tailwind CSS via CDN, fuentes Plus Jakarta Sans / JetBrains Mono e iconos/assets integrados.
+- Se ha creado el flujo de despliegue automatizado en `.github/workflows/deploy-pages.yml`:
+  - Configurado con las acciones oficiales de GitHub Pages (`actions/configure-pages@v5`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v4`).
+  - Despliegue automatico de la carpeta `landing/` ante cada `push` a la rama `main` y soporte para ejecucion manual via `workflow_dispatch`.
+  - Permisos configurados para `pages: write`, `id-token: write` y `contents: read`.
